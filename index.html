@@ -2,58 +2,63 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ins简约小手机</title>
+    <!-- 重点：禁止缩放，完美充满手机屏幕 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>小手机自适应版</title>
     <link rel="stylesheet" href="./css/style.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body>
-    <div id="app" class="phone-case">
-        <div class="screen">
-            <!-- 状态栏 & 灵动岛 -->
-            <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
-                <span class="time">{{ time }}</span>
-                <div class="dynamic-island"></div>
-                <span class="battery">
-                    <span class="battery-text">{{ battery }}%</span>
-                    <div class="battery-icon">
-                        <div class="battery-level" :style="{ width: battery + '%' }"></div>
-                    </div>
-                </span>
-            </div>
-
-            <!-- 桌面网格系统 -->
-            <div v-if="!store.currentApp" class="desktop">
-                <!-- 渲染小组件 -->
-                <div v-for="widget in store.activeWidgets" :key="widget.id" 
-                     class="widget-box" 
-                     :style="{ gridColumn: 'span ' + widget.span.split('/')[0].trim(), gridRow: 'span ' + widget.span.split('/')[1].trim() }">
-                    <div v-if="widget.type === 'time'" class="widget-time">
-                        <h1>{{ time }}</h1>
-                        <p>{{ date }} {{ weekday }}</p>
-                    </div>
-                    <div v-if="widget.type === 'weather'" class="widget-weather">
-                        <h2>☀️ 26°C</h2>
-                        <p>晴朗</p>
-                    </div>
+    <!-- #app 直接作为全屏容器 -->
+    <div id="app">
+        <!-- 状态栏 & 灵动岛 -->
+        <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
+            <span class="time">{{ time }}</span>
+            <div class="dynamic-island"></div>
+            <span class="battery">
+                <span class="battery-text">{{ battery }}%</span>
+                <div class="battery-icon">
+                    <div class="battery-level" :style="{ width: battery + '%' }"></div>
                 </div>
+            </span>
+        </div>
 
-                <!-- 渲染App图标 -->
-                <div v-for="app in store.installedApps" :key="app.id" class="app-icon" @click="openApp(app.id)">
-                    <div class="icon-img" :style="{ backgroundColor: app.color }">{{ app.icon }}</div>
-                    <span class="icon-name">{{ app.name }}</span>
+        <!-- 桌面网格系统 -->
+        <div v-if="!store.currentApp" class="desktop">
+            <!-- 小组件 -->
+            <div v-for="widget in store.activeWidgets" :key="widget.id" 
+                 class="widget-box" 
+                 :style="{ gridColumn: 'span ' + widget.span.split('/')[0].trim(), gridRow: 'span ' + widget.span.split('/')[1].trim() }">
+                <div v-if="widget.type === 'time'" class="widget-time">
+                    <h1>{{ time }}</h1>
+                    <p>{{ date }} {{ weekday }}</p>
+                </div>
+                <div v-if="widget.type === 'weather'" class="widget-weather">
+                    <h2>☀️ 26°C</h2>
+                    <p>晴朗</p>
                 </div>
             </div>
 
-            <!-- App 运行界面 -->
-            <div v-else class="app-view">
-                <component :is="store.currentApp"></component>
-                <!-- 底部返回横条 -->
-                <div class="home-indicator" @click="closeApp"></div>
+            <!-- App 图标 (文字显示) -->
+            <div v-for="app in store.installedApps" :key="app.id" class="app-icon" @click="openApp(app.id)">
+                <!-- 用文字代替Emoji -->
+                <div class="icon-img" :style="{ backgroundColor: app.color }">{{ app.textIcon }}</div>
+                <span class="icon-name">{{ app.name }}</span>
             </div>
+        </div>
+
+        <!-- App 运行界面 -->
+        <div v-else class="app-view">
+            <component :is="store.currentApp"></component>
+            <!-- 底部返回横条 -->
+            <div class="home-indicator" @click="closeApp"></div>
         </div>
     </div>
 
-    <script type="module" src="./js/main.js"></script>
+    <!-- 顺序极其重要：先基础数据，再App，最后运行大脑方案 -->
+    <script src="./js/store.js"></script>
+    <script src="./js/apps/widgetApp.js"></script>
+    <script src="./js/apps/weibo.js"></script>
+    <script src="./js/main.js"></script>
 </body>
 </html>
