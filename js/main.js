@@ -1,9 +1,5 @@
-import { store } from './store.js';
-// 引入你的应用
-import widgetApp from './apps/widgetApp.js';
-import weiboApp from './apps/weibo.js';
-
 const { createApp, ref, onMounted } = Vue;
+const store = window.store;
 
 const app = createApp({
     setup() {
@@ -12,7 +8,6 @@ const app = createApp({
         const weekday = ref('');
         const battery = ref(100);
 
-        // 1. 获取真实时间
         const updateTime = () => {
             const now = new Date();
             time.value = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
@@ -21,7 +16,6 @@ const app = createApp({
             weekday.value = days[now.getDay()];
         };
 
-        // 2. 获取真实电量 (部分浏览器支持)
         const updateBattery = () => {
             if ('getBattery' in navigator) {
                 navigator.getBattery().then(batt => {
@@ -31,7 +25,7 @@ const app = createApp({
                     });
                 });
             } else {
-                battery.value = 88; // 不支持的浏览器显示假电量
+                battery.value = 99; // 苹果系统通常不支持读取电量，给个占位符
             }
         };
 
@@ -44,15 +38,12 @@ const app = createApp({
         const openApp = (id) => { store.currentApp = id; };
         const closeApp = () => { store.currentApp = null; };
 
-        // 暴露给模板使用
         return { store, time, date, weekday, battery, openApp, closeApp };
     }
 });
 
-// 注册 App 组件
-app.component('widgetApp', widgetApp);
-app.component('weibo', weiboApp);
-// 你每写一个新App，都要在这里 register 一下，比如:
-// app.component('qq', qqApp);
+// 注册刚才写的两个App (如果你后续写了 qq.js，记得在这里照葫芦画瓢加上)
+app.component('widgetApp', window.widgetApp);
+app.component('weibo', window.weiboApp);
 
 app.mount('#app');
