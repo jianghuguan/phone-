@@ -1,32 +1,22 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
-/* 禁用整个页面的滚动，防止拉伸 */
 body {
-    background-color: #000;
+    background-color: #000; overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    overflow: hidden; 
+    user-select: none; /* 防止长按选中文本 */
 }
 
-/* 直接让应用沾满全屏，无边框 */
 #app {
-    width: 100vw;
-    height: 100dvh; /* 100dvh 能完美适配手机浏览器的地址栏缩放 */
-    background-color: #fbfbfd;
-    display: flex;
-    flex-direction: column;
-    position: relative;
+    width: 100vw; height: 100dvh; background-color: #fbfbfd;
+    display: flex; flex-direction: column; position: relative;
 }
 
-/* 状态栏：贴边显示 */
 .status-bar {
     display: flex; justify-content: space-between; align-items: center;
     padding: 15px 24px 10px; font-size: 14px; font-weight: 600; z-index: 100;
-    transition: color 0.3s;
 }
 .dark-text { color: #111; }
 .status-bar:not(.dark-text) { color: #333; }
 
-/* 灵动岛 */
 .dynamic-island {
     width: 110px; height: 30px; background-color: #000;
     border-radius: 20px; position: absolute; left: 50%; top: 12px;
@@ -34,54 +24,52 @@ body {
 }
 
 .battery { display: flex; align-items: center; gap: 4px; }
-.battery-icon {
-    width: 22px; height: 11px; border: 1px solid currentColor;
-    border-radius: 4px; padding: 1px; position: relative;
-}
-.battery-icon::after {
-    content: ''; position: absolute; right: -3px; top: 2px;
-    width: 2px; height: 5px; background: currentColor; border-radius: 0 2px 2px 0;
-}
-.battery-level { height: 100%; background-color: currentColor; border-radius: 2px; transition: width 0.3s;}
+.battery-icon { width: 22px; height: 11px; border: 1px solid currentColor; border-radius: 4px; padding: 1px; position: relative; }
+.battery-icon::after { content: ''; position: absolute; right: -3px; top: 2px; width: 2px; height: 5px; background: currentColor; border-radius: 0 2px 2px 0; }
+.battery-level { height: 100%; background-color: currentColor; border-radius: 2px; transition: width 0.3s; }
 
-/* 桌面网格：自动适配剩余空间 */
+/* 桌面网格 */
 .desktop {
-    flex: 1; /* 撑满剩余高度 */
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: 75px; 
-    gap: 15px; padding: 20px 20px;
-    align-content: start; /* 填不满时靠上对齐，不要出现滚动条 */
+    flex: 1; display: grid; grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 75px; gap: 18px 15px; padding: 20px 20px; align-content: start;
 }
 
-/* App 图标设置 */
-.app-icon {
-    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-    cursor: pointer;
-}
+.app-icon { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
 .icon-img {
-    width: 55px; height: 55px; border-radius: 16px; /* Ins大圆角 */
-    display: flex; justify-content: center; align-items: center;
-    font-size: 24px; font-weight: bold; color: #333; /* 文字作为图标的样式 */
-    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    width: 58px; height: 58px; border-radius: 16px;
+    display: flex; justify-content: center; align-items: center; font-size: 26px; font-weight: bold; color: #333;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06); transition: transform 0.2s;
 }
+.app-icon:active .icon-img { transform: scale(0.9); }
 .icon-name { font-size: 12px; color: #555; margin-top: 6px; font-weight: 500;}
 
-/* 小组件样式 */
+/* 通用小组件框 */
 .widget-box {
-    background-color: #fff; border-radius: 20px; padding: 15px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+    background-color: #fff; border-radius: 22px; overflow: hidden;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.05); position: relative;
 }
-.widget-time { display: flex; flex-direction: column; justify-content: center; height: 100%; }
-.widget-time h1 { font-size: 32px; font-weight: 300; }
-.widget-time p { color: #888; font-size: 13px; margin-top: 4px; }
 
-.widget-weather { display: flex; flex-direction: column; justify-content: space-between; height: 100%; background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); border-radius: 20px; color: #fff;}
+/* 时间+天气合并设计 */
+.widget-combo {
+    display: flex; justify-content: space-between; align-items: center; padding: 18px; 
+    height: 100%; color: #fff; background-color: #8faada; /* 默认底色 */
+    background-size: cover; background-position: center; transition: background 0.3s;
+    /* 加入阴影，防止任何壁纸导致文字看不清 */
+    text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+}
+.time-part h1 { font-size: 38px; font-weight: 300; margin-bottom: 4px; letter-spacing: 1px;}
+.time-part p { font-size: 13px; font-weight: 500; opacity: 0.9;}
+.weather-part { text-align: right; display: flex; flex-direction: column; align-items: flex-end;}
+.w-icon { font-size: 28px; line-height: 1;}
+.w-temp { font-size: 22px; font-weight: 600; margin-top: 2px;}
+.w-desc { font-size: 12px; opacity: 0.9;}
 
-/* App界面全屏与主页横条 */
+/* 照片墙 */
+.widget-photo { width: 100%; height: 100%; background-size: cover; background-position: center; }
+
 .app-view { width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: #fff; z-index: 10; padding-top: 55px; overflow-y: auto;}
-.home-indicator {
-    width: 140px; height: 5px; background-color: #000;
-    border-radius: 10px; position: fixed; bottom: 8px; left: 50%;
-    transform: translateX(-50%); cursor: pointer; z-index: 999;
-}
+.home-indicator { width: 140px; height: 5px; background-color: #000; border-radius: 10px; position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); cursor: pointer; z-index: 999; }
+
+/* 拖拽时的样式（变成半透明浮起） */
+.sortable-ghost { opacity: 0; }
+.sortable-drag { opacity: 0.8 !important; transform: scale(1.05) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important; }
