@@ -2,16 +2,16 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- 重点：禁止缩放，完美充满手机屏幕 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>小手机自适应版</title>
+    <title>Ins自定义桌面</title>
     <link rel="stylesheet" href="./css/style.css">
+    <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入强大的拖拽引擎 -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
-    <!-- #app 直接作为全屏容器 -->
     <div id="app">
-        <!-- 状态栏 & 灵动岛 -->
         <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
             <span class="time">{{ time }}</span>
             <div class="dynamic-island"></div>
@@ -23,39 +23,50 @@
             </span>
         </div>
 
-        <!-- 桌面网格系统 -->
-        <div v-if="!store.currentApp" class="desktop">
-            <!-- 小组件 -->
-            <div v-for="widget in store.activeWidgets" :key="widget.id" 
-                 class="widget-box" 
-                 :style="{ gridColumn: 'span ' + widget.span.split('/')[0].trim(), gridRow: 'span ' + widget.span.split('/')[1].trim() }">
-                <div v-if="widget.type === 'time'" class="widget-time">
-                    <h1>{{ time }}</h1>
-                    <p>{{ date }} {{ weekday }}</p>
-                </div>
-                <div v-if="widget.type === 'weather'" class="widget-weather">
-                    <h2>☀️ 26°C</h2>
-                    <p>晴朗</p>
-                </div>
-            </div>
+        <!-- 桌面区，加上专门的 ref 用于挂载拖拽引擎 -->
+        <div v-if="!store.currentApp" class="desktop" id="desktop-grid">
+            
+            <!-- 统一遍历所有桌面元素（无论是App还是组件） -->
+            <template v-for="item in store.desktopLayout" :key="item.id">
+                
+                <!-- 渲染小组件 -->
+                <div v-if="item.isWidget" class="widget-box" 
+                     :style="{ gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() }">
+                    
+                    <!-- 1. 新的时间+天气混合体 -->
+                    <div v-if="item.id === 'timeWeatherWidget'" class="widget-combo" :style="{ backgroundImage: 'url(' + store.timeBg + ')' }">
+                        <div class="time-part">
+                            <h1>{{ time }}</h1>
+                            <p>{{ date }} {{ weekday }}</p>
+                        </div>
+                        <div class="weather-part">
+                            <div class="w-icon">{{ weather.icon }}</div>
+                            <div class="w-temp">{{ weather.temp }}°C</div>
+                            <div class="w-desc">{{ weather.desc }}</div>
+                        </div>
+                    </div>
 
-            <!-- App 图标 (文字显示) -->
-            <div v-for="app in store.installedApps" :key="app.id" class="app-icon" @click="openApp(app.id)">
-                <!-- 用文字代替Emoji -->
-                <div class="icon-img" :style="{ backgroundColor: app.color }">{{ app.textIcon }}</div>
-                <span class="icon-name">{{ app.name }}</span>
-            </div>
+                    <!-- 2. 照片墙 -->
+                    <div v-if="item.id === 'photoWidget'" class="widget-photo" :style="{ backgroundImage: 'url(' + store.photoBg + ')' }">
+                    </div>
+                </div>
+
+                <!-- 渲染App -->
+                <div v-else class="app-icon" @click="openApp(item.id)">
+                    <div class="icon-img" :style="{ backgroundColor: store.appInfo[item.id].color }">{{ store.appInfo[item.id].textIcon }}</div>
+                    <span class="icon-name">{{ store.appInfo[item.id].name }}</span>
+                </div>
+            </template>
+
         </div>
 
-        <!-- App 运行界面 -->
         <div v-else class="app-view">
             <component :is="store.currentApp"></component>
-            <!-- 底部返回横条 -->
             <div class="home-indicator" @click="closeApp"></div>
         </div>
     </div>
 
-    <!-- 顺序极其重要：先基础数据，再App，最后运行大脑方案 -->
+    <!-- 严格的文件执行顺序 -->
     <script src="./js/store.js"></script>
     <script src="./js/apps/widgetApp.js"></script>
     <script src="./js/apps/weibo.js"></script>
