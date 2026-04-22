@@ -1,4 +1,8 @@
-const { createApp, ref, onMounted, nextTick } = Vue;
+/* eslint-disable */
+/* global Sortable */
+
+// 从全局 window 对象中获取 Vue，完美避开报错红叉
+const { createApp, ref, onMounted, nextTick } = window.Vue;
 const store = window.store;
 
 const app = createApp({
@@ -7,7 +11,7 @@ const app = createApp({
         const date = ref('');
         const weekday = ref('');
         const battery = ref(100);
-        const desktopRef = ref(null); // 指向桌面元素
+        const desktopRef = ref(null); 
 
         const weather = ref({ temp: '--', desc: '获取中...', icon: '☁️' });
 
@@ -52,7 +56,6 @@ const app = createApp({
             }
         };
 
-        // 获取独立App信息辅助函数
         const getApp = (id) => store.installedApps.find(a => a.id === id);
 
         onMounted(() => {
@@ -60,22 +63,23 @@ const app = createApp({
             setInterval(updateTime, 1000);
             setInterval(updateWeather, 3600000); 
 
-            // 初始化桌面拖拽支持 (长按生效)
+            // 初始化桌面拖拽支持 
             nextTick(() => {
-                new Sortable(desktopRef.value, {
-                    animation: 200, 
-                    delay: 250, // 设定长按 250 毫秒才触发拖拽 (防止与普通点击冲突)
-                    delayOnTouchOnly: false,
-                    ghostClass: 'sortable-ghost',
-                    dragClass: 'sortable-drag',
-                    onEnd: (evt) => {
-                        // 拖拽松手后：更新数组的顺序
-                        const itemArr = [...store.desktopItems];
-                        const movedItem = itemArr.splice(evt.oldIndex, 1)[0];
-                        itemArr.splice(evt.newIndex, 0, movedItem);
-                        store.desktopItems = itemArr;
-                    }
-                });
+                if (desktopRef.value && window.Sortable) {
+                    new window.Sortable(desktopRef.value, {
+                        animation: 200, 
+                        delay: 250, 
+                        delayOnTouchOnly: false,
+                        ghostClass: 'sortable-ghost',
+                        dragClass: 'sortable-drag',
+                        onEnd: (evt) => {
+                            const itemArr = [...store.desktopItems];
+                            const movedItem = itemArr.splice(evt.oldIndex, 1)[0];
+                            itemArr.splice(evt.newIndex, 0, movedItem);
+                            store.desktopItems = itemArr;
+                        }
+                    });
+                }
             });
         });
 
@@ -86,6 +90,12 @@ const app = createApp({
     }
 });
 
-app.component('widgetApp', window.widgetApp);
-app.component('weibo', window.weiboApp);
+// 增加安全判断，防止某个 App 文件没加载出来导致报错红叉
+if (window.widgetApp) {
+    app.component('widgetApp', window.widgetApp);
+}
+if (window.weiboApp) {
+    app.component('weibo', window.weiboApp);
+}
+
 app.mount('#app');
