@@ -1,77 +1,104 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ins自定义小手机</title>
-    
-    <!-- 注意这里：改成了 ./css/ 相对路径，GitHub 就不会报错了 -->
-    <link rel="stylesheet" href="./css/style.css">
-    
-    <!-- Vue 3 -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- 拖拽排序神器 SortableJS -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>小手机</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body>
-    <div id="app">
-        <!-- 状态栏 & 灵动岛 -->
-        <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
-            <span class="time">{{ time }}</span>
-            <div class="dynamic-island"></div>
-            <span class="battery">
-                <span class="battery-text">{{ battery }}%</span>
-                <div class="battery-icon">
-                    <div class="battery-level" :style="{ width: battery + '%' }"></div>
-                </div>
-            </span>
+  <div id="app">
+    <!-- 状态栏 -->
+    <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
+      <span class="time">{{ time }}</span>
+      <div class="dynamic-island"></div>
+      <span class="battery">
+        <span class="battery-text">{{ battery }}%</span>
+        <div class="battery-icon">
+          <div class="battery-level" :style="{ width: battery + '%' }"></div>
         </div>
-
-        <!-- 桌面网格系统 (ref 用于绑定拖拽) -->
-        <div v-show="!store.currentApp" class="desktop" ref="desktopRef">
-            <!-- 统一遍历桌面上的所有元素 (包括App和组件) -->
-            <div v-for="item in store.desktopItems" :key="item.id" 
-                 :class="['grid-item', item.type]"
-                 :style="{ gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() }"
-                 @click="item.type === 'app' ? openApp(item.id) : null">
-                
-                <!-- 渲染: 时间天气复合小组件 (4x2) -->
-                <div v-if="item.id === 'timeWidget'" class="widget-box widget-time" :style="{ backgroundImage: 'url(' + store.timeWidgetBg + ')' }">
-                    <div class="glass-overlay"></div>
-                    <div class="widget-content time-part">
-                        <h1>{{ time }}</h1>
-                        <p>{{ date }} {{ weekday }}</p>
-                    </div>
-                    <div class="widget-content weather-part">
-                        <h2>{{ weather.icon }} {{ weather.temp }}°C</h2>
-                        <p>{{ weather.desc }}</p>
-                    </div>
-                </div>
-
-                <!-- 渲染: 照片墙小组件 (2x2) -->
-                <div v-if="item.id === 'photoWidget'" class="widget-box widget-photo" :style="{ backgroundImage: 'url(' + store.photoWidgetImg + ')' }">
-                </div>
-
-                <!-- 渲染: App 图标 (1x1) -->
-                <template v-if="item.type === 'app'">
-                    <div class="icon-img" :style="{ backgroundColor: getApp(item.id).color }">{{ getApp(item.id).textIcon }}</div>
-                    <span class="icon-name">{{ getApp(item.id).name }}</span>
-                </template>
-            </div>
-        </div>
-
-        <!-- App 运行界面 -->
-        <div v-if="store.currentApp" class="app-view">
-            <component :is="store.currentApp"></component>
-            <!-- 底部滑动返回横条 -->
-            <div class="home-indicator" @click="closeApp"></div>
-        </div>
+      </span>
     </div>
 
-    <!-- 注意这里：全部改回 ./js/ 相对路径，完美适配 GitHub -->
-    <script src="./js/store.js"></script>
-    <script src="./js/apps/widgetApp.js"></script>
-    <script src="./js/apps/weibo.js"></script>
-    <script src="./js/main.js"></script>
+    <!-- 桌面 -->
+    <div
+      v-if="!store.currentApp"
+      class="desktop"
+      ref="desktopRef"
+      @touchmove="onDesktopMove"
+      @touchend="onDesktopEnd"
+      @mousemove="onDesktopMove"
+      @mouseup="onDesktopEnd"
+      @mouseleave="onDesktopEnd"
+    >
+      <div
+        v-for="item in store.desktopItems"
+        :key="item.id"
+        class="desktop-item"
+        :class="[
+          item.type === 'app' ? 'desktop-app' : 'desktop-widget',
+          { dragging: draggingId === item.id }
+        ]"
+        :style="getItemStyle(item)"
+        @touchstart="onItemStart(item, $event)"
+        @touchend="onItemEnd"
+        @mousedown.prevent="onItemStart(item, $event)"
+      >
+        <!-- 小组件 -->
+        <template v-if="item.type === 'widget'">
+          <!-- 时间天气组件 -->
+          <div
+            v-if="item.widgetType === 'timeWeather'"
+            class="widget-box widget-time-weather"
+            :style="store.widgetSettings.timeWeatherBg ? { backgroundImage: 'url(' + store.widgetSettings.timeWeatherBg + ')' } : {}"
+          >
+            <div class="widget-overlay"></div>
+            <div class="widget-content">
+              <div class="widget-weather-top">
+                <span>{{ weatherText }}</span>
+                <span>{{ temperature }}</span>
+              </div>
+              <h1>{{ time }}</h1>
+              <p>{{ date }} {{ weekday }}</p>
+            </div>
+          </div>
+
+          <!-- 照片墙组件 -->
+          <div v-if="item.widgetType === 'photoWall'" class="widget-box widget-photo-wall">
+            <div
+              v-for="(img, index) in store.widgetSettings.photoWallImages"
+              :key="index"
+              class="photo-cell"
+              :style="img ? { backgroundImage: 'url(' + img + ')' } : {}"
+            >
+              <span v-if="!img">照片</span>
+            </div>
+          </div>
+        </template>
+
+        <!-- App -->
+        <template v-else>
+          <div class="app-icon" @click.stop="openApp(item.appId)">
+            <div class="icon-img" :style="{ backgroundColor: getAppById(item.appId).color }">
+              {{ getAppById(item.appId).textIcon }}
+            </div>
+            <span class="icon-name">{{ getAppById(item.appId).name }}</span>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- App 界面 -->
+    <div v-else class="app-view">
+      <component :is="store.currentApp"></component>
+      <div class="home-indicator" @click="closeApp"></div>
+    </div>
+  </div>
+
+  <script src="./js/store.js"></script>
+  <script src="./js/apps/widgetApp.js"></script>
+  <script src="./js/apps/simpleApps.js"></script>
+  <script src="./js/main.js"></script>
 </body>
 </html>
