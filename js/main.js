@@ -1,4 +1,4 @@
-const { createApp, ref, onMounted, watch, nextTick } = Vue;
+const { createApp, ref, onMounted, nextTick } = Vue;
 const store = window.store;
 
 const app = createApp({
@@ -7,6 +7,8 @@ const app = createApp({
         const date = ref('');
         const weekday = ref('');
         const battery = ref(100);
+        const desktopRef = ref(null); // 指向桌面元素
+
         const weather = ref({ temp: '--', desc: '获取中...', icon: '☁️' });
 
         const updateTime = () => {
@@ -23,75 +25,67 @@ const app = createApp({
                     battery.value = Math.floor(batt.level * 100);
                     batt.addEventListener('levelchange', () => battery.value = Math.floor(batt.level * 100));
                 });
-            } else { battery.value = 99; }
+            } else {
+                battery.value = 99; 
+            }
         };
 
-        // Open-Meteo 真实免费免费天气 API
         const updateWeather = async () => {
             try {
-                // 默认经纬度可以自己修改
                 const url = 'https://api.open-meteo.com/v1/forecast?latitude=39.90&longitude=116.40&current_weather=true';
                 const response = await fetch(url);
                 const data = await response.json();
                 
-                const currentTemp = Math.round(data.current_weather.temperature);
-                const weatherCode = data.current_weather.weathercode;
-                
-                let weatherIcon = '☁️', weatherDesc = '多云';
-                if (weatherCode === 0) { weatherIcon = '☀️'; weatherDesc = '晴朗'; }
-                else if (weatherCode <= 2) { weatherIcon = '⛅'; weatherDesc = '少云'; }
-                else if (weatherCode === 3) { weatherIcon = '☁️'; weatherDesc = '阴天'; }
-                else if (weatherCode >= 45 && weatherCode <= 48) { weatherIcon = '🌫️'; weatherDesc = '雾'; }
-                else if (weatherCode >= 51 && weatherCode <= 67) { weatherIcon = '🌧️'; weatherDesc = '雨'; }
-                else if (weatherCode >= 71 && weatherCode <= 77) { weatherIcon = '❄️'; weatherDesc = '雪'; }
-                else if (weatherCode >= 95) { weatherIcon = '⛈️'; weatherDesc = '雷暴'; }
+                const code = data.current_weather.weathercode;
+                let wIcon = '☁️', wDesc = '多云';
+                if (code === 0) { wIcon = '☀️'; wDesc = '晴朗'; }
+                else if (code <= 2) { wIcon = '⛅'; wDesc = '少云'; }
+                else if (code === 3) { wIcon = '☁️'; wDesc = '阴天'; }
+                else if (code >= 45 && code <= 48) { wIcon = '🌫️'; wDesc = '雾'; }
+                else if (code >= 51 && code <= 67) { wIcon = '🌧️'; wDesc = '雨'; }
+                else if (code >= 71 && code <= 77) { wIcon = '❄️'; wDesc = '雪'; }
+                else if (code >= 95) { wIcon = '⛈️'; wDesc = '雷暴'; }
 
-                weather.value = { temp: currentTemp, desc: weatherDesc, icon: weatherIcon };
+                weather.value = { temp: Math.round(data.current_weather.temperature), desc: wDesc, icon: wIcon };
             } catch (error) {
-                weather.value.desc = "网络中断";
+                weather.value.desc = "获取失败";
             }
         };
 
-        // 绑定拖拽事件（长按）
-        const initSortable = () => {
-            const el = document.getElementById('desktop-grid');
-            if (el) {
-                new Sortable(el, {
-                    delay: 250, // 长按 250 毫秒才能拖拽，防止滑动页面时产生误触！
-                    delayOnTouchOnly: true, // 仅在触摸屏时生效长按
-                    animation: 200, // 高级动画过渡
-                    ghostClass: 'sortable-ghost',
-                    dragClass: 'sortable-drag',
-                    onEnd(evt) {
-                        // 这个机制会在拖动结束后，自动同步你的 store 数据中组件的排队顺序
-                        const item = store.desktopLayout.splice(evt.oldIndex, 1)[0];
-                        store.desktopLayout.splice(evt.newIndex, 0, item);
-                    }
-                });
-            }
-        };
+        // 获取独立App信息辅助函数
+        const getApp = (id) => store.installedApps.find(a => a.id === id);
 
         onMounted(() => {
-            updateTime(); setInterval(updateTime, 1000);
-            updateBattery(); updateWeather();
-            initSortable();
-        });
+            updateTime(); updateBattery(); updateWeather();
+            setInterval(updateTime, 1000);
+            setInterval(updateWeather, 3600000); 
 
-        // ！！核心！！: 每次关闭App回到桌面时，重新挂载长按拖动事件
-        watch(() => store.currentApp, (newVal) => {
-            if (!newVal) {
-                nextTick(() => { initSortable(); });
-            }
+            // 初始化桌面拖拽支持 (长按生效)
+            nextTick(() => {
+                new Sortable(desktopRef.value, {
+                    animation: 200, 
+                    delay: 250, // 设定长按 250 毫秒才触发拖拽 (防止与普通点击冲突)
+                    delayOnTouchOnly: false,
+                    ghostClass: 'sortable-ghost',
+                    dragClass: 'sortable-drag',
+                    onEnd: (evt) => {
+                        // 拖拽松手后：更新数组的顺序
+                        const itemArr = [...store.desktopItems];
+                        const movedItem = itemArr.splice(evt.oldIndex, 1)[0];
+                        itemArr.splice(evt.newIndex, 0, movedItem);
+                        store.desktopItems = itemArr;
+                    }
+                });
+            });
         });
 
         const openApp = (id) => { store.currentApp = id; };
         const closeApp = () => { store.currentApp = null; };
 
-        return { store, time, date, weekday, battery, weather, openApp, closeApp };
+        return { store, time, date, weekday, battery, weather, desktopRef, getApp, openApp, closeApp };
     }
 });
 
 app.component('widgetApp', window.widgetApp);
 app.component('weibo', window.weiboApp);
-
 app.mount('#app');
