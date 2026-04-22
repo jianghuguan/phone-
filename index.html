@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Ins自定义小手机</title>
-    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- 注意这里：改成了 ./css/ 相对路径，GitHub 就不会报错了 -->
+    <link rel="stylesheet" href="./css/style.css">
+    
     <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- 拖拽排序神器 SortableJS -->
@@ -65,10 +68,10 @@
         </div>
     </div>
 
-    <!-- 绝对路径导入脚本 -->
-    <script src="/js/store.js"></script>
-    <script src="/js/apps/widgetApp.js"></script>
-    <script src="/js/apps/weibo.js"></script>
-    <script src="/js/main.js"></script>
+    <!-- 注意这里：全部改回 ./js/ 相对路径，完美适配 GitHub -->
+    <script src="./js/store.js"></script>
+    <script src="./js/apps/widgetApp.js"></script>
+    <script src="./js/apps/weibo.js"></script>
+    <script src="./js/main.js"></script>
 </body>
 </html>
