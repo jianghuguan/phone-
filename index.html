@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ins自定义小手机</title>
+    <title>小手机自适应版</title>
     <link rel="stylesheet" href="/css/style.css">
-    <!-- Vue 3 -->
+    <!-- 引入 Vue3 和 Sortable 滑动库 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- 拖拽排序神器 SortableJS -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -24,17 +23,14 @@
             </span>
         </div>
 
-        <!-- 桌面网格系统 (ref 用于绑定拖拽) -->
-        <div v-show="!store.currentApp" class="desktop" ref="desktopRef">
-            <!-- 统一遍历桌面上的所有元素 (包括App和组件) -->
-            <div v-for="item in store.desktopItems" :key="item.id" 
-                 :class="['grid-item', item.type]"
-                 :style="{ gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() }"
-                 @click="item.type === 'app' ? openApp(item.id) : null">
-                
-                <!-- 渲染: 时间天气复合小组件 (4x2) -->
-                <div v-if="item.id === 'timeWidget'" class="widget-box widget-time" :style="{ backgroundImage: 'url(' + store.timeWidgetBg + ')' }">
-                    <div class="glass-overlay"></div>
+        <!-- 桌面网格系统 (统一渲染拖放数组) -->
+        <div v-show="!store.currentApp" class="desktop" id="desktopGrid">
+            <div v-for="item in store.desktopLayout" :key="item.id" class="desktop-item"
+                 :style="item.isWidget ? { gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() } : { gridColumn: 'span 1', gridRow: 'span 1' }">
+
+                <!-- 1. 新的时间天气联合小组件 -->
+                <div v-if="item.id === 'timeWidget'" class="widget-time-weather" 
+                     :style="{ backgroundImage: store.widgetSettings.timeBg ? 'url(' + store.widgetSettings.timeBg + ')' : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }">
                     <div class="widget-content time-part">
                         <h1>{{ time }}</h1>
                         <p>{{ date }} {{ weekday }}</p>
@@ -45,27 +41,29 @@
                     </div>
                 </div>
 
-                <!-- 渲染: 照片墙小组件 (2x2) -->
-                <div v-if="item.id === 'photoWidget'" class="widget-box widget-photo" :style="{ backgroundImage: 'url(' + store.photoWidgetImg + ')' }">
+                <!-- 2. 照片墙小组件 -->
+                <div v-else-if="item.id === 'photoWidget'" class="widget-photo" 
+                     :style="{ backgroundImage: 'url(' + store.widgetSettings.photoBg + ')' }">
                 </div>
 
-                <!-- 渲染: App 图标 (1x1) -->
-                <template v-if="item.type === 'app'">
-                    <div class="icon-img" :style="{ backgroundColor: getApp(item.id).color }">{{ getApp(item.id).textIcon }}</div>
-                    <span class="icon-name">{{ getApp(item.id).name }}</span>
-                </template>
+                <!-- 3. App 图标 -->
+                <div v-else-if="item.isApp" class="app-icon" @click="openApp(item.id)">
+                    <div class="icon-img" :style="{ backgroundColor: item.color }">{{ item.textIcon }}</div>
+                    <span class="icon-name">{{ item.name }}</span>
+                </div>
+
             </div>
         </div>
 
         <!-- App 运行界面 -->
         <div v-if="store.currentApp" class="app-view">
             <component :is="store.currentApp"></component>
-            <!-- 底部滑动返回横条 -->
+            <!-- 底部返回横条 -->
             <div class="home-indicator" @click="closeApp"></div>
         </div>
     </div>
 
-    <!-- 绝对路径导入脚本 -->
+    <!-- 加载逻辑顺序 -->
     <script src="/js/store.js"></script>
     <script src="/js/apps/widgetApp.js"></script>
     <script src="/js/apps/weibo.js"></script>
