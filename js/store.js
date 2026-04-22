@@ -1,35 +1,33 @@
 window.store = Vue.reactive({
-    currentApp: null, 
+    currentApp: null,
     
-    // 自定义设置（图片地址）
-    settings: {
-        timeBg: 'https://images.unsplash.com/photo-1514477917009-389c76a86b68?w=500&q=80', // 默认星空/深色背景
-        photoBg: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80' // 默认照片墙背景
-    },
+    // 你可以在组件APP长按随便换这两个的背景链接
+    timeWidgetBg: 'https://images.unsplash.com/photo-1506744626753-1fa44df6231e?w=800&q=80',
+    photoWidgetImg: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400&q=80',
 
-    // App的静态信息库
-    appsData: {
-        qq: { name: 'QQ', textIcon: 'Q', color: '#e8f4fd' },
-        sms: { name: '短信', textIcon: '信', color: '#e8fde8' },
-        weibo: { name: '微博', textIcon: '微', color: '#fde8e8' },
-        forum: { name: '论坛', textIcon: '论', color: '#f3e8fd' },
-        music: { name: '音乐', textIcon: '音', color: '#fde8f5' },
-        theme: { name: '美化', textIcon: '美', color: '#fdfce8' },
-        settings: { name: '设置', textIcon: '设', color: '#eeeeee' },
-        widgetApp: { name: '小组件', textIcon: '组', color: '#e8fdfa' }
-    },
+    // App 的配置库 (仅做查字典存数据使用)
+    installedApps: [
+        { id: 'qq', name: 'QQ', textIcon: 'Q', color: '#e8f4fd' },
+        { id: 'sms', name: '短信', textIcon: '信', color: '#e8fde8' },
+        { id: 'weibo', name: '微博', textIcon: '微', color: '#fde8e8' },
+        { id: 'forum', name: '论坛', textIcon: '论', color: '#f3e8fd' },
+        { id: 'music', name: '音乐', textIcon: '音', color: '#fde8f5' },
+        { id: 'theme', name: '美化', textIcon: '美', color: '#fdfce8' },
+        { id: 'settings', name: '设置', textIcon: '设', color: '#eeeeee' },
+        { id: 'widgetApp', name: '小组件', textIcon: '组', color: '#e8fdfa' }
+    ],
 
-    // 桌面的真实排列顺序 (改变这个数组的顺序，桌面就会实时变化)
-    layout: [
-        { id: 'timeWidget', type: 'widget', span: '4 / 2' },
-        { id: 'photoWidget', type: 'widget', span: '2 / 2' },
-        { id: 'qq', type: 'app', span: '1 / 1' },
-        { id: 'sms', type: 'app', span: '1 / 1' },
-        { id: 'weibo', type: 'app', span: '1 / 1' },
-        { id: 'forum', type: 'app', span: '1 / 1' },
-        { id: 'music', type: 'app', span: '1 / 1' },
-        { id: 'theme', type: 'app', span: '1 / 1' },
-        { id: 'settings', type: 'app', span: '1 / 1' },
-        { id: 'widgetApp', type: 'app', span: '1 / 1' }
+    // ★核心机制：桌面的展示列表及网格分布顺序 (可拖拽排序)
+    desktopItems: [
+        { type: 'widget', id: 'timeWidget', span: '4 / 2' }, // 占满一行
+        { type: 'widget', id: 'photoWidget', span: '2 / 2' }, // 占半行
+        { type: 'app', id: 'qq', span: '1 / 1' },
+        { type: 'app', id: 'sms', span: '1 / 1' },
+        { type: 'app', id: 'weibo', span: '1 / 1' },
+        { type: 'app', id: 'forum', span: '1 / 1' },
+        { type: 'app', id: 'music', span: '1 / 1' },
+        { type: 'app', id: 'theme', span: '1 / 1' },
+        { type: 'app', id: 'settings', span: '1 / 1' },
+        { type: 'app', id: 'widgetApp', span: '1 / 1' }
     ]
 });
