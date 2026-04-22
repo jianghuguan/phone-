@@ -1,56 +1,95 @@
 window.widgetApp = {
-    template: `
-        <div style="padding: 20px; height: calc(100% - 30px); overflow-y: auto; padding-bottom: 50px;">
-            <h2 style="font-weight: 600; margin-bottom: 20px; font-size: 28px;">小与组件</h2>
-            
-            <div style="background: #f5f5f7; padding: 18px; border-radius: 20px; margin-bottom: 20px;">
-                <h3 style="font-size: 16px;">⏱ 时间变天小组件 (4x2)</h3>
-                <button @click="toggleWidget('timeWidget', '4 / 2')" :style="btnStyle(hasWidget('timeWidget'))">
-                    {{ hasWidget('timeWidget') ? '从桌面移除' : '添加到桌面' }}
-                </button>
-                <div v-if="hasWidget('timeWidget')" style="margin-top: 15px;">
-                    <label style="font-size: 12px; color: #555;">设置背景图片链接:</label>
-                    <input type="text" class="input-field" v-model="store.timeWidgetBg" placeholder="输入图片 URL" />
-                </div>
-            </div>
+  template: `
+    <div class="page">
+      <div class="page-title">小组件</div>
 
-            <div style="background: #f5f5f7; padding: 18px; border-radius: 20px;">
-                <h3 style="font-size: 16px;">📸 照片墙小组件 (2x2)</h3>
-                <button @click="toggleWidget('photoWidget', '2 / 2')" :style="btnStyle(hasWidget('photoWidget'))">
-                    {{ hasWidget('photoWidget') ? '从桌面移除' : '添加到桌面' }}
-                </button>
-                <div v-if="hasWidget('photoWidget')" style="margin-top: 15px;">
-                    <label style="font-size: 12px; color: #555;">更换展示照片链接:</label>
-                    <input type="text" class="input-field" v-model="store.photoWidgetImg" placeholder="输入图片 URL" />
-                </div>
-            </div>
-            
-            <p style="margin-top: 30px; font-size: 13px; color: #888; text-align: center;">
-                💡 提示：在桌面上<strong>长按</strong>任意应用或组件即可随意拖动排列！
-            </p>
+      <div class="card">
+        <h3>时间天气小组件背景图</h3>
+        <input class="input" v-model="timeBg" placeholder="粘贴图片链接" />
+        <button class="btn" @click="saveTimeBg">保存背景图</button>
+        <button class="btn btn-danger" @click="clearTimeBg">清除背景图</button>
+      </div>
+
+      <div class="card">
+        <h3>照片墙小组件</h3>
+        <button
+          class="btn"
+          @click="togglePhotoWidget"
+        >
+          {{ hasPhotoWidget ? '移除照片墙' : '添加照片墙' }}
+        </button>
+
+        <div class="row">
+          <input class="input" v-model="images[0]" placeholder="第1张图片链接" />
         </div>
-    `,
-    setup() {
-        const store = window.store; 
+        <div class="row">
+          <input class="input" v-model="images[1]" placeholder="第2张图片链接" />
+        </div>
+        <div class="row">
+          <input class="input" v-model="images[2]" placeholder="第3张图片链接" />
+        </div>
+        <div class="row">
+          <input class="input" v-model="images[3]" placeholder="第4张图片链接" />
+        </div>
 
-        // 检查桌面列表中有没有这个组件
-        const hasWidget = (id) => store.desktopItems.some(w => w.id === id);
+        <button class="btn" @click="savePhotos">保存照片墙图片</button>
+      </div>
 
-        const toggleWidget = (id, span) => {
-            if (hasWidget(id)) {
-                // 删除
-                store.desktopItems = store.desktopItems.filter(w => w.id !== id);
-            } else {
-                // 插入开头
-                store.desktopItems.unshift({ type: 'widget', id, span });
-            }
-        };
+      <div class="card">
+        <h3>说明</h3>
+        <p style="line-height:1.7;color:#666;font-size:14px;">
+          桌面上的 App 和小组件都支持长按拖动。<br>
+          长按约 0.45 秒后拖动，会自动吸附到 4×6 网格。
+        </p>
+      </div>
+    </div>
+  `,
+  setup() {
+    const timeBg = Vue.ref(window.store.widgetSettings.timeWeatherBg);
+    const images = Vue.ref([...window.store.widgetSettings.photoWallImages]);
 
-        const btnStyle = (isActive) => ({
-            marginTop: '12px', padding: '10px 18px', borderRadius: '30px', border: 'none', width: '100%',
-            backgroundColor: isActive ? '#ff3b30' : '#000', color: '#fff', fontWeight: 'bold', cursor: 'pointer'
+    const hasPhotoWidget = Vue.computed(() => {
+      return window.store.desktopItems.some(item => item.widgetType === 'photoWall');
+    });
+
+    const togglePhotoWidget = () => {
+      const index = window.store.desktopItems.findIndex(item => item.widgetType === 'photoWall');
+      if (index > -1) {
+        window.store.desktopItems.splice(index, 1);
+      } else {
+        window.store.desktopItems.push({
+          id: 'widget-photo',
+          type: 'widget',
+          widgetType: 'photoWall',
+          x: 1,
+          y: 3,
+          w: 2,
+          h: 2
         });
+      }
+    };
 
-        return { store, hasWidget, toggleWidget, btnStyle };
-    }
-}
+    const saveTimeBg = () => {
+      window.store.widgetSettings.timeWeatherBg = timeBg.value.trim();
+    };
+
+    const clearTimeBg = () => {
+      timeBg.value = '';
+      window.store.widgetSettings.timeWeatherBg = '';
+    };
+
+    const savePhotos = () => {
+      window.store.widgetSettings.photoWallImages = images.value.map(v => v.trim());
+    };
+
+    return {
+      timeBg,
+      images,
+      hasPhotoWidget,
+      togglePhotoWidget,
+      saveTimeBg,
+      clearTimeBg,
+      savePhotos
+    };
+  }
+};
