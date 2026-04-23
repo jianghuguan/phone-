@@ -1,95 +1,65 @@
 window.widgetApp = {
-  template: `
-    <div class="page">
-      <div class="page-title">小组件</div>
+    template: `
+        <div style="padding: 20px; height: calc(100% - 60px);">
+            <h2 style="font-weight: 600; margin-bottom: 20px;">桌面美化设置</h2>
+            
+            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 15px;">
+                <h3>时钟天气背景图</h3>
+                <p style="font-size: 12px; color: #666; margin: 5px 0 10px;">更换时间组件的背景壁纸</p>
+                <input type="file" accept="image/*" @change="(e) => handleImageUpload(e, 'timeBgImage')" id="timeBgInput" style="display:none;">
+                <button @click="triggerClick('timeBgInput')" class="btn-primary">从相册选择</button>
+                <button v-if="store.timeBgImage" @click="store.timeBgImage = null" class="btn-danger">移除图片</button>
+            </div>
 
-      <div class="card">
-        <h3>时间天气小组件背景图</h3>
-        <input class="input" v-model="timeBg" placeholder="粘贴图片链接" />
-        <button class="btn" @click="saveTimeBg">保存背景图</button>
-        <button class="btn btn-danger" @click="clearTimeBg">清除背景图</button>
-      </div>
-
-      <div class="card">
-        <h3>照片墙小组件</h3>
-        <button
-          class="btn"
-          @click="togglePhotoWidget"
-        >
-          {{ hasPhotoWidget ? '移除照片墙' : '添加照片墙' }}
-        </button>
-
-        <div class="row">
-          <input class="input" v-model="images[0]" placeholder="第1张图片链接" />
+            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px;">
+                <h3>照片墙 (2x2)</h3>
+                <p style="font-size: 12px; color: #666; margin: 5px 0 10px;">设置桌面上展示的照片</p>
+                <input type="file" accept="image/*" @change="(e) => handleImageUpload(e, 'photoWallImage')" id="photoWallInput" style="display:none;">
+                <button @click="triggerClick('photoWallInput')" class="btn-primary">从相册选择</button>
+                <button v-if="store.photoWallImage" @click="store.photoWallImage = null" class="btn-danger">移除图片</button>
+            </div>
+            
+            <p style="text-align:center; color:#999; font-size:12px; margin-top:30px;">提示：在桌面长按图标可拖拽排序</p>
         </div>
-        <div class="row">
-          <input class="input" v-model="images[1]" placeholder="第2张图片链接" />
-        </div>
-        <div class="row">
-          <input class="input" v-model="images[2]" placeholder="第3张图片链接" />
-        </div>
-        <div class="row">
-          <input class="input" v-model="images[3]" placeholder="第4张图片链接" />
-        </div>
+    `,
+    setup() {
+        const store = window.store;
 
-        <button class="btn" @click="savePhotos">保存照片墙图片</button>
-      </div>
+        const triggerClick = (id) => document.getElementById(id).click();
 
-      <div class="card">
-        <h3>说明</h3>
-        <p style="line-height:1.7;color:#666;font-size:14px;">
-          桌面上的 App 和小组件都支持长按拖动。<br>
-          长按约 0.45 秒后拖动，会自动吸附到 4×6 网格。
-        </p>
-      </div>
-    </div>
-  `,
-  setup() {
-    const timeBg = Vue.ref(window.store.widgetSettings.timeWeatherBg);
-    const images = Vue.ref([...window.store.widgetSettings.photoWallImages]);
+        // 核心：图片压缩转 Base64 算法 (保证高清的同时不撑爆存储)
+        const handleImageUpload = (event, storeKey) => {
+            const file = event.target.files[0];
+            if (!file) return;
 
-    const hasPhotoWidget = Vue.computed(() => {
-      return window.store.desktopItems.some(item => item.widgetType === 'photoWall');
-    });
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    // 设置最大宽度限制为 800 (对手机屏幕依然极其清晰)
+                    const MAX_WIDTH = 800;
+                    let width = img.width;
+                    let height = img.height;
 
-    const togglePhotoWidget = () => {
-      const index = window.store.desktopItems.findIndex(item => item.widgetType === 'photoWall');
-      if (index > -1) {
-        window.store.desktopItems.splice(index, 1);
-      } else {
-        window.store.desktopItems.push({
-          id: 'widget-photo',
-          type: 'widget',
-          widgetType: 'photoWall',
-          x: 1,
-          y: 3,
-          w: 2,
-          h: 2
-        });
-      }
-    };
+                    if (width > MAX_WIDTH) {
+                        height = Math.round((height * MAX_WIDTH) / width);
+                        width = MAX_WIDTH;
+                    }
 
-    const saveTimeBg = () => {
-      window.store.widgetSettings.timeWeatherBg = timeBg.value.trim();
-    };
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
 
-    const clearTimeBg = () => {
-      timeBg.value = '';
-      window.store.widgetSettings.timeWeatherBg = '';
-    };
+                    // 压缩质量 0.8，存入全局状态并自动保存
+                    store[storeKey] = canvas.toDataURL('image/jpeg', 0.8);
+                };
+            };
+        };
 
-    const savePhotos = () => {
-      window.store.widgetSettings.photoWallImages = images.value.map(v => v.trim());
-    };
-
-    return {
-      timeBg,
-      images,
-      hasPhotoWidget,
-      togglePhotoWidget,
-      saveTimeBg,
-      clearTimeBg,
-      savePhotos
-    };
-  }
-};
+        return { store, triggerClick, handleImageUpload };
+    }
+}
