@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>小手机自适应版</title>
-    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/style.css" />
     <!-- 引入 Vue 和 拖拽库 SortableJS -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -24,7 +24,6 @@
 
         <!-- 桌面网格系统 (包含拖拽功能) -->
         <div v-show="!store.currentApp" class="desktop" id="desktop-grid">
-            <!-- 统一循环所有桌面元素(组件+APP)，实现混合排列 -->
             <div v-for="item in store.desktopItems" :key="item.id" 
                  :class="{'widget-box': item.type === 'widget', 'app-icon': item.type === 'app'}"
                  :style="item.type === 'widget' ? { gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() } : {}"
@@ -49,11 +48,11 @@
                     <span v-if="!store.photoWallImage" style="color:#aaa; font-size:12px;">去小组件App设置图片</span>
                 </div>
 
-                <!-- 类型3：普通App图标 -->
-                <template v-else-if="item.type === 'app'">
+                <!-- 类型3：普通App图标 (用一个不可见的div包裹消除部分编辑器的template报警) -->
+                <div v-else-if="item.type === 'app'" style="display: contents;">
                     <div class="icon-img" :style="{ backgroundColor: item.color }">{{ item.textIcon }}</div>
                     <span class="icon-name">{{ item.name }}</span>
-                </template>
+                </div>
             </div>
         </div>
 
@@ -64,10 +63,10 @@
         </div>
     </div>
 
-    <!-- 依次引入逻辑文件 -->
     <script src="./js/store.js"></script>
     <script src="./js/apps/widgetApp.js"></script>
     <script src="./js/apps/weibo.js"></script>
     <script src="./js/main.js"></script>
 </body>
 </html>
+
