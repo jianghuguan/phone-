@@ -18,15 +18,10 @@ const defaultDesktopItems = [
 const savedData = window.localStorage.getItem('myPhoneData');
 let initialState = savedData ? JSON.parse(savedData) : null;
 
-// 修复红叉：去除了 [0].widgetType 判断，改为标准的 Array 判断，防止强类型推导报错
 if (!initialState || !Array.isArray(initialState.desktopItems) || initialState.desktopItems.length === 0) {
-    initialState = { 
-        currentApp: null, 
-        desktopItems: defaultDesktopItems 
-    };
+    initialState = { currentApp: null, desktopItems: defaultDesktopItems };
 }
 
-// 补充 API 配置与 QQ 模拟数据
 if (!initialState.apiSettings) {
     initialState.apiSettings = {
         main: { url: 'https://api.openai.com', key: '', model: 'gpt-3.5-turbo' },
@@ -41,9 +36,21 @@ if (!initialState.qqData) {
     };
 }
 
+// 补充名片与钱包数据 (兼容老用户数据)
+if (!initialState.qqData.userCards) {
+    initialState.qqData.userCards = [
+        { id: 'uc_default', name: '默认用户', persona: '一个普通的记录生活者，回复风格口语化。' }
+    ];
+}
+if (!initialState.qqData.wallet) {
+    initialState.qqData.wallet = {
+        balance: 1000,
+        history: [{ desc: '初始零钱红包', amount: '+1000.00', time: Date.now() }]
+    };
+}
+
 window.store = Vue.reactive(initialState);
 
 Vue.watch(window.store, (newState) => {
     window.localStorage.setItem('myPhoneData', JSON.stringify(newState));
 }, { deep: true });
-
