@@ -1,110 +1,115 @@
 /* eslint-disable */
-/* global Vue, Sortable */
+/* global Vue, Sortable, window, document */
+'use strict';
 
-const { createApp, ref, onMounted, nextTick } = Vue;
-const store = window.store;
+const { createApp, ref, onMounted, onUnmounted, nextTick } = Vue;
 
 const app = createApp({
     setup() {
-        const time = ref('00:00');
+        // 引入全局状态数据
+        const store = window.store;
+
+        // --- 1. 状态栏与组件：时间与日期 ---
+        const time = ref('');
         const date = ref('');
         const weekday = ref('');
-        const battery = ref(100);
         
-        const temperature = ref('--°C');
-        const weatherDesc = ref('获取中...');
-
         const updateTime = () => {
             const now = new Date();
-            time.value = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
-            date.value = (now.getMonth() + 1) + '月' + now.getDate() + '日';
-            const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            time.value = `${hours}:${minutes}`;
+            
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            date.value = `${month}月${day}日`;
+            
+            const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
             weekday.value = days[now.getDay()];
         };
+        
+        let timeInterval;
 
-        const updateBattery = () => {
-            if ('getBattery' in navigator) {
-                navigator.getBattery().then(batt => {
-                    battery.value = Math.floor(batt.level * 100);
-                    batt.addEventListener('levelchange', () => {
-                        battery.value = Math.floor(batt.level * 100);
-                    });
-                });
-            } else {
-                battery.value = 99;
-            }
+        // --- 2. 状态栏：电量 (模拟静态电量，也可自行扩展动态掉电) ---
+        const battery = ref(100);
+
+        // --- 3. 天气模拟数据 ---
+        const temperature = ref('26°C');
+        const weatherDesc = ref('晴转多云');
+
+        // --- 4. App 交互逻辑 ---
+        const openApp = (id) => {
+            store.currentApp = id;
+        };
+        
+        const closeApp = () => {
+            store.currentApp = null;
         };
 
-        const fetchWeather = (lat = 39.9, lon = 116.4) => {
-            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
-                .then(res => res.json())
-                .then(data => {
-                    const cw = data.current_weather;
-                    temperature.value = cw.temperature + '°C';
-                    
-                    const code = cw.weathercode;
-                    let desc = '☁️ 未知';
-                    if (code === 0) desc = '☀️ 晴朗';
-                    else if (code <= 3) desc = '🌤️ 多云';
-                    else if (code <= 48) desc = '🌫️ 雾';
-                    else if (code <= 67) desc = '🌧️ 雨';
-                    else if (code <= 77) desc = '❄️ 雪';
-                    else if (code >= 80) desc = '⛈️ 暴雨/雷阵雨';
-                    weatherDesc.value = desc;
-                }).catch((err) => {
-                    console.log(err);
-                    weatherDesc.value = '天气离线';
-                });
-        };
-
-        const initWeather = () => {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-                    (err) => fetchWeather()
-                );
-            } else {
-                fetchWeather();
-            }
-        };
-
-        const initDragAndDrop = () => {
+        // --- 5. 桌面拖拽排序逻辑 (SortableJS) ---
+        const initSortable = () => {
             const grid = document.getElementById('desktop-grid');
-            // 将 new Sortable 赋值给变量，消除部分编辑器 "no-new" 的报错红叉
-            const sortableInstance = new Sortable(grid, {
-                animation: 200,
-                delay: 250,
-                delayOnTouchOnly: true,
+            if (!grid) return;
+            
+            new Sortable(grid, {
+                animation: 250,
                 ghostClass: 'sortable-ghost',
-                onEnd: function (evt) {
-                    const arr = [...store.desktopItems];
-                    const item = arr.splice(evt.oldIndex, 1)[0];
-                    arr.splice(evt.newIndex, 0, item);
-                    store.desktopItems = arr;
+                // 加入长按延迟：长按 200 毫秒后才能拖拽，防止和正常点击打开 App 冲突
+                delay: 200, 
+                delayOnTouchOnly: true, 
+                onEnd: (evt) => {
+                    const { oldIndex, newIndex } = evt;
+                    if (oldIndex === newIndex) return; // 位置没变则不处理
+                    
+                    // 同步拖拽后的数组顺序到 store，触发 localStorage 自动保存
+                    const items = [...store.desktopItems];
+                    const [movedItem] = items.splice(oldIndex, 1);
+                    items.splice(newIndex, 0, movedItem);
+                    
+                    store.desktopItems = items;
                 }
             });
-            return sortableInstance;
         };
 
+        // --- 6. 生命周期钩子 ---
         onMounted(() => {
             updateTime();
-            setInterval(updateTime, 1000);
-            updateBattery();
-            initWeather();
+            // 每秒更新一次时间
+            timeInterval = setInterval(updateTime, 1000);
             
-            nextTick(() => { 
-                initDragAndDrop(); 
+            // 等待 Vue 将桌面 DOM 渲染完毕后，挂载拖拽事件
+            nextTick(() => {
+                initSortable();
             });
         });
 
-        const openApp = (id) => { store.currentApp = id; };
-        const closeApp = () => { store.currentApp = null; };
+        onUnmounted(() => {
+            clearInterval(timeInterval);
+        });
 
-        return { store, time, date, weekday, battery, temperature, weatherDesc, openApp, closeApp };
+        return { 
+            store, 
+            time, date, weekday, 
+            battery, 
+            temperature, weatherDesc, 
+            openApp, closeApp 
+        };
     }
 });
 
-app.component('widgetApp', window.widgetApp);
-app.component('weibo', window.weiboApp);
-app.mount('#app');
+// --- 注册所有的 App 子组件 ---
+// 注册小组件管理 App
+if (window.widgetApp) {
+    app.component('widgetApp', window.widgetApp);
+}
+// 注册桌面美化 App (新增)
+if (window.themeApp) {
+    app.component('theme', window.themeApp);
+}
+// 注册其他常规 App (比如微博，如果有的话)
+if (window.weiboApp) {
+    app.component('weibo', window.weiboApp);
+}
 
+// 挂载整个 Vue 实例
+app.mount('#app');
