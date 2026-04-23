@@ -3,8 +3,7 @@ body { background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "
 
 #app {
     width: 100vw; 
-    height: 100vh; /* 回退兼容单位，解决红叉 */
-    height: 100dvh; 
+    height: 100vh; 
     background-color: #fbfbfd;
     display: flex; flex-direction: column; position: relative;
 }
@@ -82,4 +81,3 @@ body { background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "
 
 .btn-primary { background: #000; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; margin-right: 10px; cursor: pointer; }
 .btn-danger { background: #ff3b30; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
-
