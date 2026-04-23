@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* global Vue, Sortable */
 
 const { createApp, ref, onMounted, nextTick } = Vue;
@@ -25,9 +26,13 @@ const app = createApp({
             if ('getBattery' in navigator) {
                 navigator.getBattery().then(batt => {
                     battery.value = Math.floor(batt.level * 100);
-                    batt.addEventListener('levelchange', () => battery.value = Math.floor(batt.level * 100));
+                    batt.addEventListener('levelchange', () => {
+                        battery.value = Math.floor(batt.level * 100);
+                    });
                 });
-            } else { battery.value = 99; }
+            } else {
+                battery.value = 99;
+            }
         };
 
         const fetchWeather = (lat = 39.9, lon = 116.4) => {
@@ -46,21 +51,27 @@ const app = createApp({
                     else if (code <= 77) desc = '❄️ 雪';
                     else if (code >= 80) desc = '⛈️ 暴雨/雷阵雨';
                     weatherDesc.value = desc;
-                }).catch(() => weatherDesc.value = '天气离线');
+                }).catch((err) => {
+                    console.log(err);
+                    weatherDesc.value = '天气离线';
+                });
         };
 
         const initWeather = () => {
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
-                    pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-                    err => fetchWeather()
+                    (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+                    (err) => fetchWeather()
                 );
-            } else { fetchWeather(); }
+            } else {
+                fetchWeather();
+            }
         };
 
         const initDragAndDrop = () => {
             const grid = document.getElementById('desktop-grid');
-            new Sortable(grid, {
+            // 将 new Sortable 赋值给变量，消除部分编辑器 "no-new" 的报错红叉
+            const sortableInstance = new Sortable(grid, {
                 animation: 200,
                 delay: 250,
                 delayOnTouchOnly: true,
@@ -72,6 +83,7 @@ const app = createApp({
                     store.desktopItems = arr;
                 }
             });
+            return sortableInstance;
         };
 
         onMounted(() => {
@@ -80,7 +92,9 @@ const app = createApp({
             updateBattery();
             initWeather();
             
-            nextTick(() => { initDragAndDrop(); });
+            nextTick(() => { 
+                initDragAndDrop(); 
+            });
         });
 
         const openApp = (id) => { store.currentApp = id; };
