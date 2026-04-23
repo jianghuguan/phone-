@@ -37,10 +37,7 @@ const app = createApp({
                     batt.addEventListener('levelchange', () => {
                         battery.value = Math.round(batt.level * 100);
                     });
-                } catch (e) { 
-                    // 移除 console.warn 避免 no-console 报错
-                    battery.value = 98; 
-                }
+                } catch (e) { battery.value = 98; }
             } else {
                 battery.value = 98; 
             }
@@ -52,11 +49,18 @@ const app = createApp({
         const openApp = (id) => { store.currentApp = id; };
         const closeApp = () => { store.currentApp = null; };
 
+        // 上滑返回桌面手势
+        let homeStartY = 0;
+        const homeTouchStart = (e) => { homeStartY = e.touches[0].clientY; };
+        const homeTouchMove = (e) => { e.preventDefault(); }; 
+        const homeTouchEnd = (e) => {
+            const endY = e.changedTouches[0].clientY;
+            if (homeStartY - endY > 30) closeApp();
+        };
+
         const initSortable = () => {
             const grid = document.getElementById('desktop-grid');
             if (!grid) return;
-            
-            // 使用 Sortable.create 替代 new Sortable，彻底解决 no-new 和 变量未使用 报错
             Sortable.create(grid, {
                 animation: 250,
                 ghostClass: 'sortable-ghost',
@@ -80,12 +84,11 @@ const app = createApp({
             nextTick(() => { initSortable(); });
         });
 
-        onUnmounted(() => {
-            clearInterval(timeInterval);
-        });
+        onUnmounted(() => { clearInterval(timeInterval); });
 
         return { 
-            store, time, date, weekday, battery, temperature, weatherDesc, openApp, closeApp 
+            store, time, date, weekday, battery, temperature, weatherDesc, 
+            openApp, closeApp, homeTouchStart, homeTouchMove, homeTouchEnd 
         };
     }
 });
