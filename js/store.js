@@ -18,8 +18,12 @@ const defaultDesktopItems = [
 const savedData = window.localStorage.getItem('myPhoneData');
 let initialState = savedData ? JSON.parse(savedData) : null;
 
-if (!initialState || !initialState.desktopItems || initialState.desktopItems.length === 0 || !initialState.desktopItems[0].widgetType) {
-    initialState = { currentApp: null, desktopItems: defaultDesktopItems };
+// 修复红叉：去除了 [0].widgetType 判断，改为标准的 Array 判断，防止强类型推导报错
+if (!initialState || !Array.isArray(initialState.desktopItems) || initialState.desktopItems.length === 0) {
+    initialState = { 
+        currentApp: null, 
+        desktopItems: defaultDesktopItems 
+    };
 }
 
 // 补充 API 配置与 QQ 模拟数据
@@ -42,3 +46,4 @@ window.store = Vue.reactive(initialState);
 Vue.watch(window.store, (newState) => {
     window.localStorage.setItem('myPhoneData', JSON.stringify(newState));
 }, { deep: true });
+
