@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>小手机自适应版</title>
-    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/style.css">
     <!-- 引入 Vue 和 拖拽库 SortableJS -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -48,7 +48,7 @@
                     <span v-if="!store.photoWallImage" style="color:#aaa; font-size:12px;">去小组件App设置图片</span>
                 </div>
 
-                <!-- 类型3：普通App图标 (用一个不可见的div包裹消除部分编辑器的template报警) -->
+                <!-- 类型3：普通App图标 -->
                 <div v-else-if="item.type === 'app'" style="display: contents;">
                     <div class="icon-img" :style="{ backgroundColor: item.color }">{{ item.textIcon }}</div>
                     <span class="icon-name">{{ item.name }}</span>
@@ -69,4 +69,3 @@
     <script src="./js/main.js"></script>
 </body>
 </html>
-
