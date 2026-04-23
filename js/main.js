@@ -28,64 +28,29 @@ const app = createApp({
             weekday.value = days[now.getDay()];
         };
 
-        let timeInterval = null;
-
+        // 每次打开为100满电，随着时间每分钟固定减少1电量
         const battery = ref(100);
-        const updateBattery = async () => {
-            if (window.navigator && window.navigator.getBattery) {
-                try {
-                    const batt = await window.navigator.getBattery();
-                    battery.value = Math.round(batt.level * 100);
-                    batt.addEventListener('levelchange', () => {
-                        battery.value = Math.round(batt.level * 100);
-                    });
-                } catch (err) {
-                    if (err) {
-                        battery.value = 98;
-                    }
-                }
-            } else {
-                battery.value = 98;
-            }
-        };
+        let timeInterval = null;
+        let secCount = 0;
 
-        const temperature = ref('26°C');
-        const weatherDesc = ref('晴转多云');
-
-        const openApp = (id) => {
-            store.currentApp = id;
-        };
-
-        const closeApp = () => {
-            store.currentApp = null;
-        };
+        const openApp = (id) => { store.currentApp = id; };
+        const closeApp = () => { store.currentApp = null; };
 
         let homeStartY = 0;
-
         const homeTouchStart = (e) => {
-            if (e.touches && e.touches.length > 0) {
-                homeStartY = e.touches[0].clientY;
-            }
+            if (e.touches && e.touches.length > 0) homeStartY = e.touches[0].clientY;
         };
-
-        const homeTouchMove = (e) => {
-            e.preventDefault();
-        };
-
+        const homeTouchMove = (e) => { e.preventDefault(); };
         const homeTouchEnd = (e) => {
             if (e.changedTouches && e.changedTouches.length > 0) {
                 const endY = e.changedTouches[0].clientY;
-                if (homeStartY - endY > 30) {
-                    closeApp();
-                }
+                if (homeStartY - endY > 30) closeApp();
             }
         };
 
         const initSortable = () => {
             const grid = window.document.getElementById('desktop-grid');
-            if (!grid) {
-                return;
-            }
+            if (!grid) return;
 
             window.Sortable.create(grid, {
                 animation: 250,
@@ -95,9 +60,7 @@ const app = createApp({
                 onEnd: (evt) => {
                     const oldIdx = evt.oldIndex;
                     const newIdx = evt.newIndex;
-                    if (oldIdx === newIdx) {
-                        return;
-                    }
+                    if (oldIdx === newIdx) return;
                     const items = [...store.desktopItems];
                     const [movedItem] = items.splice(oldIdx, 1);
                     items.splice(newIdx, 0, movedItem);
@@ -108,50 +71,37 @@ const app = createApp({
 
         onMounted(() => {
             updateTime();
-            updateBattery();
-            timeInterval = window.setInterval(updateTime, 1000);
-            nextTick(() => {
-                initSortable();
-            });
+            // 核心计时器：每秒更新时间，累积 60 秒后掉 1 点电量
+            timeInterval = window.setInterval(() => {
+                updateTime();
+                secCount++;
+                if (secCount >= 60) {
+                    secCount = 0;
+                    if (battery.value > 1) {
+                        battery.value -= 1;
+                    }
+                }
+            }, 1000);
+
+            nextTick(() => { initSortable(); });
         });
 
         onUnmounted(() => {
-            if (timeInterval) {
-                window.clearInterval(timeInterval);
-            }
+            if (timeInterval) window.clearInterval(timeInterval);
         });
 
         return {
-            store,
-            time,
-            date,
-            weekday,
-            battery,
-            temperature,
-            weatherDesc,
-            openApp,
-            closeApp,
-            homeTouchStart,
-            homeTouchMove,
-            homeTouchEnd
+            store, time, date, weekday,
+            battery, temperature: ref('26°C'), weatherDesc: ref('晴转多云'),
+            openApp, closeApp, homeTouchStart, homeTouchMove, homeTouchEnd
         };
     }
 });
 
-if (window.widgetApp) {
-    app.component('widgetApp', window.widgetApp);
-}
-if (window.themeApp) {
-    app.component('theme', window.themeApp);
-}
-if (window.weiboApp) {
-    app.component('weibo', window.weiboApp);
-}
-if (window.settingsApp) {
-    app.component('settings', window.settingsApp);
-}
-if (window.qqApp) {
-    app.component('qq', window.qqApp);
-}
+if (window.widgetApp) app.component('widgetApp', window.widgetApp);
+if (window.themeApp) app.component('theme', window.themeApp);
+if (window.weiboApp) app.component('weibo', window.weiboApp);
+if (window.settingsApp) app.component('settings', window.settingsApp);
+if (window.qqApp) app.component('qq', window.qqApp);
 
 app.mount('#app');
