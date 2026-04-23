@@ -2,7 +2,6 @@
 /* global Vue, window */
 'use strict';
 
-// 统一白色背景，新增 iconImage 留空支持换图；小组件新增独立 bgImage 支持换图
 const defaultDesktopItems = [
     { type: 'widget', widgetType: 'time', id: 'timeWidget_1', name: '时钟天气', span: '4 / 2', bgImage: null },
     { type: 'widget', widgetType: 'photo', id: 'photoWidget_1', name: '照片墙', span: '2 / 2', bgImage: null },
@@ -19,8 +18,8 @@ const defaultDesktopItems = [
 const savedData = window.localStorage.getItem('myPhoneData');
 let initialState = savedData ? JSON.parse(savedData) : null;
 
-// 防冲突检测：如果用户留存的是旧版格式的数据，强制刷新为新版
-if (!initialState || !initialState.desktopItems[0].widgetType) {
+// 增加多层级安全判断，修复编辑器报红可能引发 TypeError 的警告
+if (!initialState || !initialState.desktopItems || initialState.desktopItems.length === 0 || !initialState.desktopItems[0].widgetType) {
     initialState = {
         currentApp: null,
         desktopItems: defaultDesktopItems
