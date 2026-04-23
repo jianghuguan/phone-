@@ -1,4 +1,5 @@
-/* global Vue */
+/* global Vue, window, document, FileReader, Image */
+'use strict';
 
 window.widgetApp = {
     template: `
@@ -22,8 +23,9 @@ window.widgetApp = {
                     <button @click="removeWidget(widget.id)" class="btn-danger" style="padding: 5px 12px; font-size: 12px;">删除</button>
                 </div>
                 <div>
-                    <input type="file" accept="image/*" @change="(e) => handleImageUpload(e, widget.id)" :id="'upload_'+widget.id" style="display:none;" />
-                    <button @click="triggerClick('upload_'+widget.id)" class="btn-primary" style="font-size: 12px; padding: 6px 12px;">
+                    <!-- 修复：去除了 e => 箭头函数，使用标准的 $event；去除了 HTML5 不支持的自闭合斜杠 /> -->
+                    <input type="file" accept="image/*" @change="handleImageUpload($event, widget.id)" :id="'upload_' + widget.id" style="display:none;">
+                    <button @click="triggerClick('upload_' + widget.id)" class="btn-primary" style="font-size: 12px; padding: 6px 12px;">
                         {{ widget.bgImage ? '更换背景' : '设置背景图片' }}
                     </button>
                     <button v-if="widget.bgImage" @click="widget.bgImage = null" class="btn-danger" style="font-size: 12px; padding: 6px 12px;">移除图片</button>
@@ -34,26 +36,25 @@ window.widgetApp = {
     setup() {
         const store = window.store;
 
-        // 动态过滤出当前桌面的所有小组件
         const widgets = Vue.computed(() => store.desktopItems.filter(item => item.type === 'widget'));
 
-        // 新增小组件逻辑
         const addWidget = (type) => {
             const id = type + '_' + Date.now();
             const newWidget = type === 'time' 
                 ? { type: 'widget', widgetType: 'time', id: id, name: '时钟天气', span: '4 / 2', bgImage: null }
                 : { type: 'widget', widgetType: 'photo', id: id, name: '照片墙', span: '2 / 2', bgImage: null };
-            store.desktopItems.unshift(newWidget); // 添加到最前面
+            store.desktopItems.unshift(newWidget);
         };
 
-        // 移除小组件逻辑
         const removeWidget = (id) => {
             store.desktopItems = store.desktopItems.filter(item => item.id !== id);
         };
 
-        const triggerClick = (id) => document.getElementById(id).click();
+        const triggerClick = (id) => {
+            const el = document.getElementById(id);
+            if (el) el.click();
+        };
 
-        // 独立上传图片逻辑
         const handleImageUpload = (event, id) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -76,7 +77,6 @@ window.widgetApp = {
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // 找到对应ID的组件，修改它的属性
                     const targetWidget = store.desktopItems.find(item => item.id === id);
                     if (targetWidget) {
                         targetWidget.bgImage = canvas.toDataURL('image/jpeg', 0.8);
@@ -88,3 +88,4 @@ window.widgetApp = {
         return { store, widgets, addWidget, removeWidget, triggerClick, handleImageUpload };
     }
 };
+
