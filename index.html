@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>小手机自适应版</title>
-    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/style.css" />
     <!-- 引入 Vue 和 拖拽库 SortableJS -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -14,12 +14,13 @@
         <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
             <span class="time">{{ time }}</span>
             <div class="dynamic-island"></div>
-            <span class="battery">
+            <!-- 修复了标准：把 span 改成 div，解决严格语法检查下的块级元素嵌套报错 -->
+            <div class="battery">
                 <span class="battery-text">{{ battery }}%</span>
                 <div class="battery-icon">
                     <div class="battery-level" :style="{ width: battery + '%' }"></div>
                 </div>
-            </span>
+            </div>
         </div>
 
         <!-- 桌面网格系统 (包含拖拽功能) -->
