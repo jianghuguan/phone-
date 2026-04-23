@@ -27,7 +27,6 @@
                  :style="item.type === 'widget' ? { gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() } : {}"
                  @click="item.type === 'app' ? openApp(item.id) : null">
                 
-                <!-- 类型1：时间和天气综合组件 (独立背景，默认透明) -->
                 <div v-if="item.widgetType === 'time'" class="widget-time" 
                      :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
                     <div class="time-header">
@@ -40,13 +39,11 @@
                     <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
                 </div>
 
-                <!-- 类型2：照片墙组件 (独立背景) -->
                 <div v-else-if="item.widgetType === 'photo'" class="widget-photo"
                      :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">去小组件App设置图片</span>
                 </div>
 
-                <!-- 类型3：普通App图标 (修改：支持独立背景图，且有图时隐藏文字) -->
                 <div v-else-if="item.type === 'app'" style="display: contents;">
                     <div class="icon-img" :style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
                         <template v-if="!item.iconImage">{{ item.textIcon }}</template>
@@ -64,9 +61,9 @@
 
     <script src="./js/store.js"></script>
     <script src="./js/apps/widgetApp.js"></script>
-    <!-- 新增：引入美化APP -->
     <script src="./js/apps/theme.js"></script>
     <script src="./js/apps/weibo.js"></script>
     <script src="./js/main.js"></script>
 </body>
 </html>
+
