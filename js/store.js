@@ -1,4 +1,3 @@
-/* eslint-disable */
 /* global Vue, window */
 'use strict';
 
@@ -19,7 +18,10 @@ const savedData = window.localStorage.getItem('myPhoneData');
 let initialState = savedData ? JSON.parse(savedData) : null;
 
 if (!initialState || !Array.isArray(initialState.desktopItems) || initialState.desktopItems.length === 0) {
-    initialState = { currentApp: null, desktopItems: defaultDesktopItems };
+    initialState = { 
+        currentApp: null, 
+        desktopItems: defaultDesktopItems 
+    };
 }
 
 if (!initialState.apiSettings) {
@@ -28,6 +30,7 @@ if (!initialState.apiSettings) {
         sub: { url: '', key: '', model: '' }
     };
 }
+
 if (!initialState.qqData) {
     initialState.qqData = {
         profile: { avatar: null, bgImage: null, nickname: '我', signature: '记录生活的美好' },
@@ -36,16 +39,19 @@ if (!initialState.qqData) {
     };
 }
 
-// 补充名片与钱包数据 (兼容老用户数据)
+// 补充名片与钱包数据
 if (!initialState.qqData.userCards) {
     initialState.qqData.userCards = [
         { id: 'uc_default', name: '默认用户', persona: '一个普通的记录生活者，回复风格口语化。' }
     ];
 }
+
 if (!initialState.qqData.wallet) {
     initialState.qqData.wallet = {
         balance: 1000,
-        history: [{ desc: '初始零钱红包', amount: '+1000.00', time: Date.now() }]
+        history: [
+            { desc: '初始零钱红包', amount: '+1000.00', time: Date.now() }
+        ]
     };
 }
 
