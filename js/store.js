@@ -1,5 +1,6 @@
 /* eslint-disable */
-/* global Vue */
+/* global Vue, window */
+'use strict';
 
 const defaultDesktopItems = [
     { type: 'widget', id: 'timeWidget', name: '时钟天气', span: '4 / 2' },
@@ -14,7 +15,8 @@ const defaultDesktopItems = [
     { type: 'app', id: 'widgetApp', name: '小组件', textIcon: '组', color: '#e8fdfa' }
 ];
 
-const savedData = localStorage.getItem('myPhoneData');
+// 使用规范的 window.localStorage 防止报未定义红叉
+const savedData = window.localStorage.getItem('myPhoneData');
 const initialState = savedData ? JSON.parse(savedData) : {
     currentApp: null,
     desktopItems: defaultDesktopItems,
@@ -25,6 +27,6 @@ const initialState = savedData ? JSON.parse(savedData) : {
 window.store = Vue.reactive(initialState);
 
 Vue.watch(window.store, (newState) => {
-    localStorage.setItem('myPhoneData', JSON.stringify(newState));
+    window.localStorage.setItem('myPhoneData', JSON.stringify(newState));
 }, { deep: true });
 
