@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>小手机自适应版</title>
     <link rel="stylesheet" href="./css/style.css">
-    <!-- 引入 Vue 和 拖拽库 SortableJS -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
@@ -14,7 +13,6 @@
         <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
             <span class="time">{{ time }}</span>
             <div class="dynamic-island"></div>
-            <!-- 修复块级元素规范 -->
             <div class="battery">
                 <span class="battery-text">{{ battery }}%</span>
                 <div class="battery-icon">
@@ -23,16 +21,15 @@
             </div>
         </div>
 
-        <!-- 桌面网格系统 (包含拖拽功能) -->
         <div v-show="!store.currentApp" class="desktop" id="desktop-grid">
             <div v-for="item in store.desktopItems" :key="item.id" 
                  :class="{'widget-box': item.type === 'widget', 'app-icon': item.type === 'app'}"
                  :style="item.type === 'widget' ? { gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() } : {}"
                  @click="item.type === 'app' ? openApp(item.id) : null">
                 
-                <!-- 类型1：时间和天气综合组件 -->
-                <div v-if="item.id === 'timeWidget'" class="widget-time" 
-                     :style="{ backgroundImage: store.timeBgImage ? 'url(' + store.timeBgImage + ')' : 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)', color: store.timeBgImage ? '#fff' : '#333' }">
+                <!-- 类型1：时间和天气综合组件 (独立背景，默认透明) -->
+                <div v-if="item.widgetType === 'time'" class="widget-time" 
+                     :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
                     <div class="time-header">
                         <h1>{{ time }}</h1>
                         <div class="weather-info">
@@ -40,24 +37,25 @@
                             <span class="desc">{{ weatherDesc }}</span>
                         </div>
                     </div>
-                    <p class="date-text" :style="{ color: store.timeBgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
+                    <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
                 </div>
 
-                <!-- 类型2：照片墙组件 -->
-                <div v-else-if="item.id === 'photoWidget'" class="widget-photo"
-                     :style="{ backgroundImage: store.photoWallImage ? 'url(' + store.photoWallImage + ')' : 'none' }">
-                    <span v-if="!store.photoWallImage" style="color:#aaa; font-size:12px;">去小组件App设置图片</span>
+                <!-- 类型2：照片墙组件 (独立背景) -->
+                <div v-else-if="item.widgetType === 'photo'" class="widget-photo"
+                     :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                    <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">去小组件App设置图片</span>
                 </div>
 
-                <!-- 类型3：普通App图标 -->
+                <!-- 类型3：普通App图标 (修改：支持独立背景图，且有图时隐藏文字) -->
                 <div v-else-if="item.type === 'app'" style="display: contents;">
-                    <div class="icon-img" :style="{ backgroundColor: item.color }">{{ item.textIcon }}</div>
+                    <div class="icon-img" :style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
+                        <template v-if="!item.iconImage">{{ item.textIcon }}</template>
+                    </div>
                     <span class="icon-name">{{ item.name }}</span>
                 </div>
             </div>
         </div>
 
-        <!-- App 运行界面 -->
         <div v-show="store.currentApp" class="app-view">
             <component :is="store.currentApp"></component>
             <div class="home-indicator" @click="closeApp"></div>
@@ -66,8 +64,9 @@
 
     <script src="./js/store.js"></script>
     <script src="./js/apps/widgetApp.js"></script>
+    <!-- 新增：引入美化APP -->
+    <script src="./js/apps/theme.js"></script>
     <script src="./js/apps/weibo.js"></script>
     <script src="./js/main.js"></script>
 </body>
 </html>
-
