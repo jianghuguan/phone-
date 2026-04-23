@@ -1,9 +1,11 @@
-/* 基础保持不变 */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
 
 #app {
-    width: 100vw; height: 100dvh; background-color: #fbfbfd;
+    width: 100vw; 
+    height: 100vh; /* 回退兼容单位，解决红叉 */
+    height: 100dvh; 
+    background-color: #fbfbfd;
     display: flex; flex-direction: column; position: relative;
 }
 
@@ -21,9 +23,8 @@ body { background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "
 .battery { display: flex; align-items: center; gap: 4px; }
 .battery-icon { width: 22px; height: 11px; border: 1px solid currentColor; border-radius: 4px; padding: 1px; position: relative; }
 .battery-icon::after { content: ''; position: absolute; right: -3px; top: 2px; width: 2px; height: 5px; background: currentColor; border-radius: 0 2px 2px 0; }
-.battery-level { height: 100%; background-color: currentColor; border-radius: 2px; transition: width 0.3s;}
+.battery-level { height: 100%; background-color: currentColor; border-radius: 2px; transition: width 0.3s; }
 
-/* 桌面网格：修改为 row，去除了 dense 自动补位，图标移动不再受限制 */
 .desktop {
     flex: 1; display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -49,11 +50,11 @@ body { background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "
     text-shadow: 0 2px 10px rgba(0,0,0,0.2); 
 }
 .time-header { display: flex; justify-content: space-between; align-items: flex-end; }
-.time-header h1 { font-size: 40px; font-weight: 300; margin: 0; line-height: 1;}
+.time-header h1 { font-size: 40px; font-weight: 300; margin: 0; line-height: 1; }
 .weather-info { text-align: right; }
 .weather-info .temp { display: block; font-size: 20px; font-weight: 600; }
 .weather-info .desc { font-size: 13px; opacity: 0.9; }
-.date-text { font-size: 13px; margin-top: 8px; font-weight: 500;}
+.date-text { font-size: 13px; margin-top: 8px; font-weight: 500; }
 
 .widget-photo {
     width: 100%; height: 100%;
@@ -68,16 +69,17 @@ body { background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "
     display: flex; justify-content: center; align-items: center;
     font-size: 26px; font-weight: bold; color: #333; 
     box-shadow: 0 4px 14px rgba(0,0,0,0.06); pointer-events: none; 
-    background-size: cover; /* 保证自定义图片填满圆角 */
+    background-size: cover; 
     background-position: center;
 }
-.icon-name { font-size: 12px; color: #555; margin-top: 6px; font-weight: 500; pointer-events: none;}
+.icon-name { font-size: 12px; color: #555; margin-top: 6px; font-weight: 500; pointer-events: none; }
 
-.app-view { width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: #fff; z-index: 10; padding-top: 55px; overflow-y: auto;}
+.app-view { width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: #fff; z-index: 10; padding-top: 55px; overflow-y: auto; }
 .home-indicator {
     width: 140px; height: 5px; background-color: #000; border-radius: 10px; 
     position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); cursor: pointer; z-index: 999;
 }
 
-.btn-primary { background: #000; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; margin-right: 10px; cursor: pointer;}
-.btn-danger { background: #ff3b30; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer;}
+.btn-primary { background: #000; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; margin-right: 10px; cursor: pointer; }
+.btn-danger { background: #ff3b30; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
+
