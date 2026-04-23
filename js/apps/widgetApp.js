@@ -2,34 +2,59 @@
 
 window.widgetApp = {
     template: `
-        <div style="padding: 20px; height: calc(100% - 60px);">
-            <h2 style="font-weight: 600; margin-bottom: 20px;">桌面美化设置</h2>
+        <div style="padding: 20px; height: calc(100% - 60px); overflow-y:auto;">
+            <h2 style="font-weight: 600; margin-bottom: 20px;">小组件管理</h2>
             
-            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 15px;">
-                <h3>时钟天气背景图</h3>
-                <p style="font-size: 12px; color: #666; margin: 5px 0 10px;">更换时间组件的背景壁纸</p>
-                <input type="file" accept="image/*" @change="(e) => handleImageUpload(e, 'timeBgImage')" id="timeBgInput" style="display:none;" />
-                <button @click="triggerClick('timeBgInput')" class="btn-primary">从相册选择</button>
-                <button v-if="store.timeBgImage" @click="store.timeBgImage = null" class="btn-danger">移除图片</button>
+            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 20px;">
+                <h3 style="margin-bottom:10px;">添加新的小组件</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button @click="addWidget('time')" class="btn-primary" style="flex:1;">+ 时钟天气</button>
+                    <button @click="addWidget('photo')" class="btn-primary" style="flex:1;">+ 照片墙</button>
+                </div>
             </div>
 
-            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px;">
-                <h3>照片墙 (2x2)</h3>
-                <p style="font-size: 12px; color: #666; margin: 5px 0 10px;">设置桌面上展示的照片</p>
-                <input type="file" accept="image/*" @change="(e) => handleImageUpload(e, 'photoWallImage')" id="photoWallInput" style="display:none;" />
-                <button @click="triggerClick('photoWallInput')" class="btn-primary">从相册选择</button>
-                <button v-if="store.photoWallImage" @click="store.photoWallImage = null" class="btn-danger">移除图片</button>
-            </div>
+            <h3 style="margin-bottom:10px; padding-left:5px;">已添加的小组件</h3>
+            <p v-if="widgets.length === 0" style="color:#999; font-size:13px;">桌面目前没有小组件</p>
             
-            <p style="text-align:center; color:#999; font-size:12px; margin-top:30px;">提示：在桌面长按图标可拖拽排序</p>
+            <div v-for="(widget, index) in widgets" :key="widget.id" style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-weight:bold;">{{ widget.name }} ({{ index + 1 }})</span>
+                    <button @click="removeWidget(widget.id)" class="btn-danger" style="padding: 5px 12px; font-size: 12px;">删除</button>
+                </div>
+                <div>
+                    <input type="file" accept="image/*" @change="(e) => handleImageUpload(e, widget.id)" :id="'upload_'+widget.id" style="display:none;" />
+                    <button @click="triggerClick('upload_'+widget.id)" class="btn-primary" style="font-size: 12px; padding: 6px 12px;">
+                        {{ widget.bgImage ? '更换背景' : '设置背景图片' }}
+                    </button>
+                    <button v-if="widget.bgImage" @click="widget.bgImage = null" class="btn-danger" style="font-size: 12px; padding: 6px 12px;">移除图片</button>
+                </div>
+            </div>
         </div>
     `,
     setup() {
         const store = window.store;
 
+        // 动态过滤出当前桌面的所有小组件
+        const widgets = Vue.computed(() => store.desktopItems.filter(item => item.type === 'widget'));
+
+        // 新增小组件逻辑
+        const addWidget = (type) => {
+            const id = type + '_' + Date.now();
+            const newWidget = type === 'time' 
+                ? { type: 'widget', widgetType: 'time', id: id, name: '时钟天气', span: '4 / 2', bgImage: null }
+                : { type: 'widget', widgetType: 'photo', id: id, name: '照片墙', span: '2 / 2', bgImage: null };
+            store.desktopItems.unshift(newWidget); // 添加到最前面
+        };
+
+        // 移除小组件逻辑
+        const removeWidget = (id) => {
+            store.desktopItems = store.desktopItems.filter(item => item.id !== id);
+        };
+
         const triggerClick = (id) => document.getElementById(id).click();
 
-        const handleImageUpload = (event, storeKey) => {
+        // 独立上传图片逻辑
+        const handleImageUpload = (event, id) => {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -41,25 +66,25 @@ window.widgetApp = {
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const MAX_WIDTH = 800;
                     let width = img.width;
                     let height = img.height;
-
-                    if (width > MAX_WIDTH) {
-                        height = Math.round((height * MAX_WIDTH) / width);
-                        width = MAX_WIDTH;
+                    if (width > 800) {
+                        height = Math.round((height * 800) / width);
+                        width = 800;
                     }
-
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-
-                    store[storeKey] = canvas.toDataURL('image/jpeg', 0.8);
+                    
+                    // 找到对应ID的组件，修改它的属性
+                    const targetWidget = store.desktopItems.find(item => item.id === id);
+                    if (targetWidget) {
+                        targetWidget.bgImage = canvas.toDataURL('image/jpeg', 0.8);
+                    }
                 };
             };
         };
 
-        return { store, triggerClick, handleImageUpload };
+        return { store, widgets, addWidget, removeWidget, triggerClick, handleImageUpload };
     }
 };
-
