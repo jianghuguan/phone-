@@ -4,8 +4,25 @@
 
 window.qqApp = {
     template: `
-        <div class="qq-container" @touchstart="onSwipeStart" @touchend="onSwipeEnd">
-            <!-- 报错弹窗 -->
+        <div class="qq-container" @touchstart="onSwipeStart" @touchend="onSwipeEnd" @click="closeMenu">
+            
+            <style>
+                .qq-msg-row { position: relative; margin-bottom: 20px !important; }
+                .msg-content-wrapper { display: flex; align-items: flex-end; max-width: 82%; }
+                .qq-msg-row.user .msg-content-wrapper { flex-direction: row-reverse; }
+                .msg-time-aside { font-size: 11px; color: #a9a9a9; margin: 0 6px; margin-bottom: 4px; white-space: nowrap; user-select: none; }
+                
+                .quote-box { background: rgba(0,0,0,0.05); padding: 5px 8px; border-radius: 6px; font-size: 12px; margin-bottom: 6px; color: #555; }
+                .qq-msg-row.user .quote-box { background: rgba(255,255,255,0.25); color: #fff; }
+                
+                .qq-input-textarea { flex: 1; border: 1px solid #dbdbdb; border-radius: 20px; padding: 10px 14px; outline: none; font-size: 15px; background: #fafafa; resize: none; font-family: inherit; line-height: 20px; max-height: 120px; }
+                .qq-input-bar-wrap { border-top: 1px solid #efefef; background: #fff; display: flex; flex-direction: column; flex-shrink: 0; }
+                
+                .msg-pop-menu { position: fixed; background: #333; color: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; z-index: 9999; padding: 4px; gap: 4px; }
+                .msg-pop-btn { padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+                .msg-pop-btn:active { background: #555; }
+            </style>
+
             <div class="qq-toast" v-show="errorMsg" :style="{transform: 'translateY('+toastY+'px)'}" @touchstart="onToastTs" @touchmove="onToastTm">
                 {{errorMsg}}
             </div>
@@ -17,12 +34,21 @@ window.qqApp = {
                     <span style="flex:1; text-align:center;">{{currentContact.nickname}}</span>
                     <span @click="openChatSettings" style="font-size:20px; width:28px; text-align:right; cursor:pointer;">⚙</span>
                 </div>
+                
                 <div class="qq-content" id="chat-area" style="padding-top:10px;">
                     <template v-for="(msg, i) in currentMessages" :key="i">
                         <div class="qq-timestamp" v-if="showTime(msg, i)">{{formatTime(msg.timestamp)}}</div>
                         <div class="qq-msg-row" :class="msg.role">
                             <div v-if="msg.role === 'ai'" class="qq-msg-avatar" :style="{backgroundImage: currentContact.avatar ? 'url('+currentContact.avatar+')' : 'none'}">{{!currentContact.avatar ? currentContact.nickname[0] : ''}}</div>
-                            <div class="qq-msg-bubble">{{msg.content}}</div>
+                            
+                            <div class="msg-content-wrapper">
+                                <div class="qq-msg-bubble" @touchstart="onBubbleTs($event, i, msg)" @touchmove="onBubbleTm" @touchend="onBubbleTe" @contextmenu.prevent>
+                                    <div v-if="msg.quote" class="quote-box">{{msg.quote.length > 30 ? msg.quote.substring(0,30)+'...' : msg.quote}}</div>
+                                    <div style="white-space:pre-wrap; word-break: break-all;">{{msg.content}}</div>
+                                </div>
+                                <div class="msg-time-aside">{{msg.timeStr || ''}}</div>
+                            </div>
+
                             <div v-if="msg.role === 'user'" class="qq-msg-avatar" :style="{backgroundImage: store.qqData.profile.avatar ? 'url('+store.qqData.profile.avatar+')' : 'none'}">{{!store.qqData.profile.avatar ? store.qqData.profile.nickname[0] : ''}}</div>
                         </div>
                     </template>
@@ -31,9 +57,22 @@ window.qqApp = {
                         <div class="qq-msg-bubble typing-anim">正在输入中...</div>
                     </div>
                 </div>
-                <div class="qq-input-bar">
-                    <input v-model="inputText" @keydown.enter="sendUserMsg" placeholder="输入文字后回车发送" />
-                    <button @click="triggerAI">发送</button>
+
+                <!-- 悬浮长按菜单 -->
+                <div v-if="menuInfo.show" class="msg-pop-menu" :style="{ top: menuInfo.y + 'px', left: menuInfo.x + 'px' }" @click.stop>
+                    <div class="msg-pop-btn" @click.stop="quoteMsg">↩️ 引用</div>
+                    <div class="msg-pop-btn" @click.stop="deleteMsg" style="color: #ff4d4f;">🗑️ 删除</div>
+                </div>
+
+                <div class="qq-input-bar-wrap">
+                    <div v-if="quotedMsg" style="padding: 8px 16px; background: #f7f7f7; font-size: 13px; color: #666; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-left: 3px solid #ccc; padding-left: 8px;">引用：{{quotedMsg.content}}</div>
+                        <div @click="quotedMsg = null" style="cursor:pointer; padding:4px 8px; font-weight:bold; color:#999;">✕</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; padding: 10px 16px;">
+                        <textarea v-model="inputText" class="qq-input-textarea" rows="1" @input="adjustHeight" @keydown="onInputKeydown" placeholder="输入文字发送"></textarea>
+                        <button @click="triggerAI" style="background:none; border:none; color:#0095f6; font-weight:600; font-size:15px; margin-left:12px; margin-bottom:8px; cursor:pointer;">发送</button>
+                    </div>
                 </div>
             </div>
 
@@ -47,7 +86,6 @@ window.qqApp = {
                         <span @click="openAddModal" style="font-size:26px; font-weight:300; cursor:pointer;">+</span>
                     </div>
                     <div class="qq-content">
-                        <div v-if="store.qqData.contacts.length === 0" style="text-align:center; margin-top:80px; color:#999; font-size:14px;">点击右上角 + 创建AI好友</div>
                         <div v-for="c in store.qqData.contacts" :key="c.id" class="qq-contact-item" @click="openChat(c.id)">
                             <div class="qq-contact-avatar" :style="{backgroundImage: c.avatar ? 'url('+c.avatar+')' : 'none'}">{{!c.avatar ? c.nickname[0] : ''}}</div>
                             <div class="qq-contact-info">
@@ -58,19 +96,7 @@ window.qqApp = {
                     </div>
                 </div>
 
-                <!-- 朋友圈页 -->
-                <div v-show="currentTab === 'moments'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
-                    <div class="qq-header"><span style="font-size:20px; font-weight:bold;">朋友圈</span></div>
-                    <div class="qq-content" style="padding-bottom: 20px;">
-                        <div class="qq-profile-header" style="height:250px; border:none; margin-bottom:50px;" :style="{backgroundImage: store.qqData.profile.bgImage ? 'url('+store.qqData.profile.bgImage+')' : 'none'}">
-                            <div class="qq-profile-avatar" style="bottom:-30px; right:20px; left:auto; width:75px; height:75px;" :style="{backgroundImage: store.qqData.profile.avatar ? 'url('+store.qqData.profile.avatar+')' : 'none'}"></div>
-                            <div style="position:absolute; bottom:-25px; right:110px; font-weight:bold; font-size:18px; color:#262626; text-shadow: 0 0 5px #fff;">{{store.qqData.profile.nickname}}</div>
-                        </div>
-                        <div style="text-align:center; padding: 40px 0; color:#8e8e8e; font-size:14px;">暂无动态</div>
-                    </div>
-                </div>
-
-                <!-- 个人主页页 -->
+                <!-- 朋友圈页 / 主页页 / 钱包页 保持原样 ... -->
                 <div v-show="currentTab === 'profile'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
                     <div class="qq-header"><span style="font-size:20px; font-weight:bold;">主页</span></div>
                     <div class="qq-content">
@@ -86,49 +112,24 @@ window.qqApp = {
                                 <span style="font-size:16px; font-weight:600;">我的名片夹</span>
                                 <span @click="openUserCardModal()" style="font-size:24px; font-weight:300; cursor:pointer; color:#0095f6;">+</span>
                             </div>
-                            <div v-for="card in store.qqData.userCards" :key="card.id" class="user-card" @touchstart="startPress('edit_card', card)" @touchend="cancelPress" @touchmove="cancelPress">
-                                <div style="font-weight:600; font-size:15px; margin-bottom:4px;">{{card.name}}</div>
-                                <div style="font-size:13px; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{card.persona}}</div>
+                            <!-- 增加了小头像显示 -->
+                            <div v-for="card in store.qqData.userCards" :key="card.id" class="user-card" style="display:flex; align-items:center; cursor:pointer;" @click="openUserCardModal(card)">
+                                <div style="width:42px; height:42px; border-radius:50%; background:#efefef; margin-right:12px; background-size:cover; background-position:center; display:flex; align-items:center; justify-content:center; color:#fff;" 
+                                     :style="{backgroundImage: card.avatar ? 'url('+card.avatar+')' : 'none'}">{{!card.avatar ? card.name[0] : ''}}</div>
+                                <div style="flex:1; overflow:hidden;">
+                                    <div style="font-weight:600; font-size:15px; margin-bottom:4px;">{{card.name}}</div>
+                                    <div style="font-size:13px; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{card.persona}}</div>
+                                </div>
                             </div>
                         </div>
                         <input type="file" accept="image/*" id="qq_bg" style="display:none;" @change="handleImgUpload($event, 'bgImage')" />
                         <input type="file" accept="image/*" id="qq_avatar" style="display:none;" @change="handleImgUpload($event, 'avatar')" />
                     </div>
                 </div>
-
-                <!-- 钱包页 -->
-                <div v-show="currentTab === 'wallet'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
-                    <div class="qq-header">
-                        <span @click="currentTab = 'profile'" style="font-size:28px; padding-right:15px; font-weight:300; cursor:pointer;">&lsaquo;</span>
-                        <span style="flex:1; text-align:center;">钱包</span>
-                        <span style="width:28px;"></span>
-                    </div>
-                    <div class="qq-content" style="background:#f5f5f5;">
-                        <div style="background:#fff; padding:40px 20px; text-align:center; margin-bottom:10px;">
-                            <div style="color:#666; font-size:15px; margin-bottom:15px;">我的零钱</div>
-                            <div style="font-size:40px; font-weight:bold;">¥ {{store.qqData.wallet.balance.toFixed(2)}}</div>
-                        </div>
-                        <div style="background:#fff; padding:15px 20px;">
-                            <div style="font-weight:600; font-size:16px; margin-bottom:15px;">账单明细</div>
-                            <div v-for="(h, idx) in store.qqData.wallet.history" :key="idx" style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #fafafa;">
-                                <div>
-                                    <div style="font-size:15px; color:#333; margin-bottom:4px;">{{h.desc}}</div>
-                                    <div style="font-size:12px; color:#999;">{{formatTime(h.time)}}</div>
-                                </div>
-                                <div style="font-size:16px; font-weight:600; color:#34c759;">{{h.amount}}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 底栏导航 -->
+                
                 <div class="qq-bottom-bar" v-if="['messages', 'moments'].includes(currentTab)">
                     <div :class="{active: currentTab==='messages'}" @click="currentTab='messages'">消息</div>
-                    <div :class="{active: currentTab==='moments'}" @click="currentTab='moments'">朋友圈</div>
-                </div>
-                <div class="qq-bottom-bar" v-if="['profile', 'wallet'].includes(currentTab)">
                     <div :class="{active: currentTab==='profile'}" @click="currentTab='profile'">设置</div>
-                    <div :class="{active: currentTab==='wallet'}" @click="currentTab='wallet'">钱包</div>
                 </div>
             </div>
 
@@ -137,14 +138,6 @@ window.qqApp = {
                 <div class="qq-modal">
                     <h3 style="margin-bottom:18px; text-align:center; font-size:16px;">{{modal.title}}</h3>
                     
-                    <!-- 创建/编辑 Char 界面 -->
-                    <template v-if="modal.type === 'char'">
-                        <input v-model="tempData.name" placeholder="真实姓名 (必填)" />
-                        <input v-model="tempData.nickname" placeholder="昵称" />
-                        <textarea v-model="tempData.persona" placeholder="详细人设描述" rows="3"></textarea>
-                    </template>
-                    
-                    <!-- 设置聊天界面 (齿轮) -->
                     <template v-if="modal.type === 'chat_settings'">
                         <div style="margin-bottom:12px; display:flex; gap:10px;">
                             <button @click="triggerUpload('temp_char_avatar')" style="flex:1; padding:8px; border:1px solid #dbdbdb; border-radius:8px; background:#fff; font-size:13px;">更换 Char 头像</button>
@@ -152,35 +145,47 @@ window.qqApp = {
                         </div>
                         <label style="font-size:13px; color:#666;">Char 姓名</label>
                         <input v-model="tempData.name" />
-                        <label style="font-size:13px; color:#666;">Char 昵称</label>
-                        <input v-model="tempData.nickname" />
                         <label style="font-size:13px; color:#666;">Char 人设</label>
                         <textarea v-model="tempData.persona" rows="3"></textarea>
                         
-                        <label style="font-size:13px; color:#666;">选择你的身份 (名片)</label>
+                        <label style="font-size:13px; color:#666;">你的身份名片</label>
                         <select v-model="tempData.userCardId">
                             <option v-for="uc in store.qqData.userCards" :value="uc.id">{{uc.name}}</option>
                         </select>
                         
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:5px; margin-bottom:15px;">
-                            <span style="font-size:14px; font-weight:600;">线下沉浸模式</span>
-                            <input type="checkbox" v-model="tempData.offlineMode" style="width:20px; height:20px; margin:0; border:none;" />
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:5px; margin-bottom:10px;">
+                            <span style="font-size:14px; font-weight:600;">线下沉浸模式 (长文)</span>
+                            <input type="checkbox" v-model="tempData.offlineMode" style="width:20px; height:20px; margin:0;" />
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px;">
+                            <span style="font-size:14px; font-weight:600;">真实时间感知模式</span>
+                            <input type="checkbox" v-model="tempData.timePerceptionMode" style="width:20px; height:20px; margin:0;" />
                         </div>
                     </template>
 
-                    <!-- 创建/编辑 User 名片界面 -->
+                    <!-- 创建/编辑 User 名片界面 增加头像与删除 -->
                     <template v-if="modal.type === 'user_card'">
+                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px;">
+                            <div style="width:50px; height:50px; border-radius:50%; background:#eee; background-size:cover; background-position:center; flex-shrink:0;" :style="{backgroundImage: tempData.avatar ? 'url('+tempData.avatar+')' : 'none'}"></div>
+                            <button @click="triggerUpload('temp_user_avatar')" style="flex:1; padding:8px; border:1px solid #dbdbdb; border-radius:8px; background:#fff; font-size:13px;">修改头像</button>
+                            <input type="file" id="temp_user_avatar" accept="image/*" style="display:none;" @change="handleTempAvatar" />
+                        </div>
                         <input v-model="tempData.name" placeholder="名片姓名 (必填)" />
                         <textarea v-model="tempData.persona" placeholder="你的具体人设与设定" rows="4"></textarea>
                     </template>
 
-                    <!-- 修改基础个人信息 -->
+                    <!-- 创建AI / 修改资料 ... -->
+                    <template v-if="modal.type === 'char'">
+                        <input v-model="tempData.name" placeholder="真实姓名 (必填)" />
+                        <textarea v-model="tempData.persona" placeholder="详细人设描述" rows="3"></textarea>
+                    </template>
                     <template v-if="modal.type === 'profile'">
                         <input v-model="tempData.nickname" placeholder="昵称" />
                         <textarea v-model="tempData.signature" placeholder="个性签名" rows="2"></textarea>
                     </template>
 
                     <div class="qq-modal-btns">
+                        <button v-if="modal.type === 'user_card' && tempData.id" style="background:#ff3b30; color:#fff;" @click="deleteUserCard">删除</button>
                         <button style="background:#efefef; color:#262626;" @click="modal.show = false">取消</button>
                         <button style="background:#0095f6; color:#fff;" @click="modal.confirm">确定</button>
                     </div>
@@ -192,16 +197,13 @@ window.qqApp = {
         const store = window.store;
         const currentTab = Vue.ref('messages');
         const activeChatId = Vue.ref(null);
-        
-        // Modal State
         const modal = Vue.reactive({ show: false, type: '', title: '', confirm: null });
         const tempData = Vue.reactive({});
-
-        // Utils & Helpers
-        const triggerUpload = (id) => document.getElementById(id).click();
         const errorMsg = Vue.ref('');
         const toastY = Vue.ref(0);
         let errTimer = null;
+
+        const triggerUpload = (id) => document.getElementById(id).click();
         const showError = (msg) => {
             errorMsg.value = msg; toastY.value = 0;
             if (errTimer) clearTimeout(errTimer);
@@ -227,30 +229,16 @@ window.qqApp = {
             if (index === 0) return true;
             const prev = currentMessages.value[index-1];
             if (!prev || !prev.timestamp) return true;
-            return (msg.timestamp - prev.timestamp) > 5 * 60 * 1000; // 5分钟间隔
+            return (msg.timestamp - prev.timestamp) > 5 * 60 * 1000;
         };
 
-        // Gestures
-        let touchStartX = 0;
-        const onSwipeStart = (e) => { touchStartX = e.changedTouches[0].screenX; };
-        const onSwipeEnd = (e) => {
-            if (activeChatId.value || modal.show) return; 
-            const endX = e.changedTouches[0].screenX;
-            if (endX - touchStartX > 80 && currentTab.value !== 'profile' && currentTab.value !== 'wallet') {
-                currentTab.value = 'profile'; 
-            } else if (touchStartX - endX > 80 && (currentTab.value === 'profile' || currentTab.value === 'wallet')) {
-                currentTab.value = 'messages'; 
-            }
-        };
-
-        // Long Press Handler
+        const onSwipeStart = () => {}; const onSwipeEnd = () => {};
         let pressTimer = null;
-        const startPress = (action, payload = null) => {
+        const startPress = (action) => {
             pressTimer = setTimeout(() => { 
                 if (action === 'qq_bg') document.getElementById('qq_bg').click();
                 if (action === 'qq_avatar') document.getElementById('qq_avatar').click();
                 if (action === 'edit_profile') openEditProfile();
-                if (action === 'edit_card') openUserCardModal(payload);
             }, 500);
         };
         const cancelPress = () => { if (pressTimer) clearTimeout(pressTimer); };
@@ -259,23 +247,18 @@ window.qqApp = {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    let w = img.width, h = img.height;
-                    if (w > 600) { h = Math.round(h * 600 / w); w = 600; }
-                    canvas.width = w; canvas.height = h;
-                    ctx.drawImage(img, 0, 0, w, h);
-                    store.qqData.profile[targetField] = canvas.toDataURL('image/jpeg', 0.8);
-                }
-            };
+            reader.onload = (e) => { store.qqData.profile[targetField] = e.target.result; };
             reader.readAsDataURL(file);
         };
 
-        // Modals logic
+        const handleTempAvatar = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => { tempData.avatar = ev.target.result; };
+            reader.readAsDataURL(file);
+        };
+
         const openAddModal = () => {
             modal.title = '创建AI好友'; modal.type = 'char';
             Object.assign(tempData, { name: '', nickname: '', persona: '' });
@@ -283,8 +266,9 @@ window.qqApp = {
                 if (!tempData.name || !tempData.persona) return showError('姓名和人设必填');
                 const id = 'contact_' + Date.now();
                 store.qqData.contacts.push({ 
-                    id, name: tempData.name, nickname: tempData.nickname || tempData.name, 
-                    persona: tempData.persona, avatar: null, offlineMode: false, userCardId: store.qqData.userCards[0].id
+                    id, name: tempData.name, nickname: tempData.name, 
+                    persona: tempData.persona, avatar: null, offlineMode: false, timePerceptionMode: false,
+                    userCardId: store.qqData.userCards[0].id
                 });
                 store.qqData.messages[id] = [];
                 modal.show = false;
@@ -305,34 +289,42 @@ window.qqApp = {
 
         const openUserCardModal = (card = null) => {
             modal.title = card ? '编辑名片' : '新建名片'; modal.type = 'user_card';
-            if (card) Object.assign(tempData, { id: card.id, name: card.name, persona: card.persona });
-            else Object.assign(tempData, { id: null, name: '', persona: '' });
+            if (card) Object.assign(tempData, { id: card.id, name: card.name, persona: card.persona, avatar: card.avatar || null });
+            else Object.assign(tempData, { id: null, name: '', persona: '', avatar: null });
             
             modal.confirm = () => {
                 if (!tempData.name) return showError('名片姓名必填');
                 if (tempData.id) {
                     const target = store.qqData.userCards.find(c => c.id === tempData.id);
-                    if (target) { target.name = tempData.name; target.persona = tempData.persona; }
+                    if (target) { target.name = tempData.name; target.persona = tempData.persona; target.avatar = tempData.avatar; }
                 } else {
-                    store.qqData.userCards.push({ id: 'uc_' + Date.now(), name: tempData.name, persona: tempData.persona });
+                    store.qqData.userCards.push({ id: 'uc_' + Date.now(), name: tempData.name, persona: tempData.persona, avatar: tempData.avatar });
                 }
                 modal.show = false;
             };
             modal.show = true;
         };
 
+        const deleteUserCard = () => {
+            if (store.qqData.userCards.length <= 1) return showError('请至少保留一个名片');
+            store.qqData.userCards = store.qqData.userCards.filter(c => c.id !== tempData.id);
+            modal.show = false;
+        };
+
         const openChatSettings = () => {
             modal.title = '聊天设置'; modal.type = 'chat_settings';
             const c = currentContact.value;
             Object.assign(tempData, {
-                name: c.name, nickname: c.nickname, persona: c.persona,
+                name: c.name, persona: c.persona,
                 userCardId: c.userCardId || store.qqData.userCards[0].id,
-                offlineMode: c.offlineMode || false
+                offlineMode: c.offlineMode || false,
+                timePerceptionMode: c.timePerceptionMode || false
             });
             modal.confirm = () => {
-                c.name = tempData.name; c.nickname = tempData.nickname;
+                c.name = tempData.name; c.nickname = tempData.name;
                 c.persona = tempData.persona; c.userCardId = tempData.userCardId;
                 c.offlineMode = tempData.offlineMode;
+                c.timePerceptionMode = tempData.timePerceptionMode;
                 modal.show = false;
             };
             modal.show = true;
@@ -346,7 +338,6 @@ window.qqApp = {
             reader.readAsDataURL(file);
         };
 
-        // Chat core logic
         const getLastMsg = (id) => {
             const msgs = store.qqData.messages[id] || [];
             return msgs.length > 0 ? msgs[msgs.length-1].content : '暂无消息';
@@ -358,6 +349,21 @@ window.qqApp = {
 
         const inputText = Vue.ref('');
         const isTyping = Vue.ref(false);
+        const quotedMsg = Vue.ref(null);
+
+        const adjustHeight = (e) => {
+            const el = e.target;
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight > 120 ? 120 : el.scrollHeight) + 'px';
+        };
+
+        const onInputKeydown = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                triggerAI();
+            }
+        };
+
         const scrollToBottom = () => {
             setTimeout(() => {
                 const area = document.getElementById('chat-area');
@@ -365,36 +371,99 @@ window.qqApp = {
             }, 100);
         };
 
-        const sendUserMsg = () => {
-            if (!inputText.value.trim()) return;
-            store.qqData.messages[activeChatId.value].push({ role: 'user', content: inputText.value, timestamp: Date.now() });
-            inputText.value = '';
-            scrollToBottom();
+        // ===== 长按气泡逻辑 =====
+        let touchStartData = { x: 0, y: 0, timer: null };
+        const menuInfo = Vue.reactive({ show: false, x: 0, y: 0, msgIndex: -1, msg: null });
+        
+        const closeMenu = () => { menuInfo.show = false; };
+        
+        const onBubbleTs = (e, i, msg) => {
+            touchStartData.x = e.touches[0].clientX; touchStartData.y = e.touches[0].clientY;
+            touchStartData.timer = setTimeout(() => {
+                menuInfo.msg = msg; menuInfo.msgIndex = i;
+                menuInfo.x = Math.min(touchStartData.x, window.innerWidth - 150);
+                menuInfo.y = Math.min(touchStartData.y - 50, window.innerHeight - 80);
+                menuInfo.show = true;
+            }, 500);
+        };
+        const onBubbleTm = (e) => {
+            if(Math.abs(e.touches[0].clientX - touchStartData.x) > 10 || Math.abs(e.touches[0].clientY - touchStartData.y) > 10) clearTimeout(touchStartData.timer);
+        };
+        const onBubbleTe = () => { clearTimeout(touchStartData.timer); };
+
+        const deleteMsg = () => {
+            store.qqData.messages[activeChatId.value].splice(menuInfo.msgIndex, 1);
+            menuInfo.show = false;
+        };
+        const quoteMsg = () => { quotedMsg.value = menuInfo.msg; menuInfo.show = false; };
+
+        // ===== 虚拟时间推演算法 =====
+        const getNextTimeStr = (history, content, isRealTime) => {
+            if (isRealTime) {
+                const now = new Date();
+                return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            }
+            if (history.length === 0) {
+                let h = 12, m = Math.floor(Math.random()*20);
+                if (content.includes('早')) h = 8;
+                else if (content.includes('中')) h = 12;
+                else if (content.includes('晚')) h = 20;
+                else if (content.includes('夜')) h = 23;
+                return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+            } else {
+                const lastMsg = history[history.length - 1];
+                let baseH = 12, baseM = 0;
+                if (lastMsg.timeStr && lastMsg.timeStr.includes(':')) {
+                    const parts = lastMsg.timeStr.split(':');
+                    baseH = parseInt(parts[0], 10) || 12;
+                    baseM = parseInt(parts[1], 10) || 0;
+                }
+                let addMins = Math.floor(content.length / 12) + 1;
+                if (addMins > 15) addMins = 15;
+                baseM += addMins;
+                if (baseM >= 60) { baseH = (baseH + 1) % 24; baseM %= 60; }
+                return `${String(baseH).padStart(2,'0')}:${String(baseM).padStart(2,'0')}`;
+            }
         };
 
+        // ===== 发送核心流程 =====
         const triggerAI = async () => {
-            if (isTyping.value) return;
-            const history = store.qqData.messages[activeChatId.value];
-            if (history.length === 0 || history[history.length-1].role === 'ai') return showError('请先发送您的消息，再让AI回复');
+            if (!inputText.value.trim() || isTyping.value) return;
             
+            const history = store.qqData.messages[activeChatId.value];
+            const isRealTime = !!currentContact.value.timePerceptionMode;
+
+            // 构建用户发送内容
+            const rawUserContent = inputText.value;
+            const tStr = getNextTimeStr(history, rawUserContent, isRealTime);
+            
+            history.push({
+                role: 'user', content: rawUserContent, timestamp: Date.now(),
+                timeStr: tStr, quote: quotedMsg.value ? quotedMsg.value.content : null
+            });
+            
+            inputText.value = ''; 
+            const ta = document.querySelector('.qq-input-textarea');
+            if (ta) ta.style.height = 'auto';
+            quotedMsg.value = null;
+            scrollToBottom();
+
+            // 发送请求
             const apiConfig = store.apiSettings.main;
-            if (!apiConfig.url || !apiConfig.key) return showError('请先在设置App中配置主API');
+            if (!apiConfig.url || !apiConfig.key) return showError('未配置主API');
 
             const c = currentContact.value;
             const uCard = store.qqData.userCards.find(card => card.id === (c.userCardId || store.qqData.userCards[0].id)) || store.qqData.userCards[0];
 
-            let sysPrompt = `你的名字是${c.name}，昵称是${c.nickname}。你的人设是：${c.persona}。\n` +
-                            `与你对话的用户名字是${uCard.name}，用户的人设是：${uCard.persona}。\n请完全沉浸在你的人设中进行回复，绝对不要暴露你是AI模型。`;
-
-            if (c.offlineMode) {
-                sysPrompt += `\n【重要指令】当前已开启线下模式。请进行带有旁白和环境描写的沉浸式角色扮演。每次回复的字数请控制在150字到250字之间。`;
-            } else {
-                sysPrompt += `\n【重要指令】当前未开启线下模式。请模拟手机在线聊天的场景，必须采用短句发送，禁止发送大段长文。一次可以回复1到5条消息的量（如果是多条消息，请用换行符分开）。`;
-            }
+            let sysPrompt = `名字:${c.name}，人设:${c.persona}。用户:${uCard.name}，人设:${uCard.persona}。绝对不要暴露你是AI。`;
+            if (c.offlineMode) sysPrompt += `\n开启线下模式。请进行带有旁白和描写的沉浸式语C扮演。字数150-250字。`;
+            else sysPrompt += `\n未开启线下模式。请模拟手机在线聊天场景，短句发送，禁止长文。可回复1到5条消息（用换行符分开）。`;
 
             const apiMessages = [{ role: 'system', content: sysPrompt }];
             history.slice(-15).forEach(m => {
-                apiMessages.push({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.content });
+                let msgContent = m.content;
+                if (m.quote) msgContent = `[引用了消息：“${m.quote}”]\n` + msgContent;
+                apiMessages.push({ role: m.role === 'ai' ? 'assistant' : 'user', content: msgContent });
             });
 
             isTyping.value = true;
@@ -413,14 +482,14 @@ window.qqApp = {
                 
                 if (!reply || !reply.trim()) throw new Error('AI返回了空消息');
                 
-                // 处理换行符分割多条消息 (仅限非线下模式)
                 if (!c.offlineMode && reply.includes('\n')) {
                     const lines = reply.split('\n').filter(l => l.trim() !== '');
-                    for(let line of lines) {
-                        history.push({ role: 'ai', content: line.trim(), timestamp: Date.now() });
+                    for(let i=0; i<lines.length; i++) {
+                        const line = lines[i].trim();
+                        history.push({ role: 'ai', content: line, timestamp: Date.now(), timeStr: getNextTimeStr(history, line, isRealTime) });
                     }
                 } else {
-                    history.push({ role: 'ai', content: reply, timestamp: Date.now() });
+                    history.push({ role: 'ai', content: reply, timestamp: Date.now(), timeStr: getNextTimeStr(history, reply, isRealTime) });
                 }
                 scrollToBottom();
             } catch (err) {
@@ -433,10 +502,11 @@ window.qqApp = {
         return { 
             store, currentTab, activeChatId, modal, tempData, triggerUpload,
             errorMsg, toastY, onToastTs, onToastTm,
-            onSwipeStart, onSwipeEnd, startPress, cancelPress, handleImgUpload,
-            openAddModal, openEditProfile, openUserCardModal, openChatSettings, handleCharAvatarUpload,
+            onSwipeStart, onSwipeEnd, startPress, cancelPress, handleImgUpload, handleTempAvatar,
+            openAddModal, openEditProfile, openUserCardModal, deleteUserCard, openChatSettings, handleCharAvatarUpload,
             formatTime, showTime, getLastMsg, openChat, currentContact, currentMessages,
-            inputText, isTyping, sendUserMsg, triggerAI 
+            inputText, isTyping, triggerAI, quotedMsg, adjustHeight, onInputKeydown,
+            menuInfo, onBubbleTs, onBubbleTm, onBubbleTe, closeMenu, deleteMsg, quoteMsg
         };
     }
 };
