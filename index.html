@@ -21,7 +21,7 @@
             </div>
         </div>
 
-        <div v-show="!store.currentApp" class="desktop" id="desktop-grid">
+        <div class="desktop" id="desktop-grid">
             <div v-for="item in store.desktopItems" :key="item.id" 
                  :class="{'widget-box': item.type === 'widget', 'app-icon': item.type === 'app'}"
                  :style="item.type === 'widget' ? { gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() } : {}"
@@ -41,7 +41,7 @@
 
                 <div v-else-if="item.widgetType === 'photo'" class="widget-photo"
                      :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
-                    <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">去小组件App设置图片</span>
+                    <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">去小组件App设置</span>
                 </div>
 
                 <div v-else-if="item.type === 'app'" style="display: contents;">
@@ -53,10 +53,15 @@
             </div>
         </div>
 
-        <div v-show="store.currentApp" class="app-view">
-            <component :is="store.currentApp"></component>
-            <div class="home-indicator" @click="closeApp"></div>
-        </div>
+        <!-- App 视图层与滑动手势 -->
+        <transition name="app-slide">
+            <div v-show="store.currentApp" class="app-view">
+                <component :is="store.currentApp" v-if="store.currentApp"></component>
+                <div class="home-indicator-wrapper" @touchstart="homeTouchStart" @touchmove="homeTouchMove" @touchend="homeTouchEnd">
+                    <div class="home-indicator"></div>
+                </div>
+            </div>
+        </transition>
     </div>
 
     <script src="./js/store.js"></script>
