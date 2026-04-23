@@ -1,15 +1,13 @@
 /* eslint-disable */
-/* global Vue, Sortable, window, document */
+/* global Vue, Sortable, window, document, navigator */
 'use strict';
 
 const { createApp, ref, onMounted, onUnmounted, nextTick } = Vue;
 
 const app = createApp({
     setup() {
-        // 引入全局状态数据
         const store = window.store;
 
-        // --- 1. 状态栏与组件：时间与日期 ---
         const time = ref('');
         const date = ref('');
         const weekday = ref('');
@@ -30,57 +28,52 @@ const app = createApp({
         
         let timeInterval;
 
-        // --- 2. 状态栏：电量 (模拟静态电量，也可自行扩展动态掉电) ---
         const battery = ref(100);
+        // 调用真实设备的 Battery API，若不支持则固定显示 98%
+        const updateBattery = async () => {
+            if (navigator.getBattery) {
+                try {
+                    const batt = await navigator.getBattery();
+                    battery.value = Math.round(batt.level * 100);
+                    batt.addEventListener('levelchange', () => {
+                        battery.value = Math.round(batt.level * 100);
+                    });
+                } catch (e) { console.warn('Battery API Error', e); }
+            } else {
+                battery.value = 98; 
+            }
+        };
 
-        // --- 3. 天气模拟数据 ---
         const temperature = ref('26°C');
         const weatherDesc = ref('晴转多云');
 
-        // --- 4. App 交互逻辑 ---
-        const openApp = (id) => {
-            store.currentApp = id;
-        };
-        
-        const closeApp = () => {
-            store.currentApp = null;
-        };
+        const openApp = (id) => { store.currentApp = id; };
+        const closeApp = () => { store.currentApp = null; };
 
-        // --- 5. 桌面拖拽排序逻辑 (SortableJS) ---
         const initSortable = () => {
             const grid = document.getElementById('desktop-grid');
             if (!grid) return;
-            
             new Sortable(grid, {
                 animation: 250,
                 ghostClass: 'sortable-ghost',
-                // 加入长按延迟：长按 200 毫秒后才能拖拽，防止和正常点击打开 App 冲突
                 delay: 200, 
                 delayOnTouchOnly: true, 
                 onEnd: (evt) => {
                     const { oldIndex, newIndex } = evt;
-                    if (oldIndex === newIndex) return; // 位置没变则不处理
-                    
-                    // 同步拖拽后的数组顺序到 store，触发 localStorage 自动保存
+                    if (oldIndex === newIndex) return; 
                     const items = [...store.desktopItems];
                     const [movedItem] = items.splice(oldIndex, 1);
                     items.splice(newIndex, 0, movedItem);
-                    
                     store.desktopItems = items;
                 }
             });
         };
 
-        // --- 6. 生命周期钩子 ---
         onMounted(() => {
             updateTime();
-            // 每秒更新一次时间
+            updateBattery();
             timeInterval = setInterval(updateTime, 1000);
-            
-            // 等待 Vue 将桌面 DOM 渲染完毕后，挂载拖拽事件
-            nextTick(() => {
-                initSortable();
-            });
+            nextTick(() => { initSortable(); });
         });
 
         onUnmounted(() => {
@@ -88,28 +81,15 @@ const app = createApp({
         });
 
         return { 
-            store, 
-            time, date, weekday, 
-            battery, 
-            temperature, weatherDesc, 
-            openApp, closeApp 
+            store, time, date, weekday, battery, temperature, weatherDesc, openApp, closeApp 
         };
     }
 });
 
-// --- 注册所有的 App 子组件 ---
-// 注册小组件管理 App
-if (window.widgetApp) {
-    app.component('widgetApp', window.widgetApp);
-}
-// 注册桌面美化 App (新增)
-if (window.themeApp) {
-    app.component('theme', window.themeApp);
-}
-// 注册其他常规 App (比如微博，如果有的话)
-if (window.weiboApp) {
-    app.component('weibo', window.weiboApp);
-}
+if (window.widgetApp) app.component('widgetApp', window.widgetApp);
+if (window.themeApp) app.component('theme', window.themeApp);
+if (window.weiboApp) app.component('weibo', window.weiboApp);
+if (window.settingsApp) app.component('settings', window.settingsApp);
+if (window.qqApp) app.component('qq', window.qqApp);
 
-// 挂载整个 Vue 实例
 app.mount('#app');
