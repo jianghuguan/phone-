@@ -23,33 +23,30 @@ body { background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "
 .battery-icon::after { content: ''; position: absolute; right: -3px; top: 2px; width: 2px; height: 5px; background: currentColor; border-radius: 0 2px 2px 0; }
 .battery-level { height: 100%; background-color: currentColor; border-radius: 2px; transition: width 0.3s;}
 
-/* 桌面网格：修改为 dense 密集排列模式 */
+/* 桌面网格：修改为 row，去除了 dense 自动补位，图标移动不再受限制 */
 .desktop {
     flex: 1; display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-auto-rows: 75px; 
-    grid-auto-flow: dense; /* 核心：让小图标自动填补大组件旁边的缝隙 */
+    grid-auto-flow: row; 
     gap: 15px; padding: 20px 20px; align-content: start;
-    overflow-y: auto; /* 桌面东西多了允许滑动 */
+    overflow-y: auto;
 }
 
-/* 拖拽时的动画类 */
 .sortable-ghost { opacity: 0.3; transform: scale(0.9); transition: transform 0.2s; }
 
-/* 综合小组件样式 */
 .widget-box {
     border-radius: 22px; 
     box-shadow: 0 6px 16px rgba(0,0,0,0.06);
-    overflow: hidden; /* 防止背景图溢出圆角 */
+    overflow: hidden; 
     position: relative;
 }
 
-/* 时间与天气组件 */
 .widget-time { 
     display: flex; flex-direction: column; justify-content: center; 
     height: 100%; padding: 15px 20px;
     background-size: cover; background-position: center;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.2); /* 确保背景有图时文字能看清 */
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2); 
 }
 .time-header { display: flex; justify-content: space-between; align-items: flex-end; }
 .time-header h1 { font-size: 40px; font-weight: 300; margin: 0; line-height: 1;}
@@ -58,7 +55,6 @@ body { background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "
 .weather-info .desc { font-size: 13px; opacity: 0.9; }
 .date-text { font-size: 13px; margin-top: 8px; font-weight: 500;}
 
-/* 照片墙组件 */
 .widget-photo {
     width: 100%; height: 100%;
     background-color: #eee;
@@ -66,23 +62,22 @@ body { background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "
     display: flex; justify-content: center; align-items: center;
 }
 
-/* App图标 */
 .app-icon { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
 .icon-img {
     width: 60px; height: 60px; border-radius: 18px; 
     display: flex; justify-content: center; align-items: center;
     font-size: 26px; font-weight: bold; color: #333; 
-    box-shadow: 0 4px 14px rgba(0,0,0,0.06); pointer-events: none; /* 禁用图片本身的鼠标事件，优化拖拽手感 */
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06); pointer-events: none; 
+    background-size: cover; /* 保证自定义图片填满圆角 */
+    background-position: center;
 }
 .icon-name { font-size: 12px; color: #555; margin-top: 6px; font-weight: 500; pointer-events: none;}
 
-/* App运行区 */
 .app-view { width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: #fff; z-index: 10; padding-top: 55px; overflow-y: auto;}
 .home-indicator {
     width: 140px; height: 5px; background-color: #000; border-radius: 10px; 
     position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); cursor: pointer; z-index: 999;
 }
 
-/* 按钮样式 */
-.btn-primary { background: #000; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; margin-right: 10px;}
-.btn-danger { background: #ff3b30; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600;}
+.btn-primary { background: #000; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; margin-right: 10px; cursor: pointer;}
+.btn-danger { background: #ff3b30; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer;}
