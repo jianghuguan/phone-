@@ -1,4 +1,5 @@
-// 默认的桌面布局
+/* global Vue */
+
 const defaultDesktopItems = [
     { type: 'widget', id: 'timeWidget', name: '时钟天气', span: '4 / 2' },
     { type: 'widget', id: 'photoWidget', name: '照片墙', span: '2 / 2' },
@@ -12,18 +13,17 @@ const defaultDesktopItems = [
     { type: 'app', id: 'widgetApp', name: '小组件', textIcon: '组', color: '#e8fdfa' }
 ];
 
-// 尝试从浏览器本地存储读取之前的保存数据
 const savedData = localStorage.getItem('myPhoneData');
 const initialState = savedData ? JSON.parse(savedData) : {
     currentApp: null,
     desktopItems: defaultDesktopItems,
-    timeBgImage: null,   // 时间组件背景图 (base64)
-    photoWallImage: null // 照片墙图片 (base64)
+    timeBgImage: null,
+    photoWallImage: null
 };
 
 window.store = Vue.reactive(initialState);
 
-// 监听 store 变化，只要发生拖拽排序、换图片，自动保存到手机浏览器
 Vue.watch(window.store, (newState) => {
     localStorage.setItem('myPhoneData', JSON.stringify(newState));
 }, { deep: true });
+
