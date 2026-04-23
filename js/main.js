@@ -1,3 +1,5 @@
+/* global Vue, Sortable */
+
 const { createApp, ref, onMounted, nextTick } = Vue;
 const store = window.store;
 
@@ -8,11 +10,9 @@ const app = createApp({
         const weekday = ref('');
         const battery = ref(100);
         
-        // 天气相关状态
         const temperature = ref('--°C');
         const weatherDesc = ref('获取中...');
 
-        // 1. 更新时间和电量
         const updateTime = () => {
             const now = new Date();
             time.value = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
@@ -30,15 +30,13 @@ const app = createApp({
             } else { battery.value = 99; }
         };
 
-        // 2. 获取天气 (Open-Meteo 免费 API)
-        const fetchWeather = (lat = 39.9, lon = 116.4) => { // 默认北京坐标
+        const fetchWeather = (lat = 39.9, lon = 116.4) => {
             fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
                 .then(res => res.json())
                 .then(data => {
                     const cw = data.current_weather;
                     temperature.value = cw.temperature + '°C';
                     
-                    // 简易天气代码转换
                     const code = cw.weathercode;
                     let desc = '☁️ 未知';
                     if (code === 0) desc = '☀️ 晴朗';
@@ -55,21 +53,19 @@ const app = createApp({
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-                    err => fetchWeather() // 拒绝定位则使用默认坐标
+                    err => fetchWeather()
                 );
             } else { fetchWeather(); }
         };
 
-        // 3. 初始化拖拽排序功能
         const initDragAndDrop = () => {
             const grid = document.getElementById('desktop-grid');
             new Sortable(grid, {
                 animation: 200,
-                delay: 250, // 250毫秒长按后才可拖拽 (兼容手机端)
-                delayOnTouchOnly: true, // 只在触摸屏启用长按
-                ghostClass: 'sortable-ghost', // 拖拽时的样式类
+                delay: 250,
+                delayOnTouchOnly: true,
+                ghostClass: 'sortable-ghost',
                 onEnd: function (evt) {
-                    // 同步拖拽后的数组顺序到 Vue 的 store 中
                     const arr = [...store.desktopItems];
                     const item = arr.splice(evt.oldIndex, 1)[0];
                     arr.splice(evt.newIndex, 0, item);
@@ -84,7 +80,6 @@ const app = createApp({
             updateBattery();
             initWeather();
             
-            // 确保 DOM 渲染完毕后再绑定拖拽
             nextTick(() => { initDragAndDrop(); });
         });
 
@@ -98,3 +93,4 @@ const app = createApp({
 app.component('widgetApp', window.widgetApp);
 app.component('weibo', window.weiboApp);
 app.mount('#app');
+
