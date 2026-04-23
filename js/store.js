@@ -18,11 +18,22 @@ const defaultDesktopItems = [
 const savedData = window.localStorage.getItem('myPhoneData');
 let initialState = savedData ? JSON.parse(savedData) : null;
 
-// 增加多层级安全判断，修复编辑器报红可能引发 TypeError 的警告
 if (!initialState || !initialState.desktopItems || initialState.desktopItems.length === 0 || !initialState.desktopItems[0].widgetType) {
-    initialState = {
-        currentApp: null,
-        desktopItems: defaultDesktopItems
+    initialState = { currentApp: null, desktopItems: defaultDesktopItems };
+}
+
+// 补充 API 配置与 QQ 模拟数据
+if (!initialState.apiSettings) {
+    initialState.apiSettings = {
+        main: { url: 'https://api.openai.com', key: '', model: 'gpt-3.5-turbo' },
+        sub: { url: '', key: '', model: '' }
+    };
+}
+if (!initialState.qqData) {
+    initialState.qqData = {
+        profile: { avatar: null, bgImage: null, nickname: '我', signature: '记录生活的美好' },
+        contacts: [],
+        messages: {}
     };
 }
 
@@ -31,4 +42,3 @@ window.store = Vue.reactive(initialState);
 Vue.watch(window.store, (newState) => {
     window.localStorage.setItem('myPhoneData', JSON.stringify(newState));
 }, { deep: true });
-
