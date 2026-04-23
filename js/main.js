@@ -1,7 +1,7 @@
-/* global Vue, Sortable, window, document, navigator, setInterval, clearInterval */
+/* eslint-env browser, es2021 */
 'use strict';
 
-const { createApp, ref, onMounted, onUnmounted, nextTick } = Vue;
+const { createApp, ref, onMounted, onUnmounted, nextTick } = window.Vue;
 
 const app = createApp({
     setup() {
@@ -21,24 +21,28 @@ const app = createApp({
             const day = now.getDate();
             date.value = `${month}月${day}日`;
 
-            const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const days = [
+                '星期日', '星期一', '星期二', '星期三',
+                '星期四', '星期五', '星期六'
+            ];
             weekday.value = days[now.getDay()];
         };
 
-        let timeInterval;
+        let timeInterval = null;
 
         const battery = ref(100);
         const updateBattery = async () => {
-            if (navigator.getBattery) {
+            if (window.navigator && window.navigator.getBattery) {
                 try {
-                    const batt = await navigator.getBattery();
+                    const batt = await window.navigator.getBattery();
                     battery.value = Math.round(batt.level * 100);
                     batt.addEventListener('levelchange', () => {
                         battery.value = Math.round(batt.level * 100);
                     });
-                } catch (error) {
-                    void error; // 标记变量已使用，防止规范检查报错
-                    battery.value = 98;
+                } catch (err) {
+                    if (err) {
+                        battery.value = 98;
+                    }
                 }
             } else {
                 battery.value = 98;
@@ -51,44 +55,52 @@ const app = createApp({
         const openApp = (id) => {
             store.currentApp = id;
         };
+
         const closeApp = () => {
             store.currentApp = null;
         };
 
-        // 上滑返回桌面手势
         let homeStartY = 0;
+
         const homeTouchStart = (e) => {
-            homeStartY = e.touches[0].clientY;
+            if (e.touches && e.touches.length > 0) {
+                homeStartY = e.touches[0].clientY;
+            }
         };
+
         const homeTouchMove = (e) => {
             e.preventDefault();
         };
+
         const homeTouchEnd = (e) => {
-            const endY = e.changedTouches[0].clientY;
-            if (homeStartY - endY > 30) {
-                closeApp();
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                const endY = e.changedTouches[0].clientY;
+                if (homeStartY - endY > 30) {
+                    closeApp();
+                }
             }
         };
 
         const initSortable = () => {
-            const grid = document.getElementById('desktop-grid');
+            const grid = window.document.getElementById('desktop-grid');
             if (!grid) {
                 return;
             }
-            
-            Sortable.create(grid, {
+
+            window.Sortable.create(grid, {
                 animation: 250,
                 ghostClass: 'sortable-ghost',
                 delay: 200,
                 delayOnTouchOnly: true,
                 onEnd: (evt) => {
-                    const { oldIndex, newIndex } = evt;
-                    if (oldIndex === newIndex) {
+                    const oldIdx = evt.oldIndex;
+                    const newIdx = evt.newIndex;
+                    if (oldIdx === newIdx) {
                         return;
                     }
                     const items = [...store.desktopItems];
-                    const [movedItem] = items.splice(oldIndex, 1);
-                    items.splice(newIndex, 0, movedItem);
+                    const [movedItem] = items.splice(oldIdx, 1);
+                    items.splice(newIdx, 0, movedItem);
                     store.desktopItems = items;
                 }
             });
@@ -97,14 +109,16 @@ const app = createApp({
         onMounted(() => {
             updateTime();
             updateBattery();
-            timeInterval = setInterval(updateTime, 1000);
+            timeInterval = window.setInterval(updateTime, 1000);
             nextTick(() => {
                 initSortable();
             });
         });
 
         onUnmounted(() => {
-            clearInterval(timeInterval);
+            if (timeInterval) {
+                window.clearInterval(timeInterval);
+            }
         });
 
         return {
@@ -124,10 +138,20 @@ const app = createApp({
     }
 });
 
-if (window.widgetApp) { app.component('widgetApp', window.widgetApp); }
-if (window.themeApp) { app.component('theme', window.themeApp); }
-if (window.weiboApp) { app.component('weibo', window.weiboApp); }
-if (window.settingsApp) { app.component('settings', window.settingsApp); }
-if (window.qqApp) { app.component('qq', window.qqApp); }
+if (window.widgetApp) {
+    app.component('widgetApp', window.widgetApp);
+}
+if (window.themeApp) {
+    app.component('theme', window.themeApp);
+}
+if (window.weiboApp) {
+    app.component('weibo', window.weiboApp);
+}
+if (window.settingsApp) {
+    app.component('settings', window.settingsApp);
+}
+if (window.qqApp) {
+    app.component('qq', window.qqApp);
+}
 
 app.mount('#app');
