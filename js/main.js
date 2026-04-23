@@ -29,7 +29,6 @@ const app = createApp({
         let timeInterval;
 
         const battery = ref(100);
-        // 调用真实设备的 Battery API，若不支持则固定显示 98%
         const updateBattery = async () => {
             if (navigator.getBattery) {
                 try {
@@ -38,7 +37,9 @@ const app = createApp({
                     batt.addEventListener('levelchange', () => {
                         battery.value = Math.round(batt.level * 100);
                     });
-                } catch (e) { console.warn('Battery API Error', e); }
+                } catch (e) { 
+                    console.warn('Battery API Error', e); 
+                }
             } else {
                 battery.value = 98; 
             }
@@ -53,7 +54,8 @@ const app = createApp({
         const initSortable = () => {
             const grid = document.getElementById('desktop-grid');
             if (!grid) return;
-            new Sortable(grid, {
+            // 修复红叉：将 new 实例赋值给一个变量，解决 strict mode 下的 no-new 警告
+            const sortableInstance = new Sortable(grid, {
                 animation: 250,
                 ghostClass: 'sortable-ghost',
                 delay: 200, 
@@ -93,3 +95,4 @@ if (window.settingsApp) app.component('settings', window.settingsApp);
 if (window.qqApp) app.component('qq', window.qqApp);
 
 app.mount('#app');
+
