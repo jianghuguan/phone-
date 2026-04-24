@@ -9,9 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
 <body>
-    <!-- 绑定桌面背景图属性 -->
-    <div id="app" :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
-        <div class="status-bar" :class="{ 'dark-text': !store.currentApp && !store.desktopBgImage }">
+    <div id="app">
+        <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
             <span class="time">{{ time }}</span>
             <div class="dynamic-island"></div>
             <div class="battery">
@@ -22,13 +21,19 @@
             </div>
         </div>
 
-        <div class="desktop" id="desktop-grid">
-            <div v-for="item in store.desktopItems" :key="item.id"
+        <div
+            class="desktop"
+            id="desktop-grid"
+            :style="{
+                backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none'
+            }"
+        >
+            <div v-for="item in store.desktopItems" :key="item.id" 
                  :class="{'widget-box': item.type === 'widget', 'app-icon': item.type === 'app'}"
                  :style="item.type === 'widget' ? { gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() } : {}"
                  @click="item.type === 'app' ? openApp(item.id) : null">
                 
-                <div v-if="item.widgetType === 'time'" class="widget-time"
+                <div v-if="item.widgetType === 'time'" class="widget-time" 
                      :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
                     <div class="time-header">
                         <h1>{{ time }}</h1>
@@ -49,12 +54,11 @@
                     <div class="icon-img" :style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
                         <template v-if="!item.iconImage">{{ item.textIcon }}</template>
                     </div>
-                    <span class="icon-name" :style="{ color: store.desktopBgImage ? '#fff' : '#555', textShadow: store.desktopBgImage ? '0 1px 3px rgba(0,0,0,0.8)' : 'none' }">{{ item.name }}</span>
+                    <span class="icon-name">{{ item.name }}</span>
                 </div>
             </div>
         </div>
 
-        <!-- App 视图层与滑动手势 -->
         <transition name="app-slide">
             <div v-show="store.currentApp" class="app-view">
                 <component :is="store.currentApp" v-if="store.currentApp"></component>
