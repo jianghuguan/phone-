@@ -28,7 +28,12 @@ if (savedData) {
 }
 
 if (!initialState || !Array.isArray(initialState.desktopItems) || initialState.desktopItems.length === 0) {
-    initialState = { currentApp: null, desktopItems: defaultDesktopItems };
+    initialState = { currentApp: null, desktopBgImage: null, desktopItems: defaultDesktopItems };
+}
+
+// 兼容老数据，增加背景字段
+if (initialState.desktopBgImage === undefined) {
+    initialState.desktopBgImage = null;
 }
 
 if (!initialState.apiSettings) {
