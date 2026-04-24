@@ -19,6 +19,7 @@ body {
     position: relative;
 }
 
+/* === INS黑白风全局按钮 === */
 button,
 .btn-primary,
 .btn-danger,
@@ -107,8 +108,8 @@ button:active,
     flex: 1;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: 85px;
-    grid-auto-flow: row;
+    /* 强制正方形网格：屏幕宽度 - 两侧20px内边距 - 3个15px间距 / 4列 */
+    grid-auto-rows: calc((100vw - 85px) / 4);
     gap: 15px;
     padding: 20px 20px;
     align-content: start;
@@ -199,11 +200,7 @@ button:active,
 .icon-img {
     width: 60px;
     height: 60px;
-    min-width: 60px;
-    min-height: 60px;
-    flex-shrink: 0;
-    aspect-ratio: 1 / 1;
-    border-radius: 16px;
+    border-radius: 18px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -218,10 +215,10 @@ button:active,
 
 .icon-name {
     font-size: 12px;
+    color: #555;
     margin-top: 6px;
     font-weight: 500;
     pointer-events: none;
-    transition: color 0.2s;
 }
 
 .app-view {
@@ -323,13 +320,15 @@ button:active,
     align-items: center;
     justify-content: center;
     font-size: 15px;
-    color: #000;
+    font-weight: 500;
+    color: #000; /* 改为纯黑 */
     cursor: pointer;
     transition: 0.2s;
 }
 
 .qq-bottom-bar div.active {
-    font-weight: bold;
+    color: #000;
+    font-weight: bold; /* 选中加粗 */
 }
 
 .qq-contact-item {
@@ -381,6 +380,7 @@ button:active,
     text-overflow: ellipsis;
 }
 
+/* === 气泡及时间排版 === */
 .qq-msg-row {
     display: flex;
     margin-bottom: 16px;
@@ -464,6 +464,7 @@ button:active,
     border-bottom-left-radius: 4px;
 }
 
+/* 长按气泡出现的弹窗菜单与引用框 */
 .msg-menu {
     position: absolute;
     top: -38px;
@@ -533,6 +534,7 @@ button:active,
     }
 }
 
+/* === 底部输入框更新(高度压缩至单行) === */
 .qq-input-area {
     display: flex;
     flex-direction: column;
@@ -543,7 +545,7 @@ button:active,
 
 .qq-input-bar {
     height: auto;
-    min-height: 50px;
+    min-height: 40px;
     padding: 8px 16px;
     display: flex;
     align-items: flex-end;
@@ -558,13 +560,11 @@ button:active,
     font-size: 14px;
     background: #fff;
     resize: none;
-    height: 36px;
-    min-height: 36px;
     max-height: 120px;
     line-height: 20px;
+    height: 36px; /* 单行高度 */
     overflow-y: auto;
     margin-right: 12px;
-    box-sizing: border-box;
 }
 
 .qq-input-bar button {
@@ -588,6 +588,7 @@ button:active,
     font-weight: 500;
 }
 
+/* 弹窗及名片样式 */
 .qq-modal-overlay {
     position: absolute;
     top: 0;
