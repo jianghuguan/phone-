@@ -23,12 +23,12 @@
         </div>
 
         <div class="desktop" id="desktop-grid">
-            <div v-for="item in store.desktopItems" :key="item.id" 
+            <div v-for="item in store.desktopItems" :key="item.id"
                  :class="{'widget-box': item.type === 'widget', 'app-icon': item.type === 'app'}"
                  :style="item.type === 'widget' ? { gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() } : {}"
                  @click="item.type === 'app' ? openApp(item.id) : null">
                 
-                <div v-if="item.widgetType === 'time'" class="widget-time" 
+                <div v-if="item.widgetType === 'time'" class="widget-time"
                      :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
                     <div class="time-header">
                         <h1>{{ time }}</h1>
