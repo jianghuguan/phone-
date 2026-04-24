@@ -79,7 +79,8 @@ window.widgetApp = {
                     
                     const targetWidget = store.desktopItems.find(item => item.id === id);
                     if (targetWidget) {
-                        targetWidget.bgImage = canvas.toDataURL('image/jpeg', 0.8);
+                        // 【修改核心】小组件转码也采用 PNG 格式，防止透明图变黑
+                        targetWidget.bgImage = canvas.toDataURL('image/png');
                     }
                 };
             };
@@ -88,4 +89,3 @@ window.widgetApp = {
         return { store, widgets, addWidget, removeWidget, triggerClick, handleImageUpload };
     }
 };
-
