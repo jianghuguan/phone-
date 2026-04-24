@@ -34,12 +34,9 @@ const app = createApp({
         // 电量逻辑：每次打开为100，每分钟掉1点
         const battery = ref(100);
         const updateBattery = () => {
-            battery.value = 100;
-            batteryInterval = window.setInterval(() => {
-                if (battery.value > 1) {
-                    battery.value -= 1;
-                }
-            }, 60000);
+            if (battery.value > 1) {
+                battery.value -= 1;
+            }
         };
 
         const temperature = ref('26°C');
@@ -101,16 +98,23 @@ const app = createApp({
 
         onMounted(() => {
             updateTime();
-            updateBattery();
             timeInterval = window.setInterval(updateTime, 1000);
+            
+            // 每 60,000 毫秒(1分钟)触发一次掉电
+            batteryInterval = window.setInterval(updateBattery, 60000);
+            
             nextTick(() => {
                 initSortable();
             });
         });
 
         onUnmounted(() => {
-            if (timeInterval) window.clearInterval(timeInterval);
-            if (batteryInterval) window.clearInterval(batteryInterval);
+            if (timeInterval) {
+                window.clearInterval(timeInterval);
+            }
+            if (batteryInterval) {
+                window.clearInterval(batteryInterval);
+            }
         });
 
         return {
@@ -130,10 +134,20 @@ const app = createApp({
     }
 });
 
-if (window.widgetApp) { app.component('widgetApp', window.widgetApp); }
-if (window.themeApp) { app.component('theme', window.themeApp); }
-if (window.weiboApp) { app.component('weibo', window.weiboApp); }
-if (window.settingsApp) { app.component('settings', window.settingsApp); }
-if (window.qqApp) { app.component('qq', window.qqApp); }
+if (window.widgetApp) {
+    app.component('widgetApp', window.widgetApp);
+}
+if (window.themeApp) {
+    app.component('theme', window.themeApp);
+}
+if (window.weiboApp) {
+    app.component('weibo', window.weiboApp);
+}
+if (window.settingsApp) {
+    app.component('settings', window.settingsApp);
+}
+if (window.qqApp) {
+    app.component('qq', window.qqApp);
+}
 
 app.mount('#app');
