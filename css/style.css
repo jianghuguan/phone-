@@ -108,8 +108,8 @@ button:active,
     flex: 1;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    /* 强制正方形网格：屏幕宽度 - 两侧20px内边距 - 3个15px间距 / 4列 */
     grid-auto-rows: calc((100vw - 85px) / 4);
+    grid-auto-flow: row;
     gap: 15px;
     padding: 20px 20px;
     align-content: start;
@@ -119,6 +119,10 @@ button:active,
     left: 0;
     width: 100%;
     height: calc(100% - 55px);
+    background-color: #fbfbfd;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 .sortable-ghost {
@@ -321,14 +325,14 @@ button:active,
     justify-content: center;
     font-size: 15px;
     font-weight: 500;
-    color: #000; /* 改为纯黑 */
+    color: #000;
     cursor: pointer;
     transition: 0.2s;
 }
 
 .qq-bottom-bar div.active {
     color: #000;
-    font-weight: bold; /* 选中加粗 */
+    font-weight: 700;
 }
 
 .qq-contact-item {
@@ -380,7 +384,6 @@ button:active,
     text-overflow: ellipsis;
 }
 
-/* === 气泡及时间排版 === */
 .qq-msg-row {
     display: flex;
     margin-bottom: 16px;
@@ -464,7 +467,6 @@ button:active,
     border-bottom-left-radius: 4px;
 }
 
-/* 长按气泡出现的弹窗菜单与引用框 */
 .msg-menu {
     position: absolute;
     top: -38px;
@@ -534,7 +536,6 @@ button:active,
     }
 }
 
-/* === 底部输入框更新(高度压缩至单行) === */
 .qq-input-area {
     display: flex;
     flex-direction: column;
@@ -545,7 +546,7 @@ button:active,
 
 .qq-input-bar {
     height: auto;
-    min-height: 40px;
+    min-height: 52px;
     padding: 8px 16px;
     display: flex;
     align-items: flex-end;
@@ -555,21 +556,23 @@ button:active,
     flex: 1;
     border: 1px solid #000;
     border-radius: 18px;
-    padding: 8px 14px;
+    padding: 8px 12px;
     outline: none;
     font-size: 14px;
     background: #fff;
     resize: none;
-    max-height: 120px;
+    min-height: 36px;
+    height: 36px;
+    max-height: 108px;
     line-height: 20px;
-    height: 36px; /* 单行高度 */
     overflow-y: auto;
     margin-right: 12px;
 }
 
 .qq-input-bar button {
     padding: 6px 16px;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
+    height: 36px;
 }
 
 .qq-toast {
@@ -588,7 +591,6 @@ button:active,
     font-weight: 500;
 }
 
-/* 弹窗及名片样式 */
 .qq-modal-overlay {
     position: absolute;
     top: 0;
