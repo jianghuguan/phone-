@@ -1,5 +1,6 @@
 /* eslint-disable */
-/* global Vue, FileReader, Image, document */
+/* global Vue, FileReader, Image, document, window */
+'use strict';
 
 window.themeApp = {
     template: `
@@ -38,12 +39,23 @@ window.themeApp = {
     `,
     setup() {
         const store = window.store;
-        const apps = Vue.computed(() => store.desktopItems.filter(item => item.type === 'app'));
-        const triggerClick = (id) => document.getElementById(id).click();
+
+        const apps = Vue.computed(() => {
+            return store.desktopItems.filter((item) => item.type === 'app');
+        });
+
+        const triggerClick = (id) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.click();
+            }
+        };
 
         const handleBgUpload = (event) => {
             const file = event.target.files[0];
-            if (!file) return;
+            if (!file) {
+                return;
+            }
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = (e) => {
@@ -52,9 +64,14 @@ window.themeApp = {
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    let w = img.width, h = img.height;
-                    if (w > 1080) { h = Math.round(h * 1080 / w); w = 1080; }
-                    canvas.width = w; canvas.height = h;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > 1080) {
+                        h = Math.round((h * 1080) / w);
+                        w = 1080;
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
                     ctx.drawImage(img, 0, 0, w, h);
                     store.desktopBgImage = canvas.toDataURL('image/jpeg', 0.8);
                 };
@@ -63,7 +80,9 @@ window.themeApp = {
 
         const handleIconUpload = (event, id) => {
             const file = event.target.files[0];
-            if (!file) return;
+            if (!file) {
+                return;
+            }
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = (e) => {
@@ -72,10 +91,13 @@ window.themeApp = {
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    canvas.width = 160; canvas.height = 160;
+                    canvas.width = 160;
+                    canvas.height = 160;
                     ctx.drawImage(img, 0, 0, 160, 160);
-                    const targetApp = store.desktopItems.find(item => item.id === id);
-                    if (targetApp) targetApp.iconImage = canvas.toDataURL('image/jpeg', 0.8);
+                    const targetApp = store.desktopItems.find((item) => item.id === id);
+                    if (targetApp) {
+                        targetApp.iconImage = canvas.toDataURL('image/jpeg', 0.8);
+                    }
                 };
             };
         };
