@@ -2,7 +2,7 @@
 /* eslint-env browser, es2021 */
 'use strict';
 
-const { createApp, ref, onMounted, onUnmounted, nextTick } = window.Vue;
+const { createApp, ref, onMounted, onUnmounted, nextTick, watch } = window.Vue;
 
 const app = createApp({
     setup() {
@@ -79,9 +79,18 @@ const app = createApp({
             updateTime();
             timeInterval = window.setInterval(updateTime, 1000);
             
-            // 每次打开强制 100% 电量，每分钟掉 1 点
             battery.value = 100;
             batteryInterval = window.setInterval(updateBattery, 60000);
+
+            // 监听桌面背景更新并应用到整个APP容器
+            watch(() => store.desktopBg, (newVal) => {
+                const appEl = window.document.getElementById('app');
+                if (appEl) {
+                    appEl.style.backgroundImage = newVal ? `url(${newVal})` : 'none';
+                    appEl.style.backgroundSize = 'cover';
+                    appEl.style.backgroundPosition = 'center';
+                }
+            }, { immediate: true });
 
             nextTick(() => { initSortable(); });
         });
