@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* eslint-env browser, es2021 */
 'use strict';
 
