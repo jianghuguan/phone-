@@ -22,13 +22,16 @@ const savedData = window.localStorage.getItem('myPhoneData');
 if (savedData) {
     try {
         initialState = JSON.parse(savedData);
-    } catch (err) {
-        if (err) initialState = null;
+    } catch (error) {
+        initialState = null;
     }
 }
 
 if (!initialState || !Array.isArray(initialState.desktopItems) || initialState.desktopItems.length === 0) {
-    initialState = { currentApp: null, desktopItems: defaultDesktopItems };
+    initialState = { 
+        currentApp: null, 
+        desktopItems: defaultDesktopItems 
+    };
 }
 
 if (initialState.desktopBg === undefined) {
@@ -71,8 +74,8 @@ Vue.watch(
         try {
             const dataString = JSON.stringify(newState);
             window.localStorage.setItem('myPhoneData', dataString);
-        } catch (err) {
-            if (err) window.console.warn('Data save failed');
+        } catch (error) {
+            window.console.warn('Data save failed', error);
         }
     },
     { deep: true }
