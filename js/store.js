@@ -22,7 +22,9 @@ if (savedData) {
     try {
         initialState = JSON.parse(savedData);
     } catch (err) {
-        if (err) { initialState = null; }
+        if (err) {
+            initialState = null;
+        }
     }
 }
 
@@ -45,14 +47,16 @@ if (!initialState.qqData) {
     };
 }
 
-// 补充名片头像字段
+// 确保名片拥有头像属性
 if (!initialState.qqData.userCards) {
     initialState.qqData.userCards = [
         { id: 'uc_default', name: '默认用户', persona: '一个普通的记录生活者，回复风格口语化。', avatar: null }
     ];
 } else {
     initialState.qqData.userCards.forEach(uc => {
-        if (uc.avatar === undefined) uc.avatar = null;
+        if (uc.avatar === undefined) {
+            uc.avatar = null;
+        }
     });
 }
 
@@ -70,6 +74,8 @@ Vue.watch(window.store, (newState) => {
         const dataString = JSON.stringify(newState);
         window.localStorage.setItem('myPhoneData', dataString);
     } catch (err) {
-        if (err) window.console.warn('Data save failed');
+        if (err) {
+            window.console.warn('Data save failed');
+        }
     }
 }, { deep: true });
