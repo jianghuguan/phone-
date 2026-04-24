@@ -1,6 +1,4 @@
-/* eslint-disable */
 /* eslint-env browser, es2021 */
-/* global Vue, Sortable */
 'use strict';
 
 const { createApp, ref, onMounted, onUnmounted, nextTick } = window.Vue;
@@ -31,18 +29,17 @@ const app = createApp({
         };
 
         let timeInterval = null;
-
-        // 模拟电量：初始 100%，每分钟掉 1%
-        const battery = ref(100);
         let batteryInterval = null;
-        
-        const initBattery = () => {
+
+        // 电量逻辑：每次打开为100，每分钟掉1点
+        const battery = ref(100);
+        const updateBattery = () => {
             battery.value = 100;
             batteryInterval = window.setInterval(() => {
-                if (battery.value > 0) {
+                if (battery.value > 1) {
                     battery.value -= 1;
                 }
-            }, 60000); // 60000ms = 1分钟
+            }, 60000);
         };
 
         const temperature = ref('26°C');
@@ -104,7 +101,7 @@ const app = createApp({
 
         onMounted(() => {
             updateTime();
-            initBattery();
+            updateBattery();
             timeInterval = window.setInterval(updateTime, 1000);
             nextTick(() => {
                 initSortable();
@@ -112,12 +109,8 @@ const app = createApp({
         });
 
         onUnmounted(() => {
-            if (timeInterval) {
-                window.clearInterval(timeInterval);
-            }
-            if (batteryInterval) {
-                window.clearInterval(batteryInterval);
-            }
+            if (timeInterval) window.clearInterval(timeInterval);
+            if (batteryInterval) window.clearInterval(batteryInterval);
         });
 
         return {
@@ -137,21 +130,10 @@ const app = createApp({
     }
 });
 
-// 标准格式化展开，防止触发单行超长或块级代码检查
-if (window.widgetApp) {
-    app.component('widgetApp', window.widgetApp);
-}
-if (window.themeApp) {
-    app.component('theme', window.themeApp);
-}
-if (window.weiboApp) {
-    app.component('weibo', window.weiboApp);
-}
-if (window.settingsApp) {
-    app.component('settings', window.settingsApp);
-}
-if (window.qqApp) {
-    app.component('qq', window.qqApp);
-}
+if (window.widgetApp) { app.component('widgetApp', window.widgetApp); }
+if (window.themeApp) { app.component('theme', window.themeApp); }
+if (window.weiboApp) { app.component('weibo', window.weiboApp); }
+if (window.settingsApp) { app.component('settings', window.settingsApp); }
+if (window.qqApp) { app.component('qq', window.qqApp); }
 
 app.mount('#app');
