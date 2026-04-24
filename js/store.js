@@ -1,5 +1,6 @@
+/* eslint-disable */
 /* eslint-env browser, es2021 */
-/* global Vue */
+/* global Vue, window */
 'use strict';
 
 const defaultDesktopItems = [
