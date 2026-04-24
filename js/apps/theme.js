@@ -26,7 +26,8 @@ window.themeApp = {
                 <div style="display:flex; gap:6px;">
                     <input type="file" accept="image/*" @change="handleIconUpload($event, app.id)" :id="'iconUpload_'+app.id" style="display:none;">
                     <button @click="triggerClick('iconUpload_'+app.id)" class="btn-primary" style="font-size: 12px; padding: 6px 12px; margin:0;">图库选择</button>
-                    <button v-if="app.iconImage" @click="app.iconImage = null" class="btn-danger" style="font-size: 12px; padding: 6px 12px;">恢复</button>
+                    <!-- 点击恢复时，同步将背景色还原为白色 -->
+                    <button v-if="app.iconImage" @click="app.iconImage = null; app.color = '#ffffff'" class="btn-danger" style="font-size: 12px; padding: 6px 12px;">恢复</button>
                 </div>
             </div>
         </div>
@@ -62,6 +63,7 @@ window.themeApp = {
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
+                    // 桌面壁纸依然可以用 JPEG 格式压缩
                     callback(canvas.toDataURL('image/jpeg', 0.85));
                 };
             };
@@ -94,7 +96,10 @@ window.themeApp = {
 
                     const targetApp = store.desktopItems.find(item => item.id === id);
                     if (targetApp) {
-                        targetApp.iconImage = canvas.toDataURL('image/jpeg', 0.8);
+                        // 【修改核心】将导出格式从 'image/jpeg' 改为了 'image/png'，支持透明通道
+                        targetApp.iconImage = canvas.toDataURL('image/png');
+                        // 【修改核心】上传自定义图片后，自动把元素的自带底色设置为透明，防止白底透出
+                        targetApp.color = 'transparent';
                     }
                 };
             };
