@@ -2,7 +2,7 @@
 /* eslint-env browser, es2021 */
 'use strict';
 
-const { createApp, ref, onMounted, onUnmounted, nextTick, watch } = window.Vue;
+const { createApp, ref, onMounted, onUnmounted, nextTick } = window.Vue;
 
 const app = createApp({
     setup() {
@@ -39,39 +39,24 @@ const app = createApp({
         const temperature = ref('26°C');
         const weatherDesc = ref('晴转多云');
 
-        const openApp = (id) => {
-            store.currentApp = id;
-        };
-        
-        const closeApp = () => {
-            store.currentApp = null;
-        };
+        const openApp = (id) => { store.currentApp = id; };
+        const closeApp = () => { store.currentApp = null; };
 
         let homeStartY = 0;
         const homeTouchStart = (e) => {
-            if (e.touches && e.touches.length > 0) {
-                homeStartY = e.touches[0].clientY;
-            }
+            if (e.touches && e.touches.length > 0) homeStartY = e.touches[0].clientY;
         };
-        
-        const homeTouchMove = (e) => {
-            e.preventDefault();
-        };
-        
+        const homeTouchMove = (e) => { e.preventDefault(); };
         const homeTouchEnd = (e) => {
             if (e.changedTouches && e.changedTouches.length > 0) {
                 const endY = e.changedTouches[0].clientY;
-                if (homeStartY - endY > 30) {
-                    closeApp();
-                }
+                if (homeStartY - endY > 30) closeApp();
             }
         };
 
         const initSortable = () => {
             const grid = window.document.getElementById('desktop-grid');
-            if (!grid) {
-                return;
-            }
+            if (!grid) return;
 
             window.Sortable.create(grid, {
                 animation: 250,
@@ -81,9 +66,7 @@ const app = createApp({
                 onEnd: (evt) => {
                     const oldIdx = evt.oldIndex;
                     const newIdx = evt.newIndex;
-                    if (oldIdx === newIdx) {
-                        return;
-                    }
+                    if (oldIdx === newIdx) return;
                     const items = [...store.desktopItems];
                     const [movedItem] = items.splice(oldIdx, 1);
                     items.splice(newIdx, 0, movedItem);
@@ -96,31 +79,16 @@ const app = createApp({
             updateTime();
             timeInterval = window.setInterval(updateTime, 1000);
             
+            // 每次打开强制 100% 电量，每分钟掉 1 点
             battery.value = 100;
             batteryInterval = window.setInterval(updateBattery, 60000);
 
-            // 监听桌面背景更新并应用到整个APP容器
-            watch(() => store.desktopBg, (newVal) => {
-                const appEl = window.document.getElementById('app');
-                if (appEl) {
-                    appEl.style.backgroundImage = newVal ? `url(${newVal})` : 'none';
-                    appEl.style.backgroundSize = 'cover';
-                    appEl.style.backgroundPosition = 'center';
-                }
-            }, { immediate: true });
-
-            nextTick(() => {
-                initSortable();
-            });
+            nextTick(() => { initSortable(); });
         });
 
         onUnmounted(() => {
-            if (timeInterval) {
-                window.clearInterval(timeInterval);
-            }
-            if (batteryInterval) {
-                window.clearInterval(batteryInterval);
-            }
+            if (timeInterval) window.clearInterval(timeInterval);
+            if (batteryInterval) window.clearInterval(batteryInterval);
         });
 
         return {
@@ -130,20 +98,10 @@ const app = createApp({
     }
 });
 
-if (window.widgetApp) {
-    app.component('widgetApp', window.widgetApp);
-}
-if (window.themeApp) {
-    app.component('theme', window.themeApp);
-}
-if (window.weiboApp) {
-    app.component('weibo', window.weiboApp);
-}
-if (window.settingsApp) {
-    app.component('settings', window.settingsApp);
-}
-if (window.qqApp) {
-    app.component('qq', window.qqApp);
-}
+if (window.widgetApp) app.component('widgetApp', window.widgetApp);
+if (window.themeApp) app.component('theme', window.themeApp);
+if (window.weiboApp) app.component('weibo', window.weiboApp);
+if (window.settingsApp) app.component('settings', window.settingsApp);
+if (window.qqApp) app.component('qq', window.qqApp);
 
 app.mount('#app');
