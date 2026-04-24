@@ -161,7 +161,7 @@ window.qqApp = {
                                 <button @click="triggerUpload('temp_char_avatar')" style="font-size:12px; padding:6px 12px;">修改 Char 头像</button>
                                 <input type="file" id="temp_char_avatar" accept="image/*" style="display:none;" @change="handleImgUpload($event, 'chat_temp_avatar')" />
                             </div>
-                            <button @click="deleteChat" style="font-size:12px; padding:6px 12px;">删除该联系人</button>
+                            <button @click="deleteChat" style="font-size:12px; padding:6px 12px; color:red !important; border-color:red !important;">删除该联系人</button>
                         </div>
                         <input v-model="tempData.name" placeholder="Char 姓名" />
                         <input v-model="tempData.nickname" placeholder="Char 昵称" />
@@ -193,10 +193,11 @@ window.qqApp = {
                                 <button @click="triggerUpload('uc_avatar')" style="font-size:12px; padding:6px 12px;">修改头像</button>
                                 <input type="file" id="uc_avatar" accept="image/*" style="display:none;" @change="handleImgUpload($event, 'uc_avatar_temp')" />
                             </div>
-                            <button v-if="tempData.id && tempData.id !== 'uc_default'" @click="deleteUserCard" style="font-size:12px; padding:6px 12px;">删除名片</button>
                         </div>
                         <input v-model="tempData.name" placeholder="名片姓名 (必填)" />
                         <textarea v-model="tempData.persona" placeholder="你的具体人设与设定" rows="4"></textarea>
+                        
+                        <button v-if="tempData.id && tempData.id !== 'uc_default'" @click="deleteUserCard" style="width:100%; margin-top:5px; margin-bottom:10px; color:red !important; border-color:red !important; padding:10px;">删除该名片</button>
                     </template>
 
                     <template v-if="modal.type === 'profile'">
@@ -396,9 +397,14 @@ window.qqApp = {
         const chatInputRef = Vue.ref(null);
         const quotedMsgText = Vue.ref('');
 
-        const adjustHeight = (e) => {
-            const el = e.target;
-            el.style.height = 'auto';
+        const adjustHeight = () => {
+            const el = chatInputRef.value;
+            if (!el) return;
+            if (!inputText.value) {
+                el.style.height = '36px';
+                return;
+            }
+            el.style.height = '36px';
             el.style.height = Math.min(el.scrollHeight, 120) + 'px';
         };
 
@@ -468,9 +474,13 @@ window.qqApp = {
                 quotedMsgText.value = '';
             }
             store.qqData.messages[activeChatId.value].push(newMsg);
+            
+            // 清空并触发重新计算高度
             inputText.value = '';
-            nextTick(() => { if(chatInputRef.value) chatInputRef.value.style.height = 'auto'; });
-            scrollToBottom();
+            Vue.nextTick(() => {
+                adjustHeight();
+                scrollToBottom();
+            });
         };
 
         const triggerAI = async () => {
