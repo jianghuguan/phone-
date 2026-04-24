@@ -23,7 +23,9 @@ if (savedData) {
     try {
         initialState = JSON.parse(savedData);
     } catch (err) {
-        if (err) initialState = null;
+        if (err) {
+            initialState = null;
+        }
     }
 }
 
@@ -73,7 +75,9 @@ Vue.watch(
             const dataString = JSON.stringify(newState);
             window.localStorage.setItem('myPhoneData', dataString);
         } catch (err) {
-            if (err) window.console.warn('Data save failed');
+            if (err) {
+                window.console.warn('Data save failed');
+            }
         }
     },
     { deep: true }
