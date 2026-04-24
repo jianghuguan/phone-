@@ -23,19 +23,16 @@ if (savedData) {
     try {
         initialState = JSON.parse(savedData);
     } catch (err) {
-        if (err) {
-            initialState = null;
-        }
+        if (err) initialState = null;
     }
 }
 
 if (!initialState || !Array.isArray(initialState.desktopItems) || initialState.desktopItems.length === 0) {
-    initialState = { currentApp: null, desktopBgImage: null, desktopItems: defaultDesktopItems };
+    initialState = { currentApp: null, desktopItems: defaultDesktopItems };
 }
 
-// 兼容老数据，增加背景字段
-if (initialState.desktopBgImage === undefined) {
-    initialState.desktopBgImage = null;
+if (initialState.desktopBg === undefined) {
+    initialState.desktopBg = null;
 }
 
 if (!initialState.apiSettings) {
@@ -75,9 +72,7 @@ Vue.watch(
             const dataString = JSON.stringify(newState);
             window.localStorage.setItem('myPhoneData', dataString);
         } catch (err) {
-            if (err) {
-                window.console.warn('Data save failed');
-            }
+            if (err) window.console.warn('Data save failed');
         }
     },
     { deep: true }
