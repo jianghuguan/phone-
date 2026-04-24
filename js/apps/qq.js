@@ -1,340 +1,439 @@
 /* eslint-disable */
-/* global Vue, window, document */
+/* global window, document, Vue, fetch */
 'use strict';
 
 window.qqApp = {
     template: `
         <div class="qq-container" @click="closeMenu">
-            <!-- 列表界面 -->
-            <template v-if="!activeContact">
+            <!-- 未进入聊天界面时显示：列表与设置 -->
+            <template v-if="!currentChatId">
                 <div class="qq-header">
-                    <span>消息</span>
-                    <span 
-                        @click="store.timeSensing = !store.timeSensing" 
-                        style="font-size:12px; font-weight:normal; cursor:pointer;"
-                        :style="{ color: store.timeSensing !== false ? '#0095f6' : '#999' }"
-                    >
-                        {{ store.timeSensing !== false ? '时感: 开启' : '时感: 关闭' }}
-                    </span>
+                    <span>{{ activeTab === 'chat' ? '消息' : '设置' }}</span>
                 </div>
+                
                 <div class="qq-content">
-                    <div class="qq-contact-item" v-for="c in store.contacts" :key="c.id" @click="openChat(c)">
-                        <div class="qq-contact-avatar">{{ c.avatar }}</div>
-                        <div class="qq-contact-info">
-                            <div class="qq-contact-name">{{ c.name }}</div>
-                            <div class="qq-contact-preview">
-                                {{ c.messages.length ? c.messages[c.messages.length - 1].text : '暂无消息' }}
+                    <!-- 消息列表 -->
+                    <div v-if="activeTab === 'chat'">
+                        <div
+                            v-for="chat in store.qqChats"
+                            :key="chat.id"
+                            class="qq-contact-item"
+                            @click="openChat(chat.id)"
+                        >
+                            <div class="qq-contact-avatar" :style="{ backgroundImage: 'url(' + chat.avatar + ')' }">
+                                <template v-if="!chat.avatar">{{ chat.name.charAt(0) }}</template>
+                            </div>
+                            <div class="qq-contact-info">
+                                <div class="qq-contact-name">{{ chat.name }}</div>
+                                <div class="qq-contact-preview" v-if="chat.messages.length > 0">
+                                    {{ chat.messages[chat.messages.length - 1].text }}
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- 偏好设置选项卡 -->
+                    <div v-if="activeTab === 'settings'" style="padding: 20px;">
+                        <div class="user-card">
+                            <h3 style="margin-bottom: 15px; font-size: 16px;">聊天偏好设置</h3>
+                            <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 10px; cursor: pointer;">
+                                <input type="checkbox" v-model="store.timeAware" style="width: 18px; height: 18px;"> 
+                                开启时间感知模式
+                            </label>
+                            <p style="font-size: 12px; color: #888;">关闭后，发消息时间将紧接着上一次气泡的时间连续推演。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qq-bottom-bar">
+                    <div :class="{ active: activeTab === 'chat' }" @click="activeTab = 'chat'">消息</div>
+                    <div :class="{ active: activeTab === 'settings' }" @click="activeTab = 'settings'">设置</div>
                 </div>
             </template>
 
-            <!-- 聊天界面 -->
+            <!-- 聊天详情界面 -->
             <template v-else>
-                <!-- 头部 -->
                 <div class="qq-header">
-                    <div v-if="!isSelecting" @click="activeContact = null; closeMenu()" style="cursor:pointer; color:#0095f6;">
-                        &lt; 返回
-                    </div>
-                    <div v-else @click="cancelSelect" style="cursor:pointer; color:#000;">取消</div>
-
-                    <div>{{ activeContact.name }}</div>
-
-                    <div v-if="!isSelecting" style="width: 40px;"></div>
-                    <div v-else @click="deleteSelected" style="cursor:pointer; color:#ed4956; font-size:14px;">
-                        删除({{ selectedIds.length }})
-                    </div>
+                    <span @click="closeChat" style="cursor: pointer; color: #007aff;">&lt; 返回</span>
+                    <span>{{ currentChat.name }}</span>
+                    <span style="width: 40px;"></span>
                 </div>
 
-                <!-- 聊天内容区 -->
-                <div class="qq-content" id="qq-chat-list" style="position:relative;">
-                    <div 
-                        v-for="msg in activeContact.messages" 
-                        :key="msg.id" 
-                        class="qq-msg-row" 
-                        :class="msg.sender"
-                    >
-                        <!-- 选择模式下的复选框 -->
-                        <div 
-                            v-if="isSelecting" 
-                            @click.stop="toggleSelect(msg.id)" 
-                            style="position:absolute; left:16px; top:50%; transform:translateY(-50%); z-index:10; cursor:pointer;"
+                <div class="qq-content" id="qq-msg-scroll" style="padding-bottom: 15px;">
+                    <div v-for="msg in currentChat.messages" :key="msg.id">
+                        <!-- 时间戳 -->
+                        <div v-if="msg.showTime" class="qq-timestamp">{{ msg.time }}</div>
+                        
+                        <!-- 消息行 -->
+                        <div
+                            class="qq-msg-row"
+                            :class="msg.role"
+                            @mousedown="handlePointerDown(msg)"
+                            @mouseup="handlePointerUp"
+                            @mouseleave="handlePointerLeave"
+                            @touchstart="handlePointerDown(msg)"
+                            @touchend="handlePointerUp"
+                            @click="handleMsgClick(msg)"
                         >
-                            <div 
-                                style="width:22px; height:22px; border-radius:50%; border:1px solid #ccc; background:#fff; display:flex; align-items:center; justify-content:center;" 
-                                :style="selectedIds.includes(msg.id) ? { background:'#0095f6', borderColor:'#0095f6' } : {}"
-                            >
-                                <span v-if="selectedIds.includes(msg.id)" style="color:#fff; font-size:14px; line-height:1;">✓</span>
+                            <!-- 多选框 -->
+                            <div v-if="isSelecting" style="margin: 0 10px; display: flex; align-items: center;">
+                                <input type="checkbox" :checked="selectedMsgIds.includes(msg.id)" style="pointer-events: none; width: 20px; height: 20px;">
                             </div>
-                        </div>
 
-                        <!-- 头像和气泡 -->
-                        <div class="msg-bubble-container" :style="isSelecting && msg.sender === 'ai' ? { marginLeft: '35px', transition: '0.2s' } : { transition: '0.2s' }">
-                            <div class="qq-msg-avatar" v-if="msg.sender === 'ai'">{{ activeContact.avatar }}</div>
+                            <div class="qq-msg-avatar" :style="{ backgroundImage: msg.role === 'ai' ? 'url(' + currentChat.avatar + ')' : 'url(' + store.myAvatar + ')' }">
+                                <template v-if="msg.role === 'ai' && !currentChat.avatar">{{ currentChat.name.charAt(0) }}</template>
+                                <template v-if="msg.role === 'user' && !store.myAvatar">我</template>
+                            </div>
 
-                            <div style="display:flex; flex-direction:column; position:relative;" :style="msg.sender === 'user' ? { alignItems: 'flex-end' } : { alignItems: 'flex-start' }">
-                                <div class="bubble-time">{{ msg.time }}</div>
-
-                                <!-- 长按文字菜单 -->
-                                <div v-if="showMenuId === msg.id" class="msg-menu" style="top: -35px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-                                    <span @click.stop="startSelect(msg.id)">选择</span>
-                                    <span style="color:#eee; font-size:12px;">|</span>
+                            <div class="msg-bubble-container" style="position: relative;">
+                                <div class="qq-msg-bubble">
+                                    <!-- 引用回复的预览框 -->
+                                    <div v-if="msg.quote" class="quote-box">
+                                        <span style="font-weight: 600;">{{ msg.quote.name }}:</span> {{ msg.quote.text }}
+                                    </div>
+                                    {{ msg.text }}
+                                </div>
+                                
+                                <!-- 纯文字长按菜单 -->
+                                <div v-if="showMenuId === msg.id" class="msg-menu">
+                                    <span @click.stop="startSelect(msg)">选择</span>
                                     <span @click.stop="startReply(msg)">回复</span>
                                 </div>
-
-                                <div 
-                                    class="qq-msg-bubble"
-                                    @touchstart="handleTouchStart($event, msg.id)"
-                                    @touchmove="handleTouchMove"
-                                    @touchend="handleTouchEnd"
-                                    @mousedown="handleTouchStart($event, msg.id)"
-                                    @mousemove="handleTouchMove"
-                                    @mouseup="handleTouchEnd"
-                                    @mouseleave="handleTouchEnd"
-                                >
-                                    <!-- 引用/回复的框 -->
-                                    <div v-if="msg.quote" class="quote-box">{{ msg.quote }}</div>
-                                    <div style="white-space: pre-wrap; word-break: break-all;">{{ msg.text }}</div>
-                                </div>
                             </div>
-
-                            <div class="qq-msg-avatar" v-if="msg.sender === 'user'">我</div>
                         </div>
                     </div>
                     
-                    <div v-if="isTyping" class="qq-msg-row ai" style="margin-top:10px;">
+                    <div v-if="isTyping" class="qq-msg-row ai">
+                        <div class="qq-msg-avatar" :style="{ backgroundImage: 'url(' + currentChat.avatar + ')' }">
+                            <template v-if="!currentChat.avatar">{{ currentChat.name.charAt(0) }}</template>
+                        </div>
                         <div class="msg-bubble-container">
-                            <div class="qq-msg-avatar">{{ activeContact.avatar }}</div>
                             <div class="qq-msg-bubble typing-anim">对方正在输入...</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 输入区 -->
-                <div class="qq-input-area" v-if="!isSelecting">
-                    <!-- 回复预览区 -->
-                    <div v-if="replyingTo" class="quote-preview">
-                        <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                            回复：{{ replyingTo.text }}
-                        </div>
-                        <span @click="replyingTo = null" style="font-size:20px; padding:0 10px; cursor:pointer; color:#999; line-height:1;">×</span>
+                <!-- 引用预览悬浮窗 -->
+                <div v-if="replyingTo && !isSelecting" class="quote-preview" style="justify-content: space-between;">
+                    <div style="flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-right: 15px;">
+                        <span style="font-weight: bold; margin-right: 5px;">{{ replyingTo.role === 'user' ? '我' : currentChat.name }}:</span>
+                        {{ replyingTo.text }}
+                    </div>
+                    <div @click="replyingTo = null" style="cursor: pointer; font-size: 20px; color: #999; line-height: 1;">×</div>
+                </div>
+
+                <!-- 底部交互区域 -->
+                <div class="qq-input-area">
+                    <!-- 正常输入栏 -->
+                    <div v-if="!isSelecting" class="qq-input-bar">
+                        <textarea v-model="inputText" placeholder="发送消息..." @keydown.enter.prevent="sendMessage"></textarea>
+                        <button class="btn-primary" @click="sendMessage">发送</button>
                     </div>
 
-                    <div class="qq-input-bar">
-                        <textarea 
-                            v-model="inputText" 
-                            placeholder="发消息..." 
-                            @keydown.enter.prevent="sendMsg"
-                        ></textarea>
-                        <button @click="sendMsg">发送</button>
+                    <!-- 多选删除操作栏 -->
+                    <div v-if="isSelecting" class="qq-input-bar" style="justify-content: space-between; align-items: center; background: #f9f9f9; padding-top: 10px;">
+                        <span style="font-size: 14px; color: #666; font-weight: bold;">已选择 {{ selectedMsgIds.length }} 项</span>
+                        <div style="display: flex; gap: 10px;">
+                            <button @click="cancelSelect" class="btn-primary" style="padding: 6px 18px;">取消</button>
+                            <button @click="deleteSelected" class="btn-danger" style="padding: 6px 18px;">删除</button>
+                        </div>
                     </div>
                 </div>
             </template>
         </div>
     `,
     setup() {
-        const { ref, nextTick } = Vue;
         const store = window.store;
 
-        // 初始化基础数据
-        if (!store.contacts) {
-            store.contacts = [
-                { id: 'contact_1', name: 'AI助手', avatar: '🤖', messages: [] }
+        // 初始化必要的数据结构
+        if (store.timeAware === undefined) {
+            store.timeAware = true;
+        }
+        if (!store.myAvatar) {
+            store.myAvatar = '';
+        }
+        if (!store.qqChats) {
+            store.qqChats = [
+                {
+                    id: 'chat_1',
+                    name: 'AI 助手',
+                    avatar: '',
+                    messages: [
+                        { id: 'm1', role: 'ai', text: '你好！长按我的气泡可以回复或多选删除哦。', time: '10:00', showTime: true }
+                    ]
+                }
             ];
         }
-        if (store.timeSensing === undefined) {
-            store.timeSensing = true;
-        }
 
-        const activeContact = ref(null);
-        const inputText = ref('');
-        const isTyping = ref(false);
+        const activeTab = Vue.ref('chat');
+        const currentChatId = Vue.ref(null);
+        const inputText = Vue.ref('');
+        const isTyping = Vue.ref(false);
 
-        // 长按、菜单、选择状态
-        const showMenuId = ref(null);
-        const isSelecting = ref(false);
-        const selectedIds = ref([]);
-        const replyingTo = ref(null);
+        // 新增状态：长按菜单、引用回复、多选
+        const showMenuId = Vue.ref(null);
+        const replyingTo = Vue.ref(null);
+        const isSelecting = Vue.ref(false);
+        const selectedMsgIds = Vue.ref([]);
 
-        let pressTimer = null;
-        let isMoving = false;
-
-        const openChat = (contact) => {
-            activeContact.value = contact;
-            setTimeout(scrollToBottom, 100);
-        };
-
-        const closeMenu = () => {
-            showMenuId.value = null;
-        };
-
-        const handleTouchStart = (e, id) => {
-            if (isSelecting.value) return;
-            isMoving = false;
-            pressTimer = setTimeout(() => {
-                showMenuId.value = id;
-            }, 500); // 长按500毫秒触发
-        };
-
-        const handleTouchMove = () => {
-            isMoving = true;
-            if (pressTimer) clearTimeout(pressTimer);
-        };
-
-        const handleTouchEnd = () => {
-            if (pressTimer) clearTimeout(pressTimer);
-        };
-
-        // 触发选择模式
-        const startSelect = (id) => {
-            isSelecting.value = true;
-            selectedIds.value = [id];
-            showMenuId.value = null;
-        };
-
-        const toggleSelect = (id) => {
-            const idx = selectedIds.value.indexOf(id);
-            if (idx > -1) selectedIds.value.splice(idx, 1);
-            else selectedIds.value.push(id);
-        };
-
-        const cancelSelect = () => {
-            isSelecting.value = false;
-            selectedIds.value = [];
-        };
-
-        const deleteSelected = () => {
-            if (!selectedIds.value.length) return;
-            activeContact.value.messages = activeContact.value.messages.filter(
-                m => !selectedIds.value.includes(m.id)
-            );
-            cancelSelect();
-        };
-
-        // 触发回复模式
-        const startReply = (msg) => {
-            replyingTo.value = msg;
-            showMenuId.value = null;
-        };
-
-        const scrollToBottom = () => {
-            nextTick(() => {
-                const el = document.getElementById('qq-chat-list');
-                if (el) el.scrollTop = el.scrollHeight;
+        const currentChat = Vue.computed(function() {
+            return store.qqChats.find(function(c) {
+                return c.id === currentChatId.value;
             });
+        });
+
+        // ---------------- 核心时间推演逻辑 ----------------
+        const parseTime = function(timeStr) {
+            if (!timeStr) return new Date();
+            const parts = timeStr.split(':');
+            const d = new Date();
+            d.setHours(parseInt(parts[0], 10));
+            d.setMinutes(parseInt(parts[1], 10));
+            d.setSeconds(0);
+            return d;
         };
 
-        // --- 时间生成逻辑 ---
-        const getNextTime = (baseTimeStr, addMinutes) => {
-            if (!baseTimeStr) return "10:00";
-            let parts = baseTimeStr.split(':');
-            let h = parseInt(parts[0], 10) || 0;
-            let m = parseInt(parts[1], 10) || 0;
-            m += addMinutes;
-            h += Math.floor(m / 60);
-            m = m % 60;
-            h = h % 24;
-            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        const formatTime = function(date) {
+            const h = String(date.getHours()).padStart(2, '0');
+            const m = String(date.getMinutes()).padStart(2, '0');
+            return h + ':' + m;
         };
 
-        const generateUserTime = () => {
-            if (store.timeSensing !== false) {
-                const now = new Date();
-                return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            } else {
-                const msgs = activeContact.value.messages;
-                const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-                return lastMsg ? getNextTime(lastMsg.time, 1) : "10:00";
-            }
-        };
-
-        const generateAiBubbleTime = (userMsgTime, bubbleIndex) => {
-            if (store.timeSensing !== false) {
-                const now = new Date();
-                return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            } else {
-                // 关闭时感：第一条AI气泡在用户消息后1分钟。
-                // 若拆分为多个气泡，同一批次内的时间间隔总跨度不超过 3 分钟。
-                let aiStart = getNextTime(userMsgTime, 1);
-                let spread = Math.min(3, bubbleIndex); // 控制跨度封顶 +3分钟
-                return getNextTime(aiStart, spread);
-            }
-        };
-
-        // API 交互
-        const fetchAi = async (text) => {
-            const api = store.apiSettings && store.apiSettings.main ? store.apiSettings.main : {};
-            if (!api.url || !api.key) return "系统提示：请先在主界面返回桌面，去【设置】App配置主API地址和Key";
-
-            const url = api.url.replace(/\/+$/, '') + '/v1/chat/completions';
-            const msgs = activeContact.value.messages.slice(-6).map(m => ({
-                role: m.sender === 'user' ? 'user' : 'assistant',
-                content: m.text
-            }));
-            msgs.push({ role: 'user', content: text });
-
-            try {
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${api.key}` },
-                    body: JSON.stringify({ model: api.model || 'gpt-3.5-turbo', messages: msgs })
-                });
-                if (!res.ok) {
-                    const err = await res.text();
-                    return "API请求失败: " + err.slice(0, 50);
+        const shouldShowTime = function(messages, newTimeStr) {
+            if (messages.length === 0) return true;
+            let lastShowTimeMsg = null;
+            for (let i = messages.length - 1; i >= 0; i--) {
+                if (messages[i].showTime) {
+                    lastShowTimeMsg = messages[i];
+                    break;
                 }
-                const data = await res.json();
-                return data.choices[0].message.content;
-            } catch (e) {
-                return "网络错误: " + e.message;
+            }
+            if (!lastShowTimeMsg) return true;
+            const lastD = parseTime(lastShowTimeMsg.time);
+            const newD = parseTime(newTimeStr);
+            return (newD - lastD) >= 5 * 60 * 1000;
+        };
+
+        // ---------------- 交互控制逻辑 ----------------
+        const openChat = function(id) {
+            currentChatId.value = id;
+            isSelecting.value = false;
+            replyingTo.value = null;
+            scrollToBottom();
+        };
+
+        const closeChat = function() {
+            currentChatId.value = null;
+        };
+
+        const closeMenu = function() {
+            showMenuId.value = null;
+        };
+
+        const scrollToBottom = function() {
+            setTimeout(function() {
+                const el = document.getElementById('qq-msg-scroll');
+                if (el) {
+                    el.scrollTop = el.scrollHeight;
+                }
+            }, 100);
+        };
+
+        // ---------------- 长按事件 ----------------
+        let pressTimer = null;
+        const handlePointerDown = function(msg) {
+            if (isSelecting.value) return;
+            pressTimer = setTimeout(function() {
+                showMenuId.value = msg.id;
+            }, 500);
+        };
+        const handlePointerUp = function() {
+            if (pressTimer) clearTimeout(pressTimer);
+        };
+        const handlePointerLeave = function() {
+            if (pressTimer) clearTimeout(pressTimer);
+        };
+
+        const handleMsgClick = function(msg) {
+            if (isSelecting.value) {
+                const idx = selectedMsgIds.value.indexOf(msg.id);
+                if (idx > -1) {
+                    selectedMsgIds.value.splice(idx, 1);
+                } else {
+                    selectedMsgIds.value.push(msg.id);
+                }
+            } else {
+                closeMenu();
             }
         };
 
-        const sendMsg = async () => {
-            if (!inputText.value.trim()) return;
-            const text = inputText.value.trim();
-            const quoteText = replyingTo.value ? replyingTo.value.text : null;
+        // ---------------- 菜单功能 ----------------
+        const startSelect = function(msg) {
+            isSelecting.value = true;
+            selectedMsgIds.value = [msg.id];
+            closeMenu();
+        };
 
-            const userMsg = {
-                id: 'msg_' + Date.now(),
-                text: text,
-                sender: 'user',
-                time: generateUserTime(),
-                quote: quoteText
-            };
-            
-            activeContact.value.messages.push(userMsg);
-            inputText.value = '';
-            replyingTo.value = null; // 发送后清空回复预览
-            scrollToBottom();
+        const cancelSelect = function() {
+            isSelecting.value = false;
+            selectedMsgIds.value = [];
+        };
 
-            isTyping.value = true;
-            const replyText = await fetchAi(text);
-            isTyping.value = false;
-
-            // AI 回复按换行切割成多个气泡
-            const bubbles = replyText.split('\n').filter(s => s.trim());
-            bubbles.forEach((bText, idx) => {
-                activeContact.value.messages.push({
-                    id: 'msg_' + Date.now() + '_' + idx,
-                    text: bText.trim(),
-                    sender: 'ai',
-                    time: generateAiBubbleTime(userMsg.time, idx),
-                    quote: null
-                });
+        const deleteSelected = function() {
+            if (!currentChat.value) return;
+            currentChat.value.messages = currentChat.value.messages.filter(function(msg) {
+                return !selectedMsgIds.value.includes(msg.id);
             });
+            isSelecting.value = false;
+            selectedMsgIds.value = [];
+        };
 
+        const startReply = function(msg) {
+            replyingTo.value = msg;
+            closeMenu();
+        };
+
+        // ---------------- 发送与 API 逻辑 ----------------
+        const sendMessage = async function() {
+            if (!inputText.value.trim() || isTyping.value || !currentChat.value) return;
+            
+            const userText = inputText.value.trim();
+            const quoteObj = replyingTo.value ? {
+                id: replyingTo.value.id,
+                text: replyingTo.value.text,
+                name: replyingTo.value.role === 'user' ? '我' : currentChat.value.name
+            } : null;
+            
+            inputText.value = '';
+            replyingTo.value = null;
+            
+            // 计算用户气泡时间（感知模式关闭时，无缝衔接上一次时间）
+            let uTime;
+            if (store.timeAware) {
+                uTime = new Date();
+            } else {
+                const msgs = currentChat.value.messages;
+                const lastMsg = msgs[msgs.length - 1];
+                if (lastMsg && lastMsg.time) {
+                    uTime = parseTime(lastMsg.time);
+                    uTime.setMinutes(uTime.getMinutes() + 1);
+                } else {
+                    uTime = new Date();
+                }
+            }
+            
+            currentChat.value.messages.push({
+                id: 'msg_' + Date.now(),
+                role: 'user',
+                text: userText,
+                time: formatTime(uTime),
+                showTime: shouldShowTime(currentChat.value.messages, formatTime(uTime)),
+                quote: quoteObj
+            });
+            
+            isTyping.value = true;
+            scrollToBottom();
+            
+            try {
+                const config = store.apiSettings.main; 
+                const apiMessages = currentChat.value.messages.slice(-10).map(function(m) {
+                    return { role: m.role === 'ai' ? 'assistant' : 'user', content: m.text };
+                });
+                
+                if (!config.url || !config.key) {
+                    throw new Error("请先在设置App中配置主API信息");
+                }
+
+                const res = await fetch(config.url + '/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + config.key
+                    },
+                    body: JSON.stringify({
+                        model: config.model || 'gpt-3.5-turbo',
+                        messages: apiMessages
+                    })
+                });
+                
+                if (!res.ok) {
+                    throw new Error("API 请求失败状态码: " + res.status);
+                }
+
+                const data = await res.json();
+                let aiResponse = "无响应";
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    aiResponse = data.choices[0].message.content;
+                }
+                
+                // 将AI的回复按段落分割，模拟多气泡发送
+                let aiTexts = aiResponse.split('\n').filter(function(t) { return t.trim() !== ''; });
+                if (aiTexts.length === 0) aiTexts.push(aiResponse);
+                
+                // 确定 AI 首次回复的基准时间
+                let aiStartTime;
+                if (store.timeAware) {
+                     aiStartTime = new Date();
+                } else {
+                     const msgs2 = currentChat.value.messages;
+                     const lastMsg2 = msgs2[msgs2.length - 1];
+                     aiStartTime = parseTime(lastMsg2.time);
+                     aiStartTime.setMinutes(aiStartTime.getMinutes() + 1);
+                }
+                
+                // 【核心机制】保障多气泡在3分钟内分布完毕
+                aiTexts.forEach(function(t, index) {
+                    let bubbleTime = new Date(aiStartTime.getTime());
+                    // 均摊总时长3分钟，不会超过上限
+                    const addMins = Math.min(3, Math.floor(index * (3 / aiTexts.length)));
+                    bubbleTime.setMinutes(bubbleTime.getMinutes() + addMins);
+                    
+                    currentChat.value.messages.push({
+                        id: 'msg_ai_' + Date.now() + '_' + index,
+                        role: 'ai',
+                        text: t.trim(),
+                        time: formatTime(bubbleTime),
+                        showTime: shouldShowTime(currentChat.value.messages, formatTime(bubbleTime))
+                    });
+                });
+                
+            } catch(e) {
+                currentChat.value.messages.push({
+                    id: 'msg_err_' + Date.now(),
+                    role: 'ai',
+                    text: '回复失败: ' + e.message,
+                    time: formatTime(new Date()),
+                    showTime: shouldShowTime(currentChat.value.messages, formatTime(new Date()))
+                });
+            }
+
+            isTyping.value = false;
             scrollToBottom();
         };
 
         return {
-            store, activeContact, inputText, isTyping,
-            showMenuId, isSelecting, selectedIds, replyingTo,
-            openChat, closeMenu,
-            handleTouchStart, handleTouchMove, handleTouchEnd,
-            startSelect, toggleSelect, cancelSelect, deleteSelected, startReply,
-            sendMsg
+            store: store,
+            activeTab: activeTab,
+            currentChatId: currentChatId,
+            currentChat: currentChat,
+            inputText: inputText,
+            isTyping: isTyping,
+            showMenuId: showMenuId,
+            replyingTo: replyingTo,
+            isSelecting: isSelecting,
+            selectedMsgIds: selectedMsgIds,
+            openChat: openChat,
+            closeChat: closeChat,
+            closeMenu: closeMenu,
+            handlePointerDown: handlePointerDown,
+            handlePointerUp: handlePointerUp,
+            handlePointerLeave: handlePointerLeave,
+            handleMsgClick: handleMsgClick,
+            startSelect: startSelect,
+            cancelSelect: cancelSelect,
+            deleteSelected: deleteSelected,
+            startReply: startReply,
+            sendMessage: sendMessage
         };
     }
 };
