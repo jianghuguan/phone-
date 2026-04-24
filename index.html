@@ -9,8 +9,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
 <body>
-    <div id="app">
-        <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
+    <!-- 绑定桌面背景图属性 -->
+    <div id="app" :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
+        <div class="status-bar" :class="{ 'dark-text': !store.currentApp && !store.desktopBgImage }">
             <span class="time">{{ time }}</span>
             <div class="dynamic-island"></div>
             <div class="battery">
@@ -48,7 +49,7 @@
                     <div class="icon-img" :style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
                         <template v-if="!item.iconImage">{{ item.textIcon }}</template>
                     </div>
-                    <span class="icon-name">{{ item.name }}</span>
+                    <span class="icon-name" :style="{ color: store.desktopBgImage ? '#fff' : '#555', textShadow: store.desktopBgImage ? '0 1px 3px rgba(0,0,0,0.8)' : 'none' }">{{ item.name }}</span>
                 </div>
             </div>
         </div>
