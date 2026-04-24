@@ -2,7 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    >
     <title>小手机自适应版</title>
     <link rel="stylesheet" href="./css/style.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -22,19 +25,33 @@
         </div>
 
         <div
-            class="desktop"
             id="desktop-grid"
+            class="desktop"
             :style="{
                 backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none'
             }"
         >
-            <div v-for="item in store.desktopItems" :key="item.id" 
-                 :class="{'widget-box': item.type === 'widget', 'app-icon': item.type === 'app'}"
-                 :style="item.type === 'widget' ? { gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() } : {}"
-                 @click="item.type === 'app' ? openApp(item.id) : null">
-                
-                <div v-if="item.widgetType === 'time'" class="widget-time" 
-                     :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
+            <div
+                v-for="item in store.desktopItems"
+                :key="item.id"
+                :class="{ 'widget-box': item.type === 'widget', 'app-icon': item.type === 'app' }"
+                :style="item.type === 'widget'
+                    ? {
+                        gridColumn: 'span ' + item.span.split('/')[0].trim(),
+                        gridRow: 'span ' + item.span.split('/')[1].trim()
+                    }
+                    : {}"
+                @click="item.type === 'app' ? openApp(item.id) : null"
+            >
+                <div
+                    v-if="item.widgetType === 'time'"
+                    class="widget-time"
+                    :style="{
+                        backgroundColor: 'transparent',
+                        backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none',
+                        color: item.bgImage ? '#fff' : '#333'
+                    }"
+                >
                     <div class="time-header">
                         <h1>{{ time }}</h1>
                         <div class="weather-info">
@@ -42,16 +59,27 @@
                             <span class="desc">{{ weatherDesc }}</span>
                         </div>
                     </div>
-                    <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
+                    <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">
+                        {{ date }} {{ weekday }}
+                    </p>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo'" class="widget-photo"
-                     :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div
+                    v-else-if="item.widgetType === 'photo'"
+                    class="widget-photo"
+                    :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }"
+                >
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">去小组件App设置</span>
                 </div>
 
                 <div v-else-if="item.type === 'app'" style="display: contents;">
-                    <div class="icon-img" :style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
+                    <div
+                        class="icon-img"
+                        :style="{
+                            backgroundColor: item.color,
+                            backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none'
+                        }"
+                    >
                         <template v-if="!item.iconImage">{{ item.textIcon }}</template>
                     </div>
                     <span class="icon-name">{{ item.name }}</span>
@@ -62,7 +90,12 @@
         <transition name="app-slide">
             <div v-show="store.currentApp" class="app-view">
                 <component :is="store.currentApp" v-if="store.currentApp"></component>
-                <div class="home-indicator-wrapper" @touchstart="homeTouchStart" @touchmove="homeTouchMove" @touchend="homeTouchEnd">
+                <div
+                    class="home-indicator-wrapper"
+                    @touchstart="homeTouchStart"
+                    @touchmove="homeTouchMove"
+                    @touchend="homeTouchEnd"
+                >
                     <div class="home-indicator"></div>
                 </div>
             </div>
