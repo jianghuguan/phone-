@@ -1,6 +1,6 @@
 /* eslint-disable */
 /* eslint-env browser, es2021 */
-/* global Vue, window */
+/* global Vue */
 'use strict';
 
 const defaultDesktopItems = [
@@ -23,9 +23,7 @@ if (savedData) {
     try {
         initialState = JSON.parse(savedData);
     } catch (err) {
-        if (err) {
-            initialState = null;
-        }
+        if (err) initialState = null;
     }
 }
 
@@ -48,17 +46,10 @@ if (!initialState.qqData) {
     };
 }
 
-// 确保名片拥有头像属性
 if (!initialState.qqData.userCards) {
     initialState.qqData.userCards = [
         { id: 'uc_default', name: '默认用户', persona: '一个普通的记录生活者，回复风格口语化。', avatar: null }
     ];
-} else {
-    initialState.qqData.userCards.forEach(uc => {
-        if (uc.avatar === undefined) {
-            uc.avatar = null;
-        }
-    });
 }
 
 if (!initialState.qqData.wallet) {
@@ -70,13 +61,15 @@ if (!initialState.qqData.wallet) {
 
 window.store = Vue.reactive(initialState);
 
-Vue.watch(window.store, (newState) => {
-    try {
-        const dataString = JSON.stringify(newState);
-        window.localStorage.setItem('myPhoneData', dataString);
-    } catch (err) {
-        if (err) {
-            window.console.warn('Data save failed');
+Vue.watch(
+    window.store,
+    (newState) => {
+        try {
+            const dataString = JSON.stringify(newState);
+            window.localStorage.setItem('myPhoneData', dataString);
+        } catch (err) {
+            if (err) window.console.warn('Data save failed');
         }
-    }
-}, { deep: true });
+    },
+    { deep: true }
+);
