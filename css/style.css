@@ -283,7 +283,6 @@ button:active,
     background: #fff;
 }
 
-/* QQ App */
 .qq-container {
     height: calc(100% - 25px);
     display: flex;
@@ -423,7 +422,7 @@ button:active,
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    max-width: 90%; /* 这里已经改成了90%，气泡变宽 */
+    max-width: 90%;
 }
 
 .qq-msg-row.user {
