@@ -85,9 +85,9 @@ window.qqApp = {
                             <div
                                 v-if="msg.role === 'user'"
                                 class="qq-msg-avatar"
-                                :style="{ backgroundImage: store.qqData.profile.avatar ? 'url(' + store.qqData.profile.avatar + ')' : 'none' }"
+                                :style="{ backgroundImage: currentUserCard.avatar ? 'url(' + currentUserCard.avatar + ')' : 'none' }"
                             >
-                                {{ !store.qqData.profile.avatar ? store.qqData.profile.nickname[0] : '' }}
+                                {{ !currentUserCard.avatar ? currentUserCard.name[0] : '' }}
                             </div>
                         </div>
                     </template>
@@ -167,6 +167,12 @@ window.qqApp = {
                 <div v-show="currentTab === 'moments'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
                     <div class="qq-header">
                         <span style="font-size:20px; font-weight:bold;">朋友圈</span>
+                        <div style="display:flex; align-items:center; gap:15px;">
+                            <span @click="refreshMoments" style="font-size:14px; color:#576b95; cursor:pointer;">
+                                {{ isRefreshingMoments ? '刷新中...' : '刷新' }}
+                            </span>
+                            <span @click="openAddMomentModal" style="font-size:26px; font-weight:300; cursor:pointer; padding-bottom:4px;">+</span>
+                        </div>
                     </div>
                     <div class="qq-content" style="padding-bottom:20px;">
                         <div
@@ -185,7 +191,38 @@ window.qqApp = {
                                 {{ store.qqData.profile.nickname }}
                             </div>
                         </div>
-                        <div style="text-align:center; padding:40px 0; color:#8e8e8e; font-size:14px;">暂无动态</div>
+
+                        <div v-if="!store.qqData.moments || store.qqData.moments.length === 0" style="text-align:center; padding:40px 0; color:#8e8e8e; font-size:14px;">
+                            暂无动态
+                        </div>
+
+                        <div v-else>
+                            <div v-for="m in store.qqData.moments" :key="m.id" style="display:flex; gap:12px; padding:16px; border-bottom:1px solid #efefef;">
+                                <div class="qq-msg-avatar" style="border-radius:8px;" :style="{ backgroundImage: store.qqData.profile.avatar ? 'url(' + store.qqData.profile.avatar + ')' : 'none' }">
+                                    {{ !store.qqData.profile.avatar ? store.qqData.profile.nickname[0] : '' }}
+                                </div>
+                                <div style="flex:1; overflow:hidden;">
+                                    <div style="font-weight:600; color:#576b95; font-size:15px; margin-bottom:4px;">{{ store.qqData.profile.nickname }}</div>
+                                    <div style="font-size:15px; line-height:1.5; color:#262626; margin-bottom:10px; word-break:break-all; white-space:pre-wrap;">{{ m.content }}</div>
+                                    
+                                    <div style="font-size:12px; color:#999; margin-bottom:10px;">{{ formatTime(m.timestamp) }}</div>
+                                    
+                                    <div v-if="(m.likes && m.likes.length) || (m.comments && m.comments.length)" style="background:#f7f7f7; border-radius:4px; padding:8px 10px;">
+                                        <div v-if="m.likes && m.likes.length" style="color:#576b95; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; line-height:1.4;">
+                                            <span style="font-size:14px;">♥</span>
+                                            <span>{{ m.likes.map(function(l){ return l.name; }).join(', ') }}</span>
+                                        </div>
+                                        <div v-if="(m.likes && m.likes.length) && (m.comments && m.comments.length)" style="height:1px; background:#e5e5e5; margin:6px 0;"></div>
+                                        <div v-if="m.comments && m.comments.length">
+                                            <div v-for="(com, idx) in m.comments" :key="idx" style="font-size:13px; line-height:1.5; margin-bottom:4px;">
+                                                <span style="color:#576b95; font-weight:600;">{{ com.name }}</span>
+                                                <span style="color:#262626;">: {{ com.content }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -296,6 +333,10 @@ window.qqApp = {
                 <div class="qq-modal">
                     <h3 style="margin-bottom:18px; text-align:center; font-size:16px;">{{ modal.title }}</h3>
 
+                    <template v-if="modal.type === 'add_moment'">
+                        <textarea v-model="tempData.momentContent" placeholder="这一刻的想法..." rows="5" style="resize:none;"></textarea>
+                    </template>
+
                     <template v-if="modal.type === 'char'">
                         <input v-model="tempData.name" placeholder="真实姓名 (必填)">
                         <input v-model="tempData.nickname" placeholder="昵称">
@@ -398,6 +439,11 @@ window.qqApp = {
         const currentTab = Vue.ref('messages');
         const activeChatId = Vue.ref(null);
 
+        // 初始化朋友圈数据，防报错
+        if (!store.qqData.moments) {
+            store.qqData.moments = [];
+        }
+
         const modal = Vue.reactive({ show: false, type: '', title: '', confirm: null });
         const tempData = Vue.reactive({});
         const errorMsg = Vue.ref('');
@@ -423,23 +469,30 @@ window.qqApp = {
             return store.qqData.messages[activeChatId.value] || [];
         });
 
+        // 取出当前对应联系人的 userCard 以更新头像
+        const currentUserCard = Vue.computed(function () {
+            if (!currentContact.value) {
+                return store.qqData.userCards[0] || { name: '我', avatar: null };
+            }
+            const cardId = currentContact.value.userCardId || store.qqData.userCards[0].id;
+            return store.qqData.userCards.find(function (c) {
+                return c.id === cardId;
+            }) || store.qqData.userCards[0] || { name: '我', avatar: null };
+        });
+
         const selectedCount = Vue.computed(function () {
             return selectedMsgIndexes.value.length;
         });
 
         const triggerUpload = function (id) {
             const el = document.getElementById(id);
-            if (el) {
-                el.click();
-            }
+            if (el) el.click();
         };
 
         const showError = function (msg) {
             errorMsg.value = msg;
             toastY.value = 0;
-            if (errTimer) {
-                window.clearTimeout(errTimer);
-            }
+            if (errTimer) window.clearTimeout(errTimer);
             errTimer = window.setTimeout(function () {
                 errorMsg.value = '';
             }, 3000);
@@ -462,9 +515,7 @@ window.qqApp = {
         };
 
         const formatTime = function (ts) {
-            if (!ts) {
-                return '';
-            }
+            if (!ts) return '';
             const d = new Date(ts);
             return (d.getMonth() + 1) + '-' + d.getDate() + ' ' +
                 String(d.getHours()).padStart(2, '0') + ':' +
@@ -472,29 +523,20 @@ window.qqApp = {
         };
 
         const showTime = function (msg, index) {
-            if (!msg.timestamp) {
-                return false;
-            }
-            if (index === 0) {
-                return true;
-            }
+            if (!msg.timestamp) return false;
+            if (index === 0) return true;
             const prev = currentMessages.value[index - 1];
-            if (!prev || !prev.timestamp) {
-                return true;
-            }
+            if (!prev || !prev.timestamp) return true;
             return (msg.timestamp - prev.timestamp) > 5 * 60 * 1000;
         };
 
         let touchStartX = 0;
-
         const onSwipeStart = function (e) {
             touchStartX = e.changedTouches[0].screenX;
         };
 
         const onSwipeEnd = function (e) {
-            if (activeChatId.value || modal.show) {
-                return;
-            }
+            if (activeChatId.value || modal.show) return;
             const endX = e.changedTouches[0].screenX;
             if (endX - touchStartX > 80 && currentTab.value !== 'profile' && currentTab.value !== 'wallet') {
                 currentTab.value = 'profile';
@@ -504,41 +546,28 @@ window.qqApp = {
         };
 
         let pressTimer = null;
-
         const startPress = function (action, payload) {
             pressTimer = window.setTimeout(function () {
                 if (action === 'qq_bg') {
                     const bgEl = document.getElementById('qq_bg');
-                    if (bgEl) {
-                        bgEl.click();
-                    }
+                    if (bgEl) bgEl.click();
                 }
                 if (action === 'qq_avatar') {
                     const avatarEl = document.getElementById('qq_avatar');
-                    if (avatarEl) {
-                        avatarEl.click();
-                    }
+                    if (avatarEl) avatarEl.click();
                 }
-                if (action === 'edit_profile') {
-                    openEditProfile();
-                }
-                if (action === 'edit_card') {
-                    openUserCardModal(payload);
-                }
+                if (action === 'edit_profile') openEditProfile();
+                if (action === 'edit_card') openUserCardModal(payload);
             }, 500);
         };
 
         const cancelPress = function () {
-            if (pressTimer) {
-                window.clearTimeout(pressTimer);
-            }
+            if (pressTimer) window.clearTimeout(pressTimer);
         };
 
         const handleImgUpload = function (event, targetField) {
             const file = event.target.files && event.target.files[0];
-            if (!file) {
-                return;
-            }
+            if (!file) return;
 
             const reader = new FileReader();
             reader.onload = function (e) {
@@ -574,15 +603,118 @@ window.qqApp = {
             event.target.value = '';
         };
 
+        // ====== 朋友圈功能区 ======
+        const isRefreshingMoments = Vue.ref(false);
+
+        const openAddMomentModal = function () {
+            modal.title = '发布朋友圈';
+            modal.type = 'add_moment';
+            tempData.momentContent = '';
+
+            modal.confirm = function () {
+                if (!tempData.momentContent || !tempData.momentContent.trim()) {
+                    return showError('内容不能为空');
+                }
+                store.qqData.moments.unshift({
+                    id: 'moment_' + Date.now(),
+                    content: tempData.momentContent,
+                    timestamp: Date.now(),
+                    likes: [],
+                    comments: []
+                });
+                modal.show = false;
+            };
+            modal.show = true;
+        };
+
+        const refreshMoments = async function () {
+            if (isRefreshingMoments.value) return;
+
+            if (!store.qqData.moments || store.qqData.moments.length === 0) {
+                return showError('暂无朋友圈可刷新');
+            }
+
+            const subApi = store.apiSettings.sub;
+            if (!subApi.url || !subApi.key) {
+                return showError('请先在设置中配置副API (sub API)');
+            }
+
+            const contacts = store.qqData.contacts || [];
+            if (contacts.length === 0) {
+                return showError('你还没有添加AI好友');
+            }
+
+            isRefreshingMoments.value = true;
+            const isSingleChar = contacts.length === 1;
+            // 默认互动最新的那条朋友圈
+            const latestMoment = store.qqData.moments[0];
+
+            if (!latestMoment.likes) latestMoment.likes = [];
+            if (!latestMoment.comments) latestMoment.comments = [];
+
+            const promises = contacts.map(async function (c) {
+                const uCard = store.qqData.userCards.find(function (card) {
+                    return card.id === (c.userCardId || store.qqData.userCards[0].id);
+                }) || store.qqData.userCards[0];
+
+                const hasLiked = latestMoment.likes.some(function (l) { return l.id === c.id; });
+                const hasCommented = latestMoment.comments.some(function (com) { return com.id === c.id; });
+
+                const shouldReply = !hasCommented && (isSingleChar ? true : Math.random() < 0.4);
+                const shouldLike = !hasLiked && (Math.random() < 0.5);
+
+                if (shouldLike) {
+                    latestMoment.likes.push({ id: c.id, name: c.nickname });
+                }
+
+                if (shouldReply) {
+                    const prompt = '你的名字是' + c.name + '，昵称是' + c.nickname + '。你的人设是：' + c.persona +
+                                   '。你的朋友' + uCard.name + '发了一条朋友圈："' + latestMoment.content +
+                                   '"。请模拟你在微信朋友圈给ta留言，写一条简短的评论（限20字以内，符合人设语气）。直接输出评论内容，不要包含任何多余解释或引言。';
+
+                    try {
+                        const res = await fetch(subApi.url + '/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + subApi.key
+                            },
+                            body: JSON.stringify({
+                                model: subApi.model || 'gpt-3.5-turbo',
+                                messages: [{ role: 'user', content: prompt }]
+                            })
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            const reply = data.choices[0] && data.choices[0].message ? data.choices[0].message.content.trim() : '';
+                            if (reply) {
+                                latestMoment.comments.push({
+                                    id: c.id,
+                                    name: c.nickname,
+                                    content: reply.replace(/^["']|["']$/g, '')
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.error('评论获取失败', e);
+                    }
+                }
+            });
+
+            await Promise.all(promises);
+            isRefreshingMoments.value = false;
+            showError('朋友圈刷新完成');
+        };
+        // ====== 朋友圈功能区结束 ======
+
         const openAddModal = function () {
             modal.title = '创建AI好友';
             modal.type = 'char';
             Object.assign(tempData, { name: '', nickname: '', persona: '' });
 
             modal.confirm = function () {
-                if (!tempData.name || !tempData.persona) {
-                    return showError('姓名和人设必填');
-                }
+                if (!tempData.name || !tempData.persona) return showError('姓名和人设必填');
 
                 const id = 'contact_' + Date.now();
                 store.qqData.contacts.push({
@@ -626,25 +758,13 @@ window.qqApp = {
             modal.type = 'user_card';
 
             if (card) {
-                Object.assign(tempData, {
-                    id: card.id,
-                    name: card.name,
-                    persona: card.persona,
-                    avatar: card.avatar
-                });
+                Object.assign(tempData, { id: card.id, name: card.name, persona: card.persona, avatar: card.avatar });
             } else {
-                Object.assign(tempData, {
-                    id: null,
-                    name: '',
-                    persona: '',
-                    avatar: null
-                });
+                Object.assign(tempData, { id: null, name: '', persona: '', avatar: null });
             }
 
             modal.confirm = function () {
-                if (!tempData.name) {
-                    return showError('名片姓名必填');
-                }
+                if (!tempData.name) return showError('名片姓名必填');
 
                 if (tempData.id) {
                     const target = store.qqData.userCards.find(function (c) {
@@ -763,18 +883,14 @@ window.qqApp = {
 
         const adjustHeight = function () {
             const el = chatInputRef.value;
-            if (!el) {
-                return;
-            }
+            if (!el) return;
             el.style.height = '36px';
             el.style.height = Math.min(el.scrollHeight, 108) + 'px';
         };
 
         const resetInputHeight = function () {
             const el = chatInputRef.value;
-            if (!el) {
-                return;
-            }
+            if (!el) return;
             el.style.height = '36px';
         };
 
@@ -804,9 +920,7 @@ window.qqApp = {
         };
 
         const onMsgTe = function () {
-            if (msgPressTimer) {
-                window.clearTimeout(msgPressTimer);
-            }
+            if (msgPressTimer) window.clearTimeout(msgPressTimer);
         };
 
         const closeMsgMenu = function () {
@@ -824,10 +938,7 @@ window.qqApp = {
         };
 
         const toggleSelectMsg = function (index) {
-            if (!selectMode.value) {
-                selectMode.value = true;
-            }
-
+            if (!selectMode.value) selectMode.value = true;
             const pos = selectedMsgIndexes.value.indexOf(index);
             if (pos === -1) {
                 selectedMsgIndexes.value.push(index);
@@ -835,18 +946,12 @@ window.qqApp = {
             } else {
                 selectedMsgIndexes.value.splice(pos, 1);
             }
-
-            if (selectedMsgIndexes.value.length === 0) {
-                selectMode.value = false;
-            }
-
+            if (selectedMsgIndexes.value.length === 0) selectMode.value = false;
             activeMsgMenu.value = null;
         };
 
         const handleMsgClick = function (index) {
-            if (!selectMode.value) {
-                return;
-            }
+            if (!selectMode.value) return;
             toggleSelectMsg(index);
         };
 
@@ -856,27 +961,20 @@ window.qqApp = {
         };
 
         const deleteSelectedMsgs = function () {
-            if (!activeChatId.value || selectedMsgIndexes.value.length === 0) {
-                return;
-            }
-
+            if (!activeChatId.value || selectedMsgIndexes.value.length === 0) return;
             const indexes = selectedMsgIndexes.value.slice().sort(function (a, b) {
                 return b - a;
             });
-
             indexes.forEach(function (idx) {
                 store.qqData.messages[activeChatId.value].splice(idx, 1);
             });
-
             cancelSelection();
             closeMsgMenu();
         };
 
         const replyMsg = function (index) {
             const msg = store.qqData.messages[activeChatId.value][index];
-            if (!msg) {
-                return;
-            }
+            if (!msg) return;
             quotedMsgText.value = msg.content.length > 40 ? msg.content.slice(0, 40) + '...' : msg.content;
             activeMsgMenu.value = null;
         };
@@ -890,18 +988,12 @@ window.qqApp = {
         };
 
         const parseTimeStr = function (str) {
-            if (!str || typeof str !== 'string') {
-                return null;
-            }
+            if (!str || typeof str !== 'string') return null;
             const parts = str.split(':');
-            if (parts.length !== 2) {
-                return null;
-            }
+            if (parts.length !== 2) return null;
             let h = Number(parts[0]);
             let m = Number(parts[1]);
-            if (Number.isNaN(h) || Number.isNaN(m)) {
-                return null;
-            }
+            if (Number.isNaN(h) || Number.isNaN(m)) return null;
             h = Math.max(0, Math.min(23, h));
             m = Math.max(0, Math.min(59, m));
             return { h: h, m: m };
@@ -922,32 +1014,21 @@ window.qqApp = {
 
         const getNowClock = function () {
             const d = new Date();
-            return {
-                h: d.getHours(),
-                m: d.getMinutes()
-            };
+            return { h: d.getHours(), m: d.getMinutes() };
         };
 
         const getLastMessageTimeStr = function (chatId) {
             const msgs = store.qqData.messages[chatId] || [];
             for (let i = msgs.length - 1; i >= 0; i -= 1) {
-                if (msgs[i] && msgs[i].timeStr) {
-                    return msgs[i].timeStr;
-                }
+                if (msgs[i] && msgs[i].timeStr) return msgs[i].timeStr;
             }
             return '';
         };
 
         const getVirtualBaseTime = function (contact) {
             const lastMsgTime = getLastMessageTimeStr(contact.id);
-            if (lastMsgTime) {
-                return parseTimeStr(lastMsgTime);
-            }
-
-            if (contact.virtualTimeStr) {
-                return parseTimeStr(contact.virtualTimeStr);
-            }
-
+            if (lastMsgTime) return parseTimeStr(lastMsgTime);
+            if (contact.virtualTimeStr) return parseTimeStr(contact.virtualTimeStr);
             return getNowClock();
         };
 
@@ -978,9 +1059,7 @@ window.qqApp = {
 
             if (contact.timeSenseMode) {
                 const now = formatClock(getNowClock());
-                for (let i = 0; i < count; i += 1) {
-                    times.push(now);
-                }
+                for (let i = 0; i < count; i += 1) times.push(now);
                 return times;
             }
 
@@ -1016,9 +1095,7 @@ window.qqApp = {
         };
 
         const sendUserMsg = function () {
-            if (!inputText.value.trim()) {
-                return;
-            }
+            if (!inputText.value.trim()) return;
 
             const c = currentContact.value;
             const newMsg = {
@@ -1040,9 +1117,7 @@ window.qqApp = {
         };
 
         const triggerAI = async function () {
-            if (isTyping.value) {
-                return;
-            }
+            if (isTyping.value) return;
 
             const history = store.qqData.messages[activeChatId.value];
             if (history.length === 0 || history[history.length - 1].role === 'ai') {
@@ -1071,10 +1146,16 @@ window.qqApp = {
             }
 
             const apiMessages = [{ role: 'system', content: sysPrompt }];
+            
             history.slice(-15).forEach(function (m) {
+                let contentText = m.content;
+                // 如果消息带有回复属性，将引用内容追加进上下文发给 AI，让它明白你在针对什么回复
+                if (m.quote) {
+                    contentText = '[引用了之前的一条消息: "' + m.quote + '"]\\n' + contentText;
+                }
                 apiMessages.push({
                     role: m.role === 'ai' ? 'assistant' : 'user',
-                    content: m.content
+                    content: contentText
                 });
             });
 
@@ -1094,22 +1175,15 @@ window.qqApp = {
                     })
                 });
 
-                if (!res.ok) {
-                    throw new Error('请求失败 (' + res.status + ')');
-                }
+                if (!res.ok) throw new Error('请求失败 (' + res.status + ')');
 
                 const data = await res.json();
                 const reply = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
 
-                if (!reply || !reply.trim()) {
-                    throw new Error('AI返回了空消息');
-                }
+                if (!reply || !reply.trim()) throw new Error('AI返回了空消息');
 
                 if (!c.offlineMode && reply.indexOf('\n') !== -1) {
-                    const lines = reply.split('\n').filter(function (l) {
-                        return l.trim() !== '';
-                    });
-
+                    const lines = reply.split('\n').filter(function (l) { return l.trim() !== ''; });
                     const timeList = buildAiBatchTimeList(c, lines.length);
 
                     for (let i = 0; i < lines.length; i += 1) {
@@ -1139,19 +1213,14 @@ window.qqApp = {
         };
 
         const handleAiBtnClick = function () {
-            if (inputText.value.trim()) {
-                sendUserMsg();
-            } else {
-                triggerAI();
-            }
+            if (inputText.value.trim()) sendUserMsg();
+            else triggerAI();
         };
 
         const handleEnter = function (e) {
             if (e.shiftKey) {
                 inputText.value += '\n';
-                Vue.nextTick(function () {
-                    adjustHeight();
-                });
+                Vue.nextTick(function () { adjustHeight(); });
                 return;
             }
             handleAiBtnClick();
@@ -1184,6 +1253,7 @@ window.qqApp = {
             getLastMsg: getLastMsg,
             openChat: openChat,
             currentContact: currentContact,
+            currentUserCard: currentUserCard,
             currentMessages: currentMessages,
             inputText: inputText,
             isTyping: isTyping,
@@ -1209,7 +1279,11 @@ window.qqApp = {
             isSelected: isSelected,
             deleteSelectedMsgs: deleteSelectedMsgs,
             cancelSelection: cancelSelection,
-            backToChatList: backToChatList
+            backToChatList: backToChatList,
+            // 朋友圈新增属性方法
+            isRefreshingMoments: isRefreshingMoments,
+            openAddMomentModal: openAddMomentModal,
+            refreshMoments: refreshMoments
         };
     }
 };
