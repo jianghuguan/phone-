@@ -61,7 +61,7 @@ window.qqApp = {
 
                             <div class="msg-bubble-container">
                                 <div style="position:relative;">
-                                    <div v-if="activeMsgMenu === i" class="msg-menu">
+                                    <div v-if="activeMsgMenu === i" class="msg-menu" @touchstart.stop>
                                         <span @click.stop="toggleSelectMsg(i)">选择</span>
                                         <span @click.stop="replyMsg(i)">回复</span>
                                     </div>
