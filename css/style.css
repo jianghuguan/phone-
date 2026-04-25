@@ -423,7 +423,7 @@ button:active,
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    max-width: 80%;
+    max-width: 90%; /* 这里已经改成了90%，气泡变宽 */
 }
 
 .qq-msg-row.user {
