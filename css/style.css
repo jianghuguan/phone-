@@ -107,8 +107,10 @@ button:active,
 .desktop {
     flex: 1;
     display: grid;
+    container-type: inline-size;
     grid-template-columns: repeat(4, 1fr);
     grid-auto-rows: calc((100vw - 85px) / 4);
+    grid-auto-rows: calc((100cqw - 85px) / 4);
     grid-auto-flow: row;
     gap: 15px;
     padding: 20px 20px;
@@ -393,47 +395,6 @@ button:active,
     align-items: flex-end;
     padding: 0 16px;
     position: relative;
-    transition: background 0.2s;
-}
-
-/* 多选框样式 */
-.qq-select-checkbox {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 1px solid #ccc;
-    margin-right: 10px;
-    margin-bottom: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.2s;
-}
-
-.qq-select-checkbox.selected {
-    background: #007aff;
-    border-color: #007aff;
-}
-
-.qq-select-checkbox.selected::after {
-    content: '';
-    width: 10px;
-    height: 5px;
-    border-left: 2px solid #fff;
-    border-bottom: 2px solid #fff;
-    transform: rotate(-45deg) translateY(-2px);
-}
-
-.qq-select-bar {
-    height: 55px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 20px;
-    background: #fbfbfd;
-    border-top: 1px solid #efefef;
-    flex-shrink: 0;
 }
 
 .qq-msg-avatar {
@@ -511,75 +472,45 @@ button:active,
     border-bottom-left-radius: 4px;
 }
 
-/* 长按弹出的文字菜单 */
 .msg-menu {
     position: absolute;
-    top: -42px;
+    top: -38px;
     left: 50%;
     transform: translateX(-50%);
     background: #fff;
-    border: 1px solid #d1d1d6;
-    border-radius: 12px;
+    border: 1px solid #000;
+    border-radius: 20px;
     display: flex;
+    gap: 15px;
+    padding: 6px 15px;
     z-index: 100;
     white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    overflow: hidden;
 }
 
 .msg-menu span {
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
-    padding: 8px 18px;
-    color: #333;
-    font-weight: 500;
-    transition: background 0.2s;
 }
 
-.msg-menu span:first-child {
-    border-right: 1px solid #d1d1d6;
-}
-
-.msg-menu span:active {
-    background: #f0f0f0;
-}
-
-/* 气泡内的引用框 */
 .quote-box {
     font-size: 12px;
-    color: #555;
-    background: rgba(0, 0, 0, 0.06);
-    padding: 6px 10px;
+    color: #333;
+    background: rgba(255, 255, 255, 0.4);
+    padding: 6px;
     border-radius: 8px;
-    margin-bottom: 8px;
-    border-left: 3px solid #ccc;
+    margin-bottom: 6px;
+    border-left: 2px solid #000;
     word-break: break-all;
 }
 
-.qq-msg-row.user .quote-box {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    border-left-color: #fff;
-}
-
-/* 输入框上方的回复预览 */
 .quote-preview {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 8px 16px;
-    background: #f5f5f7;
+    background: #fff;
     border-bottom: 1px solid #eee;
     font-size: 13px;
     color: #666;
-}
-
-.quote-preview .close-btn {
-    font-weight: bold;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0 8px;
-    color: #999;
 }
 
 .qq-timestamp {
@@ -599,9 +530,15 @@ button:active,
 }
 
 @keyframes pulse {
-    0% { opacity: 0.4; }
-    50% { opacity: 1; }
-    100% { opacity: 0.4; }
+    0% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.4;
+    }
 }
 
 .qq-input-area {
@@ -641,4 +578,99 @@ button:active,
     padding: 6px 16px;
     margin-bottom: 1px;
     height: 36px;
+}
+
+.qq-toast {
+    position: absolute;
+    top: 15px;
+    left: 10%;
+    width: 80%;
+    background: #ed4956;
+    color: #fff;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.qq-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qq-modal {
+    width: 85%;
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px;
+    max-height: 80%;
+    overflow-y: auto;
+}
+
+.qq-modal input,
+.qq-modal textarea,
+.qq-modal select {
+    width: 100%;
+    border: 1px solid #000;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    background: #fff;
+    font-family: inherit;
+}
+
+.qq-modal-btns {
+    display: flex;
+    gap: 12px;
+    margin-top: 5px;
+}
+
+.qq-modal-btns button {
+    flex: 1;
+    padding: 12px;
+}
+
+.qq-profile-header {
+    position: relative;
+    height: 220px;
+    background: #efefef;
+    background-size: cover;
+    background-position: center;
+    border-bottom: 1px solid #efefef;
+}
+
+.qq-profile-avatar {
+    position: absolute;
+    bottom: -40px;
+    left: 24px;
+    width: 85px;
+    height: 85px;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    background: #ccc;
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-card {
+    background: #fafafa;
+    border: 1px solid #efefef;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
 }
