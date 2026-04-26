@@ -404,8 +404,8 @@ window.qqApp = {
                                 <span style="font-size:14px; font-weight:bold;">记忆区 (自动聊天总结)</span>
                                 <button @click="manualSummarize" style="font-size:12px; padding:4px 8px; background:#007aff; color:#fff; border:none; border-radius:4px; margin:0;">手动总结</button>
                             </div>
-                            <div style="font-size:12px; color:#999; margin-bottom:8px;">每10回合自动调取副API总结（保留最近5回合不总结）。按序号如“1. ”智能排列。</div>
-                            <textarea v-model="tempData.memory" rows="4" placeholder="暂无记忆... 格式如: 1. 去了公园吃饭" style="margin-bottom:0; font-size:13px; line-height:1.4;"></textarea>
+                            <div style="font-size:12px; color:#999; margin-bottom:8px;">每10回合自动调取副API总结（保留最近5回合不总结）。支持直接查看和手动修改。</div>
+                            <textarea v-model="tempData.memory" rows="4" placeholder="暂无记忆... 格式如: 1. 总结内容" style="margin-bottom:0; font-size:13px; line-height:1.4;"></textarea>
                         </div>
                     </template>
 
@@ -810,77 +810,40 @@ window.qqApp = {
             modal.show = false;
         };
 
-        // 核心功能：负责自动与手动总结的公共方法
-        const runSummarizeTasks = async function(c, activeId, isManual, currentMemoryStr) {
-            if (c.isSummarizing) return currentMemoryStr;
-            const msgs = store.qqData.messages[activeId] || [];
+        const manualSummarize = async function (e) {
+            if (e) e.preventDefault();
+            const c = currentContact.value;
+            if (!c) return;
+            const apiConfig = store.apiSettings.sub;
+            if (!apiConfig.url || !apiConfig.key) return showError('请先在设置App配置副API');
+
+            const msgs = store.qqData.messages[c.id] || [];
             const maxTurn = c.currentTurn || 0;
-            // 永远保留最新的5回合，计算可以进行完整10回合总结的块数
-            const maxCompletedBlock = Math.floor((maxTurn - 5) / 10);
+            const maxBlocks = Math.floor((maxTurn - 5) / 10);
             
-            if (maxCompletedBlock < 1) {
-                if (isManual) showError('当前回合数不足，无需总结');
-                return currentMemoryStr;
-            }
+            if (maxBlocks < 1) return showError('当前回合数不足，无需总结');
 
-            const memItems = [];
-            const existingSeqs = [];
-            const lines = (currentMemoryStr || '').split('\n');
-            let currentSeq = -1;
-            let currentText = [];
+            let mem = tempData.memory || '';
+            let missingBlocks = [];
+            const memLines = mem.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
 
-            // 智能解析当前的记忆字符串，提取序号
-            lines.forEach(function(line) {
-                const match = line.match(/^(\d+)[\.、]\s*(.*)/);
-                if (match) {
-                    if (currentSeq !== -1) {
-                        memItems.push({ seq: currentSeq, text: currentText.join('\n') });
-                        existingSeqs.push(currentSeq);
-                    }
-                    currentSeq = parseInt(match[1], 10);
-                    currentText = [match[2]];
-                } else {
-                    if (currentSeq !== -1) {
-                        currentText.push(line);
-                    } else if (line.trim()) {
-                        currentSeq = 0; // 存放无法识别的杂项开头
-                        currentText.push(line);
-                    }
-                }
-            });
-            if (currentSeq !== -1) {
-                memItems.push({ seq: currentSeq, text: currentText.join('\n') });
-                existingSeqs.push(currentSeq);
-            }
-
-            const missingBlocks = [];
-            for (let k = 1; k <= maxCompletedBlock; k += 1) {
-                if (existingSeqs.indexOf(k) === -1) {
-                    missingBlocks.push(k);
+            for (let i = 1; i <= maxBlocks; i++) {
+                if (!memLines.some(function(line) { return line.startsWith(i + '.'); })) {
+                    missingBlocks.push(i);
                 }
             }
 
             if (missingBlocks.length === 0) {
-                if (isManual) showError('系统检索：记忆已是完整状态');
-                return currentMemoryStr;
+                return showError('系统检索：记忆已是完整状态');
             }
 
-            c.isSummarizing = true;
-            const apiConfig = store.apiSettings.sub;
-            if (!apiConfig.url || !apiConfig.key) {
-                c.isSummarizing = false;
-                showError('请先在设置App配置副API进行总结');
-                return currentMemoryStr;
-            }
-
-            showError('开始总结，共需 ' + missingBlocks.length + ' 次...');
-
+            showError('开始总结，共需总结 ' + missingBlocks.length + ' 次...');
             let hasError = false;
-            // 按顺序请求缺失的总结块
-            for (let i = 0; i < missingBlocks.length; i += 1) {
-                const k = missingBlocks[i];
-                let start = (k - 1) * 10 + 1;
-                let end = k * 10;
+
+            for (let i = 0; i < missingBlocks.length; i++) {
+                let blockIndex = missingBlocks[i];
+                let start = (blockIndex - 1) * 10 + 1;
+                let end = blockIndex * 10;
                 
                 const blockMsgs = msgs.filter(function(m) { return m.turn >= start && m.turn <= end; });
                 if (blockMsgs.length === 0) continue;
@@ -888,7 +851,7 @@ window.qqApp = {
                 let chatText = blockMsgs.map(function(m) { return (m.role === 'user' ? '我' : c.nickname) + ': ' + m.content; }).join('\n');
                 if (chatText.length > 3000) chatText = chatText.slice(-3000);
 
-                let prompt = '请将以下聊天记录总结成一条不超过100字的概括，必须包含时间、地点、人物和发生的事情。直接输出总结内容，不要有多余解释和废话。\\n聊天记录：\\n' + chatText;
+                let prompt = '请将以下聊天记录总结成一条不超过100字的概括，必须包含时间、地点、人物和发生的事情。直接输出总结内容，不要有多余解释废话。\n聊天记录：\n' + chatText;
 
                 try {
                     const res = await fetch(apiConfig.url + '/v1/chat/completions', {
@@ -896,49 +859,35 @@ window.qqApp = {
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiConfig.key },
                         body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'user', content: prompt }] })
                     });
-                    if (res.ok) {
-                        const data = await res.json();
-                        let summary = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
-                        if (summary) {
-                            memItems.push({ seq: k, text: summary.trim() });
-                        }
-                    } else {
-                        hasError = true;
-                        showError('总结第 ' + k + ' 次失败 (' + res.status + ')');
-                        break; // 停止后面的请求，避免产生连环错误
+                    if (!res.ok) {
+                        throw new Error('API异常 ' + res.status);
                     }
-                } catch (e) {
-                    console.error(e);
+                    const data = await res.json();
+                    let summary = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
+                    if (summary) {
+                        summary = summary.trim();
+                        let lines = mem ? mem.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; }) : [];
+                        lines.push(blockIndex + '. ' + summary);
+                        lines.sort(function(a, b) {
+                            return (parseInt(a.split('.')[0]) || 0) - (parseInt(b.split('.')[0]) || 0);
+                        });
+                        mem = lines.join('\n');
+                        tempData.memory = mem; // 同步给UI
+                        c.summarizedTurnCount = Math.max(c.summarizedTurnCount || 0, end);
+                    } else {
+                        throw new Error('API返回为空');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showError('总结失败: 第 ' + blockIndex + ' 块报错');
                     hasError = true;
-                    showError('总结第 ' + k + ' 次异常失败');
                     break;
                 }
             }
 
-            // 对混合后的记忆数组重新按照 1、2、3 进行排序并生成干净的字符串
-            memItems.sort(function(a, b) { return a.seq - b.seq; });
-            const newMemStr = memItems.filter(function(item) { return item.seq > 0; })
-                                      .map(function(item) { return item.seq + '. ' + item.text; })
-                                      .join('\n');
-                                      
-            const finalSeqs = memItems.map(function(item) { return item.seq; });
-            const maxSeq = finalSeqs.length > 0 ? Math.max.apply(null, finalSeqs) : 0;
-            c.summarizedTurnCount = maxSeq * 10;
-            c.isSummarizing = false;
-
-            if (!hasError && missingBlocks.length > 0) {
-                showError('总结完成！');
+            if (!hasError) {
+                showError('总结完成');
             }
-
-            return newMemStr;
-        };
-
-        const manualSummarize = async function (e) {
-            if (e) e.preventDefault();
-            const c = currentContact.value;
-            if (!c) return;
-            // 传入 tempData.memory 并等待覆盖更新，防止丢失用户刚在此模态框里的手打改动
-            tempData.memory = await runSummarizeTasks(c, activeChatId.value, true, tempData.memory);
         };
 
         const openChatSettings = function () {
@@ -1022,6 +971,7 @@ window.qqApp = {
             const c = store.qqData.contacts.find(function(x){ return x.id === id; });
             const history = store.qqData.messages[id] || [];
             
+            // 老旧存档兼容：如果没有回合数，则自动补齐所有气泡的回合归属
             if (c && typeof c.currentTurn === 'undefined') {
                 let currentT = 0;
                 history.forEach(function (m, idx) {
@@ -1310,13 +1260,13 @@ window.qqApp = {
             let historyStr = '';
             moment.comments.forEach(function(cmt) {
                 if (!cmt.isUser && cmt.charId === charId) {
-                    historyStr += c.nickname + '评论道：' + cmt.content + '\n';
+                    historyStr += c.nickname + '评论道：' + cmt.content + '\\n';
                 } else if (cmt.isUser && cmt.replyToCharId === charId) {
-                    historyStr += uCard.name + '回复' + c.nickname + '：' + cmt.content + '\n';
+                    historyStr += uCard.name + '回复' + c.nickname + '：' + cmt.content + '\\n';
                 }
             });
 
-            const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。\n你的朋友' + uCard.name + '在 ' + formatTime(moment.timestamp) + ' 发了一条朋友圈：“' + moment.content + '”。\n你们在评论区有如下互动：\n' + historyStr + '\n请根据最新回复情况，给出你顺承的二次回复（字数不超过30字，口语化，直接输出内容）。如果不打算再回复请直接输出“无”。';
+            const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。\\n你的朋友' + uCard.name + '在 ' + formatTime(moment.timestamp) + ' 发了一条朋友圈：“' + moment.content + '”。\\n你们在评论区有如下互动：\\n' + historyStr + '\\n请根据最新回复情况，给出你顺承的二次回复（字数不超过30字，口语化，直接输出内容）。如果不打算再回复请直接输出“无”。';
 
             try {
                 const res = await fetch(apiConfig.url + '/v1/chat/completions', {
@@ -1523,7 +1473,7 @@ window.qqApp = {
                 if (parsed) {
                     contact.virtualTimeStr = formatClock(parsed);
                     contact.timeLocked = true;
-                    contact.nextOverrideTime = '';
+                    contact.nextOverrideTime = ''; // 生效一次后即清空
                     return contact.virtualTimeStr;
                 }
             }
@@ -1562,7 +1512,7 @@ window.qqApp = {
                 const parsed = parseTimeStr(contact.nextOverrideTime);
                 if (parsed) {
                     firstTime = parsed;
-                    contact.nextOverrideTime = '';
+                    contact.nextOverrideTime = ''; // AI如果先回复，也会清空单次使用标识
                 }
             }
 
@@ -1597,6 +1547,87 @@ window.qqApp = {
             return times;
         };
 
+        const checkAndAutoSummarize = async function (c, activeId) {
+            if (c.isSummarizing) return;
+            const msgs = store.qqData.messages[activeId] || [];
+            const maxTurn = c.currentTurn || 0;
+            const maxBlocks = Math.floor((maxTurn - 5) / 10);
+
+            if (maxBlocks < 1) return;
+
+            let mem = c.memory || '';
+            let missingBlocks = [];
+            const memLines = mem.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
+
+            for (let i = 1; i <= maxBlocks; i++) {
+                if (!memLines.some(function(line) { return line.startsWith(i + '.'); })) {
+                    missingBlocks.push(i);
+                }
+            }
+
+            if (missingBlocks.length === 0) return;
+
+            c.isSummarizing = true;
+            const apiConfig = store.apiSettings.sub;
+            if (!apiConfig.url || !apiConfig.key) { 
+                c.isSummarizing = false; 
+                return; 
+            }
+
+            showError('开始自动总结，共需总结 ' + missingBlocks.length + ' 次');
+            let hasError = false;
+
+            for (let i = 0; i < missingBlocks.length; i++) {
+                let blockIndex = missingBlocks[i];
+                let start = (blockIndex - 1) * 10 + 1;
+                let end = blockIndex * 10;
+                
+                const blockMsgs = msgs.filter(function(m) { return m.turn >= start && m.turn <= end; });
+                if (blockMsgs.length === 0) continue;
+
+                let chatText = blockMsgs.map(function(m) { return (m.role === 'user' ? '我' : c.nickname) + ': ' + m.content; }).join('\n');
+                if (chatText.length > 3000) chatText = chatText.slice(-3000);
+
+                let prompt = '请将以下聊天记录总结成一条不超过100字的概括，必须包含时间、地点、人物和发生的事情。直接输出总结内容，不要有多余解释废话。\n聊天记录：\n' + chatText;
+
+                try {
+                    const res = await fetch(apiConfig.url + '/v1/chat/completions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiConfig.key },
+                        body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'user', content: prompt }] })
+                    });
+                    if (!res.ok) {
+                        throw new Error('API异常 ' + res.status);
+                    }
+                    const data = await res.json();
+                    let summary = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
+                    if (summary) {
+                        summary = summary.trim();
+                        let lines = mem ? mem.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; }) : [];
+                        lines.push(blockIndex + '. ' + summary);
+                        lines.sort(function(a, b) {
+                            return (parseInt(a.split('.')[0]) || 0) - (parseInt(b.split('.')[0]) || 0);
+                        });
+                        mem = lines.join('\n');
+                        c.memory = mem;
+                        c.summarizedTurnCount = Math.max(c.summarizedTurnCount || 0, end);
+                    } else {
+                        throw new Error('API返回为空');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showError('总结失败: 第 ' + blockIndex + ' 块报错');
+                    hasError = true;
+                    break;
+                }
+            }
+
+            c.isSummarizing = false;
+            if (!hasError) {
+                showError('总结完成');
+            }
+        };
+
         const sendUserMsg = function () {
             if (!inputText.value.trim()) {
                 return;
@@ -1606,6 +1637,7 @@ window.qqApp = {
             const history = store.qqData.messages[activeChatId.value] || [];
             const lastMsg = history[history.length - 1];
 
+            // 回合推进逻辑：如果前一条是ai或者是空，则User这句算开启新的回合
             if (typeof c.currentTurn === 'undefined') c.currentTurn = 0;
             if (!lastMsg || lastMsg.role === 'ai') {
                 c.currentTurn += 1;
@@ -1651,27 +1683,30 @@ window.qqApp = {
             }) || store.qqData.userCards[0];
 
             let sysPrompt =
-                '你的名字是' + c.name + '，昵称是' + c.nickname + '。你的人设是：' + c.persona + '。\n' +
-                '与你对话的用户名字是' + uCard.name + '，用户的人设是：' + uCard.persona + '。\n' +
+                '你的名字是' + c.name + '，昵称是' + c.nickname + '。你的人设是：' + c.persona + '。\\n' +
+                '与你对话的用户名字是' + uCard.name + '，用户的人设是：' + uCard.persona + '。\\n' +
                 '请完全沉浸在你的人设中进行回复，绝对不要暴露你是AI模型。';
 
+            // 提取记忆区并提示AI
             if (c.memory) {
-                sysPrompt += '\n\n【记忆区(过往聊天总结)】\n' + c.memory + '\n(重要：请结合以上记忆区内容和接下来的最新未总结聊天记录进行连贯回复)';
+                sysPrompt += '\\n\\n【记忆区(过往聊天总结)】\\n' + c.memory + '\\n(重要：请结合以上记忆区内容和接下来的最新未总结聊天记录进行连贯回复)';
             }
 
             if (c.offlineMode) {
-                sysPrompt += '\n【指令】当前已开启线下模式。请进行带有旁白和环境描写的沉浸式角色扮演。回复字数控制在150字到250字之间。';
+                sysPrompt += '\\n【指令】当前已开启线下模式。请进行带有旁白和环境描写的沉浸式角色扮演。回复字数控制在150字到250字之间。';
             } else {
-                sysPrompt += '\n【指令】当前未开启线下模式。请模拟手机在线聊天的场景，采用短句发送，禁止发送大段长文。一次可以回复1到5条消息的量（多条消息用换行符分开）。';
+                sysPrompt += '\\n【指令】当前未开启线下模式。请模拟手机在线聊天的场景，采用短句发送，禁止发送大段长文。一次可以回复1到5条消息的量（多条消息用换行符分开）。';
             }
             
-            sysPrompt += '\n【注意】聊天记录中带有[时间: xx:xx]标识，请你读取并感知时间流逝。但你的回复中【绝对禁止】携带[时间: xx:xx]前缀，直接输出回复即可！';
+            sysPrompt += '\\n【注意】聊天记录中带有[时间: xx:xx]标识，请你读取并感知时间流逝。但你的回复中【绝对禁止】携带[时间: xx:xx]前缀，直接输出回复即可！';
 
             const apiMessages = [{ role: 'system', content: sysPrompt }];
             
+            // AI只会看到尚未被总结的最近聊天记录（过滤出大于 sumCount 的新回合气泡）
             const sumCount = c.summarizedTurnCount || 0;
             const unsummarizedMsgs = history.filter(function (m) { return (m.turn || 0) > sumCount; });
             
+            // 安全限制：就算没被总结，也最多只传最近 40 句，防止上下文撑爆
             unsummarizedMsgs.slice(-40).forEach(function (m) {
                 let text = m.content;
                 if (m.quote) {
@@ -1713,6 +1748,7 @@ window.qqApp = {
 
                 reply = reply.replace(/\[时间:\s*\d{1,2}:\d{1,2}\]\s*/g, '').replace(/【时间:\s*\d{1,2}:\d{1,2}】\s*/g, '').trim();
                 
+                // AI发送气泡与最近的User消息视为同属一个回合
                 if (typeof c.currentTurn === 'undefined') c.currentTurn = 1;
 
                 if (!c.offlineMode && reply.indexOf('\n') !== -1) {
@@ -1747,10 +1783,8 @@ window.qqApp = {
                 showError('AI回复异常: ' + err.message);
             } finally {
                 isTyping.value = false;
-                // 回复结束后触发自动总结检查
-                runSummarizeTasks(c, activeChatId.value, false, c.memory).then(function (newMem) {
-                    c.memory = newMem;
-                });
+                // AI完成一次发话，自动触发一次总结判定
+                checkAndAutoSummarize(c, activeChatId.value);
             }
         };
 
