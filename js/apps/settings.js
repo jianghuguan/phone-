@@ -1,5 +1,5 @@
 /* eslint-disable */
-/* global window, document, FileReader, Blob, URL, Vue */
+/* global window, document, FileReader, Blob, URL, Vue, fetch, alert, prompt */
 'use strict';
 
 window.settingsApp = {
@@ -8,53 +8,51 @@ window.settingsApp = {
             <h2 style="font-weight: 600; margin-bottom: 20px; font-size:24px;">设置</h2>
             
             <div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-                <h3 style="margin-bottom:15px; font-size:16px;">数据管理 (JSON)</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3 style="font-size:16px; margin:0;">数据管理 (JSON)</h3>
+                    <button @click="clearPresets" v-if="store.apiPresets && store.apiPresets.length" style="font-size:12px; padding:4px 8px; background:#ff3b30; color:#fff; border:none; border-radius:4px;">清空 API 预设</button>
+                </div>
                 <div style="display:flex; gap:10px;">
                     <button @click="exportData" class="btn-primary" style="flex:1;">导出备份</button>
-                    <button @click="triggerImport" class="btn-primary" style="flex:1; background:#34c759; color:#fff !important;">导入备份</button>
+                    <button @click="triggerImport" class="btn-primary" style="flex:1; background:#34c759; color:#fff; border-color:#34c759;">导入备份</button>
                 </div>
                 <input type="file" id="importJsonFile" accept=".json" style="display:none" @change="importData" />
             </div>
 
-            <div v-for="api in apiTypes" :key="api.id" style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-                <h3 style="margin-bottom:15px; font-size:16px;">{{ api.name }}</h3>
-                
-                <div style="background: #f9f9f9; padding: 12px; border-radius: 12px; margin-bottom: 15px;">
-                    <div style="font-size: 13px; font-weight: bold; margin-bottom: 10px; color: #444;">API 预设</div>
-                    <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
-                        <select v-model="selectedPresets[api.id]" @change="applyPreset(api.id)" class="settings-input" style="margin-top:0; flex:2;">
-                            <option value="">-- 选择预设 --</option>
-                            <option v-for="(p, index) in store.apiSettings[api.id].presets" :value="index">{{ p.name }}</option>
-                        </select>
-                        <button @click="deletePreset(api.id)" class="btn-danger" style="padding:8px 12px; font-size:12px;">删除</button>
-                    </div>
-                    <div style="display:flex; gap:10px;">
-                        <input v-model="newPresetNames[api.id]" class="settings-input" style="margin-top:0; flex:2;" placeholder="保存当前为新预设名称" />
-                        <button @click="savePreset(api.id)" class="btn-primary" style="padding:8px 12px; font-size:12px; flex:1;">保存预设</button>
-                    </div>
+            <div v-for="api in apiConfigs" :key="api.type" style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+                <h3 style="margin-bottom:15px; font-size:16px; display:flex; justify-content:space-between; align-items:center;">
+                    {{ api.name }}
+                    <button @click="savePreset(api.type)" style="font-size:12px; padding:4px 8px; background:#007aff; color:#fff; border:none; border-radius:4px;">保存为预设</button>
+                </h3>
+
+                <div style="margin-bottom:12px;" v-if="store.apiPresets && store.apiPresets.length > 0">
+                    <select @change="loadPreset(api.type, $event)" class="settings-input" style="margin-top:0;">
+                        <option value="">-- 从全局预设中快速加载 --</option>
+                        <option v-for="(p, i) in store.apiPresets" :value="i" :key="i">{{ p.name }} ({{ p.model }})</option>
+                    </select>
                 </div>
 
                 <div style="margin-bottom:12px;">
                     <label style="font-size:12px; color:#8e8e8e;">接口地址 (URL)</label>
-                    <input v-model="store.apiSettings[api.id].url" class="settings-input" placeholder="https://api.openai.com" />
+                    <input v-model="store.apiSettings[api.type].url" class="settings-input" placeholder="例如: https://api.openai.com" />
                 </div>
                 <div style="margin-bottom:12px;">
                     <label style="font-size:12px; color:#8e8e8e;">密钥 (API Key)</label>
-                    <input v-model="store.apiSettings[api.id].key" class="settings-input" type="password" placeholder="sk-..." />
+                    <input v-model="store.apiSettings[api.type].key" class="settings-input" type="password" placeholder="sk-..." />
                 </div>
                 <div style="margin-bottom:18px;">
-                    <label style="font-size:12px; color:#8e8e8e;">模型选择 (Model)</label>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <input :list="'models_' + api.id" v-model="store.apiSettings[api.id].model" class="settings-input" style="margin-top:0; flex:2;" placeholder="例如: gpt-3.5-turbo" />
-                        <datalist :id="'models_' + api.id">
-                            <option v-for="m in availableModels[api.id]" :value="m"></option>
-                        </datalist>
-                        <button @click="fetchModels(api.id)" class="btn-primary" style="padding:8px; font-size:12px;">拉取模型</button>
-                    </div>
+                    <label style="font-size:12px; color:#8e8e8e; display:flex; justify-content:space-between;">
+                        <span>模型选择 (Model)</span>
+                        <span @click="fetchModels(api.type)" style="color:#007aff; cursor:pointer; font-weight:bold;">一键拉取模型</span>
+                    </label>
+                    <input v-model="store.apiSettings[api.type].model" class="settings-input" :list="'models_' + api.type" placeholder="手动输入或点击拉取模型" />
+                    <datalist :id="'models_' + api.type">
+                        <option v-for="m in fetchedModels[api.type]" :value="m" :key="m"></option>
+                    </datalist>
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <button @click="testApi(api.id)" class="btn-primary" style="flex:1; background:#f0f0f0; color:#333;">测试连接</button>
-                    <button @click="saveMsg" class="btn-primary" style="flex:1; background:#007aff; color:#fff !important;">保存</button>
+                    <button @click="testApi(api.type)" class="btn-primary" style="flex:1; background:#f0f0f0; color:#333;">测试模型</button>
+                    <button @click="saveMsg" class="btn-primary" style="flex:1; background:#007aff; color:#fff; border-color:#007aff;">保存设置</button>
                 </div>
             </div>
         </div>
@@ -62,15 +60,79 @@ window.settingsApp = {
     setup() {
         const store = window.store;
 
-        const apiTypes = [
-            { id: 'main', name: '主 API (供 QQ 角色使用)' },
-            { id: 'sub', name: '副 API (自动总结与朋友圈)' },
-            { id: 'draw', name: '绘图 API (预留绘画接口)' }
+        // 兼容初始化
+        if (!store.apiSettings.draw) store.apiSettings.draw = { url: '', key: '', model: '' };
+        if (!store.apiPresets) store.apiPresets = [];
+
+        const apiConfigs = [
+            { type: 'main', name: '主 API (供 QQ 聊天使用)' },
+            { type: 'sub', name: '副 API (供自动总结/朋友圈)' },
+            { type: 'draw', name: '绘图 API (扩展备用)' }
         ];
 
-        const availableModels = Vue.reactive({ main: [], sub: [], draw: [] });
-        const selectedPresets = Vue.reactive({ main: '', sub: '', draw: '' });
-        const newPresetNames = Vue.reactive({ main: '', sub: '', draw: '' });
+        const fetchedModels = Vue.reactive({
+            main: [], sub: [], draw: []
+        });
+
+        const savePreset = (type) => {
+            const config = store.apiSettings[type];
+            if (!config.url || !config.key) return alert('请先填写完整URL和Key再保存预设');
+            const name = prompt('请输入预设名称：', '预设 ' + (store.apiPresets.length + 1));
+            if (name) {
+                store.apiPresets.push({
+                    name: name,
+                    url: config.url,
+                    key: config.key,
+                    model: config.model
+                });
+                alert('全局 API 预设保存成功！');
+            }
+        };
+
+        const loadPreset = (type, event) => {
+            const idx = event.target.value;
+            if (idx === '') return;
+            const preset = store.apiPresets[idx];
+            if (preset) {
+                store.apiSettings[type].url = preset.url;
+                store.apiSettings[type].key = preset.key;
+                store.apiSettings[type].model = preset.model;
+            }
+            event.target.value = ''; 
+        };
+
+        const clearPresets = () => {
+            if (confirm('确定要清空所有 API 预设吗？')) {
+                store.apiPresets = [];
+            }
+        };
+
+        const fetchModels = async (type) => {
+            const config = store.apiSettings[type];
+            if (!config.url || !config.key) return alert('请先填写URL和Key');
+            try {
+                let baseUrl = config.url;
+                if (baseUrl.endsWith('/v1') || baseUrl.endsWith('/v1/')) {
+                    baseUrl = baseUrl.replace(/\/v1\/?$/, '');
+                }
+                const res = await fetch(baseUrl + '/v1/models', {
+                    headers: { 'Authorization': 'Bearer ' + config.key }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.data && Array.isArray(data.data)) {
+                        fetchedModels[type] = data.data.map(m => m.id);
+                        alert('拉取成功！请在下方输入框的双击下拉菜单中选择。');
+                    } else {
+                        alert('拉取失败，接口返回格式不规范。');
+                    }
+                } else {
+                    alert('拉取失败，状态码: ' + res.status);
+                }
+            } catch (e) {
+                alert('网络请求异常: ' + e.message);
+            }
+        };
 
         const exportData = () => {
             const dataStr = JSON.stringify(store);
@@ -98,48 +160,16 @@ window.settingsApp = {
             reader.readAsText(file);
         };
 
-        const fetchModels = async (type) => {
-            const config = store.apiSettings[type];
-            if (!config.url || !config.key) return alert('请先填写完整的 URL 和 Key');
-            try {
-                const res = await window.fetch(config.url + '/v1/models', {
-                    method: 'GET',
-                    headers: { 'Authorization': 'Bearer ' + config.key }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.data && Array.isArray(data.data)) {
-                        availableModels[type] = data.data.map(m => m.id);
-                        alert(`拉取成功！共获取到 ${availableModels[type].length} 个模型，请在输入框下拉列表中选择。`);
-                    } else {
-                        alert('拉取成功，但未解析到标准格式的模型列表');
-                    }
-                } else {
-                    alert('拉取失败: ' + res.status);
-                }
-            } catch (e) {
-                alert('拉取模型请求异常: ' + e.message);
-            }
-        };
-
         const testApi = async (type) => {
             const config = store.apiSettings[type];
             if (!config.url || !config.key) return alert('请填写完整URL和Key');
-            
             try {
-                if (type === 'draw') {
-                    // 绘画API通用测通方式：探测模型列表
-                    const res = await window.fetch(config.url + '/v1/models', {
-                        method: 'GET',
-                        headers: { 'Authorization': 'Bearer ' + config.key }
-                    });
-                    if (res.ok) alert('测试成功：绘图 API 连通性正常！');
-                    else alert('测试失败: ' + res.status);
-                    return;
+                let checkUrl = config.url;
+                if (!checkUrl.endsWith('/v1/chat/completions') && !checkUrl.endsWith('/chat/completions')) {
+                    checkUrl = checkUrl.replace(/\/$/, '') + '/v1/chat/completions';
                 }
-
-                // 主副API文本测通
-                const res = await window.fetch(config.url + '/v1/chat/completions', {
+                
+                const res = await fetch(checkUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
                     body: JSON.stringify({
@@ -156,68 +186,12 @@ window.settingsApp = {
             } catch(e) { alert('测试异常: ' + e.message); }
         };
 
-        const savePreset = (type) => {
-            const name = newPresetNames[type].trim();
-            if (!name) return alert('请输入新预设的名称');
-            const config = store.apiSettings[type];
-            store.apiSettings[type].presets.push({
-                name,
-                url: config.url,
-                key: config.key,
-                model: config.model
-            });
-            newPresetNames[type] = '';
-            selectedPresets[type] = store.apiSettings[type].presets.length - 1;
-            alert('当前预设已保存');
-        };
-
-        const applyPreset = (type) => {
-            const idx = selectedPresets[type];
-            if (idx === '' || idx === undefined) return;
-            const preset = store.apiSettings[type].presets[idx];
-            if (preset) {
-                store.apiSettings[type].url = preset.url;
-                store.apiSettings[type].key = preset.key;
-                store.apiSettings[type].model = preset.model;
-            }
-        };
-
-        const deletePreset = (type) => {
-            const idx = selectedPresets[type];
-            if (idx === '' || idx === undefined) return alert('请先选择要删除的预设');
-            store.apiSettings[type].presets.splice(idx, 1);
-            selectedPresets[type] = '';
-        };
-
         const saveMsg = () => alert('设置已自动保存！');
 
         return { 
-            store, 
-            apiTypes, 
-            availableModels, 
-            selectedPresets, 
-            newPresetNames,
-            exportData, 
-            triggerImport, 
-            importData, 
-            fetchModels, 
-            testApi, 
-            savePreset,
-            applyPreset,
-            deletePreset,
-            saveMsg 
+            store, apiConfigs, fetchedModels, 
+            savePreset, loadPreset, clearPresets, fetchModels,
+            exportData, triggerImport, importData, testApi, saveMsg 
         };
     }
 };
-
-// 确保全局 API 数据结构完整 (为了向下兼容老存档)
-if (window.store && window.store.apiSettings) {
-    if (!window.store.apiSettings.draw) {
-        window.store.apiSettings.draw = { url: '', key: '', model: '' };
-    }
-    ['main', 'sub', 'draw'].forEach(type => {
-        if (!window.store.apiSettings[type].presets) {
-            window.store.apiSettings[type].presets = [];
-        }
-    });
-}
