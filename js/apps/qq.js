@@ -1,6 +1,6 @@
 /* eslint-disable */
 /* eslint-env browser, es2021 */
-/* global Vue, window, document, FileReader, Image, fetch */
+/* global Vue, window, document, FileReader, Image, fetch, console */
 'use strict';
 
 window.qqApp = {
@@ -302,8 +302,8 @@ window.qqApp = {
                             </div>
                         </div>
 
-                        <input type="file" accept="image/*" id="qq_bg" style="display:none;" @change="handleImgUpload($event, 'bgImage')">
-                        <input type="file" accept="image/*" id="qq_avatar" style="display:none;" @change="handleImgUpload($event, 'avatar')">
+                        <input type="file" accept="image/*" id="qq_bg" style="display:none;" @change="handleImgUpload($event, 'bgImage')" />
+                        <input type="file" accept="image/*" id="qq_avatar" style="display:none;" @change="handleImgUpload($event, 'avatar')" />
                     </div>
                 </div>
 
@@ -340,8 +340,8 @@ window.qqApp = {
                     <h3 style="margin-bottom:18px; text-align:center; font-size:16px;">{{ modal.title }}</h3>
 
                     <template v-if="modal.type === 'char'">
-                        <input v-model="tempData.name" placeholder="真实姓名 (必填)">
-                        <input v-model="tempData.nickname" placeholder="昵称">
+                        <input v-model="tempData.name" placeholder="真实姓名 (必填)" />
+                        <input v-model="tempData.nickname" placeholder="昵称" />
                         <textarea v-model="tempData.persona" placeholder="详细人设描述" rows="3"></textarea>
                     </template>
 
@@ -367,13 +367,13 @@ window.qqApp = {
                                     accept="image/*"
                                     style="display:none;"
                                     @change="handleImgUpload($event, 'chat_temp_avatar')"
-                                >
+                                />
                             </div>
                             <button @click="deleteChat" style="font-size:12px; padding:6px 12px;">删除该联系人</button>
                         </div>
 
-                        <input v-model="tempData.name" placeholder="Char 姓名">
-                        <input v-model="tempData.nickname" placeholder="Char 昵称">
+                        <input v-model="tempData.name" placeholder="Char 姓名" />
+                        <input v-model="tempData.nickname" placeholder="Char 昵称" />
                         <textarea v-model="tempData.persona" rows="3" placeholder="Char 人设"></textarea>
 
                         <label style="font-size:13px; color:#666;">选择你的身份 (名片)</label>
@@ -383,12 +383,12 @@ window.qqApp = {
 
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:5px;">
                             <span style="font-size:14px; font-weight:bold;">线下沉浸模式</span>
-                            <input type="checkbox" v-model="tempData.offlineMode" style="width:20px; height:20px; margin:0; border:none;">
+                            <input type="checkbox" v-model="tempData.offlineMode" style="width:20px; height:20px; margin:0; border:none;" />
                         </div>
 
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
                             <span style="font-size:14px; font-weight:bold;">时间感知模式 (真实时间)</span>
-                            <input type="checkbox" v-model="tempData.timeSenseMode" style="width:20px; height:20px; margin:0; border:none;">
+                            <input type="checkbox" v-model="tempData.timeSenseMode" style="width:20px; height:20px; margin:0; border:none;" />
                         </div>
 
                         <div v-if="!tempData.timeSenseMode" style="margin-top:10px; margin-bottom:15px;">
@@ -398,7 +398,7 @@ window.qqApp = {
                                 :disabled="currentContact.timeLocked"
                                 placeholder="如 10:13，发送后锁定"
                                 style="margin-bottom:0;"
-                            >
+                            />
                         </div>
                     </template>
 
@@ -416,7 +416,7 @@ window.qqApp = {
                                     accept="image/*"
                                     style="display:none;"
                                     @change="handleImgUpload($event, 'uc_avatar_temp')"
-                                >
+                                />
                             </div>
                             <button
                                 v-if="tempData.id && tempData.id !== 'uc_default'"
@@ -427,12 +427,12 @@ window.qqApp = {
                             </button>
                         </div>
 
-                        <input v-model="tempData.name" placeholder="名片姓名 (必填)">
+                        <input v-model="tempData.name" placeholder="名片姓名 (必填)" />
                         <textarea v-model="tempData.persona" placeholder="你的具体人设与设定" rows="4"></textarea>
                     </template>
 
                     <template v-if="modal.type === 'profile'">
-                        <input v-model="tempData.nickname" placeholder="昵称">
+                        <input v-model="tempData.nickname" placeholder="昵称" />
                         <textarea v-model="tempData.signature" placeholder="个性签名" rows="2"></textarea>
                     </template>
 
@@ -1081,11 +1081,11 @@ window.qqApp = {
             modal.show = false;
             
             if (targetCharId) {
-                triggerMomentReply(m, targetCharId, text);
+                triggerMomentReply(m, targetCharId);
             }
         };
 
-        const triggerMomentReply = async function(moment, charId, userText) {
+        const triggerMomentReply = async function(moment, charId) {
             const c = store.qqData.contacts.find(function(x) { return x.id === charId; });
             if (!c) return;
             
@@ -1136,7 +1136,9 @@ window.qqApp = {
                         });
                     }
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error(e);
+            }
         };
 
         const refreshMoments = async function () {
@@ -1223,7 +1225,9 @@ window.qqApp = {
                             });
                         }
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.error(e);
+                }
             });
 
             await Promise.all(promises);
