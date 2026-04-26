@@ -164,11 +164,11 @@ window.qqApp = {
                     </div>
                 </div>
 
-                <div v-show="currentTab === 'moments'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;" @click="showMomentsMenu = false">
+                <div v-show="currentTab === 'moments'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;" @click="showMomentsMenu = false; activeMomentAction = null">
                     <div class="qq-header">
                         <span style="font-size:20px; font-weight:bold;">朋友圈</span>
                         <div style="position:relative;">
-                            <span @click.stop="showMomentsMenu = !showMomentsMenu" style="font-size:26px; font-weight:300; cursor:pointer; padding: 0 10px;">+</span>
+                            <span @click.stop="showMomentsMenu = !showMomentsMenu; activeMomentAction = null;" style="font-size:26px; font-weight:300; cursor:pointer; padding: 0 10px;">+</span>
                             <div v-if="showMomentsMenu" class="moments-menu" @click.stop>
                                 <div @click="openPublishMoment">发布朋友圈</div>
                                 <div @click="refreshMoments">刷新动态</div>
@@ -200,15 +200,30 @@ window.qqApp = {
                             <div class="moment-main">
                                 <div class="moment-name">{{ store.qqData.profile.nickname }}</div>
                                 <div class="moment-content">{{ m.content }}</div>
-                                <div class="moment-time">{{ formatTime(m.timestamp) }}</div>
+                                
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; position:relative;">
+                                    <div class="moment-time">{{ formatTime(m.timestamp) }}</div>
+                                    <div style="background:#f1f1f1; border-radius:4px; padding:0 8px; color:#555; font-weight:bold; letter-spacing:2px; font-size:16px; cursor:pointer; line-height:20px; height:20px; display:flex; align-items:center;" @click.stop="toggleMomentAction(m.id)">..</div>
+                                    
+                                    <div v-if="activeMomentAction === m.id" class="moment-action-menu" @click.stop>
+                                        <span @click="toggleLike(m)">{{ hasLiked(m) ? '取消' : '赞' }}</span>
+                                        <span @click="openCommentModal(m)">评论</span>
+                                        <span @click="deleteMoment(m.id)">删除</span>
+                                    </div>
+                                </div>
+
                                 <div class="moment-interactions" v-if="(m.likes && m.likes.length) || (m.comments && m.comments.length)">
                                     <div class="moment-likes" :class="{'has-border': m.comments && m.comments.length}" v-if="m.likes && m.likes.length">
-                                        <span style="color:#576b95; font-size:12px;">❤</span> {{ m.likes.map(id => getCharName(id)).join(', ') }}
+                                        <span style="color:#576b95; font-size:12px;">❤</span> {{ renderLikes(m) }}
                                     </div>
                                     <div class="moment-comments" v-if="m.comments && m.comments.length">
-                                        <div v-for="(cmt, idx) in m.comments" :key="idx">
-                                            <span style="color:#576b95; font-weight:600;">{{ getCharName(cmt.charId) }}:</span>
-                                            <span>{{ cmt.content }}</span>
+                                        <div v-for="(cmt, idx) in m.comments" :key="idx" @click.stop="openReplyModal(m, cmt)">
+                                            <span style="color:#576b95; font-weight:600;">{{ cmt.isUser ? store.qqData.profile.nickname : getCharName(cmt.charId) }}</span>
+                                            <template v-if="cmt.replyToName">
+                                                <span style="margin:0 2px;">回复</span>
+                                                <span style="color:#576b95; font-weight:600;">{{ cmt.replyToName }}</span>
+                                            </template>
+                                            <span>: {{ cmt.content }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -333,6 +348,10 @@ window.qqApp = {
                     <template v-if="modal.type === 'publish_moment'">
                         <textarea v-model="tempData.momentContent" placeholder="这一刻的想法..." rows="4"></textarea>
                     </template>
+                    
+                    <template v-if="modal.type === 'moment_comment'">
+                        <textarea v-model="tempData.content" placeholder="输入评论内容..." rows="4"></textarea>
+                    </template>
 
                     <template v-if="modal.type === 'chat_settings'">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -447,6 +466,7 @@ window.qqApp = {
 
         const showMomentsMenu = Vue.ref(false);
         const isRefreshingMoments = Vue.ref(false);
+        const activeMomentAction = Vue.ref(null);
 
         if (!store.qqData.moments) {
             store.qqData.moments = [];
@@ -458,7 +478,6 @@ window.qqApp = {
             });
         });
 
-        // 取出当前聊天对应的名片信息，用于渲染头像
         const currentUserCard = Vue.computed(function () {
             const c = currentContact.value;
             if (!c) {
@@ -522,17 +541,24 @@ window.qqApp = {
         };
 
         const showTime = function (msg, index) {
-            if (!msg.timestamp) {
+            const c = currentContact.value;
+            if (!c) return false;
+            
+            // 虚拟模式（关闭时间感知模式时），不要出现真实日期时间
+            if (!c.timeSenseMode) {
                 return false;
             }
-            if (index === 0) {
-                return true;
-            }
+
+            if (!msg.timestamp) return false;
+            if (index === 0) return true;
+
             const prev = currentMessages.value[index - 1];
-            if (!prev || !prev.timestamp) {
-                return true;
-            }
-            return (msg.timestamp - prev.timestamp) > 5 * 60 * 1000;
+            if (!prev || !prev.timestamp) return true;
+
+            // 真实时间感知模式时，每天只出现一次
+            const d1 = new Date(msg.timestamp);
+            const d2 = new Date(prev.timestamp);
+            return d1.toDateString() !== d2.toDateString();
         };
 
         let touchStartX = 0;
@@ -965,9 +991,157 @@ window.qqApp = {
             };
             modal.show = true;
         };
+        
+        const toggleMomentAction = function(id) {
+            if (activeMomentAction.value === id) {
+                activeMomentAction.value = null;
+            } else {
+                activeMomentAction.value = id;
+            }
+        };
+
+        const hasLiked = function(m) {
+            return m.likes && m.likes.indexOf('user') !== -1;
+        };
+
+        const toggleLike = function(m) {
+            if (!m.likes) m.likes = [];
+            const idx = m.likes.indexOf('user');
+            if (idx !== -1) {
+                m.likes.splice(idx, 1);
+            } else {
+                m.likes.push('user');
+            }
+            activeMomentAction.value = null;
+        };
+
+        const renderLikes = function(m) {
+            if (!m.likes || !m.likes.length) return '';
+            return m.likes.map(function(id) {
+                return id === 'user' ? store.qqData.profile.nickname : getCharName(id);
+            }).join(', ');
+        };
+
+        const deleteMoment = function(id) {
+            store.qqData.moments = store.qqData.moments.filter(function(m) {
+                return m.id !== id;
+            });
+            activeMomentAction.value = null;
+        };
+
+        const openCommentModal = function(m) {
+            activeMomentAction.value = null;
+            modal.title = '评论朋友圈';
+            modal.type = 'moment_comment';
+            tempData.momentId = m.id;
+            tempData.replyToCharId = null;
+            tempData.replyToName = null;
+            tempData.content = '';
+
+            modal.confirm = confirmComment;
+            modal.show = true;
+        };
+
+        const openReplyModal = function(m, cmt) {
+            if (cmt.isUser) return; // 不能自己回复自己的评论
+            activeMomentAction.value = null;
+            modal.title = '回复 ' + getCharName(cmt.charId);
+            modal.type = 'moment_comment';
+            tempData.momentId = m.id;
+            tempData.replyToCharId = cmt.charId;
+            tempData.replyToName = getCharName(cmt.charId);
+            tempData.content = '';
+
+            modal.confirm = confirmComment;
+            modal.show = true;
+        };
+
+        const confirmComment = function() {
+            if (!tempData.content.trim()) {
+                return showError('内容不能为空');
+            }
+            
+            const m = store.qqData.moments.find(function(x) { return x.id === tempData.momentId; });
+            if (!m) {
+                modal.show = false;
+                return;
+            }
+            
+            if (!m.comments) m.comments = [];
+            
+            m.comments.push({
+                isUser: true,
+                content: tempData.content,
+                replyToCharId: tempData.replyToCharId,
+                replyToName: tempData.replyToName
+            });
+            
+            const text = tempData.content;
+            const targetCharId = tempData.replyToCharId;
+            modal.show = false;
+            
+            if (targetCharId) {
+                triggerMomentReply(m, targetCharId, text);
+            }
+        };
+
+        const triggerMomentReply = async function(moment, charId, userText) {
+            const c = store.qqData.contacts.find(function(x) { return x.id === charId; });
+            if (!c) return;
+            
+            const apiConfig = store.apiSettings.sub;
+            if (!apiConfig.url || !apiConfig.key) return showError('请先在设置App中配置副API');
+            
+            const uCard = store.qqData.userCards.find(function (card) {
+                return card.id === (c.userCardId || store.qqData.userCards[0].id);
+            }) || store.qqData.userCards[0];
+            
+            let historyStr = '';
+            moment.comments.forEach(function(cmt) {
+                if (!cmt.isUser && cmt.charId === charId) {
+                    historyStr += c.nickname + '评论道：' + cmt.content + '\\n';
+                } else if (cmt.isUser && cmt.replyToCharId === charId) {
+                    historyStr += uCard.name + '回复' + c.nickname + '：' + cmt.content + '\\n';
+                }
+            });
+
+            const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。\\n你的朋友' + uCard.name + '在 ' + formatTime(moment.timestamp) + ' 发了一条朋友圈：“' + moment.content + '”。\\n你们在评论区有如下互动：\\n' + historyStr + '\\n请根据最新回复情况，给出你顺承的二次回复（字数不超过30字，口语化，直接输出内容）。如果不打算再回复请直接输出“无”。';
+
+            try {
+                const res = await fetch(apiConfig.url + '/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiConfig.key
+                    },
+                    body: JSON.stringify({
+                        model: apiConfig.model,
+                        messages: [{ role: 'user', content: prompt }]
+                    })
+                });
+
+                if (!res.ok) return;
+
+                const data = await res.json();
+                let reply = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
+                if (reply) {
+                    reply = reply.trim().replace(/^["']|["']$/g, '');
+                    if (reply && reply !== '无' && reply.toLowerCase() !== 'none') {
+                        moment.comments.push({
+                            isUser: false,
+                            charId: c.id,
+                            content: reply,
+                            replyToCharId: null,
+                            replyToName: uCard.name
+                        });
+                    }
+                }
+            } catch (e) {}
+        };
 
         const refreshMoments = async function () {
             showMomentsMenu.value = false;
+            activeMomentAction.value = null;
             if (isRefreshingMoments.value) {
                 return;
             }
@@ -1018,7 +1192,7 @@ window.qqApp = {
                     return card.id === (c.userCardId || store.qqData.userCards[0].id);
                 }) || store.qqData.userCards[0];
 
-                const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。你的朋友' + uCard.name + '发了一条朋友圈：“' + latestMoment.content + '”。请根据你的人设，给这条朋友圈写一条简短的评论（不要超过30字，口语化，直接输出评论内容。如果不想评论请直接输出“无”）。';
+                const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。你的朋友' + uCard.name + '在 ' + formatTime(latestMoment.timestamp) + ' 发了一条朋友圈：“' + latestMoment.content + '”。请根据你的人设，给这条朋友圈写一条简短的评论（不要超过30字，口语化，直接输出评论内容。如果不想评论请直接输出“无”）。';
 
                 try {
                     const res = await fetch(apiConfig.url + '/v1/chat/completions', {
@@ -1038,15 +1212,18 @@ window.qqApp = {
                     const data = await res.json();
                     let reply = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
                     if (reply) {
-                        // 移除前后的引号
                         reply = reply.trim().replace(/^["']|["']$/g, '');
                         if (reply && reply !== '无' && reply.toLowerCase() !== 'none') {
-                            latestMoment.comments.push({ charId: c.id, content: reply });
+                            latestMoment.comments.push({ 
+                                isUser: false,
+                                charId: c.id, 
+                                content: reply,
+                                replyToCharId: null,
+                                replyToName: null
+                            });
                         }
                     }
-                } catch (e) {
-                    // 出错忽略，不阻塞其他请求
-                }
+                } catch (e) {}
             });
 
             await Promise.all(promises);
@@ -1240,14 +1417,17 @@ window.qqApp = {
             } else {
                 sysPrompt += '\\n【重要指令】当前未开启线下模式。请模拟手机在线聊天的场景，必须采用短句发送，禁止发送大段长文。一次可以回复1到5条消息的量（如果是多条消息，请用换行符分开）。';
             }
+            
+            // 提醒 AI 读取时间戳
+            sysPrompt += '\\n【注意】每条消息前方带有[时间: xx:xx]标识，请你读取并根据时间流逝的合理性进行回复与剧情推进。';
 
             const apiMessages = [{ role: 'system', content: sysPrompt }];
             history.slice(-15).forEach(function (m) {
-                // 如果是回复消息，加上提示前缀让 AI 知道具体回复了哪条
                 let text = m.content;
                 if (m.quote) {
                     text = '[回复前文: ' + m.quote + ']\n' + text;
                 }
+                text = '[时间: ' + m.timeStr + '] ' + text;
                 apiMessages.push({
                     role: m.role === 'ai' ? 'assistant' : 'user',
                     content: text
@@ -1391,7 +1571,15 @@ window.qqApp = {
             isRefreshingMoments: isRefreshingMoments,
             openPublishMoment: openPublishMoment,
             refreshMoments: refreshMoments,
-            getCharName: getCharName
+            getCharName: getCharName,
+            activeMomentAction: activeMomentAction,
+            toggleMomentAction: toggleMomentAction,
+            hasLiked: hasLiked,
+            toggleLike: toggleLike,
+            renderLikes: renderLikes,
+            deleteMoment: deleteMoment,
+            openCommentModal: openCommentModal,
+            openReplyModal: openReplyModal
         };
     }
 };
