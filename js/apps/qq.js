@@ -1418,8 +1418,8 @@ window.qqApp = {
                 sysPrompt += '\\n【重要指令】当前未开启线下模式。请模拟手机在线聊天的场景，必须采用短句发送，禁止发送大段长文。一次可以回复1到5条消息的量（如果是多条消息，请用换行符分开）。';
             }
             
-            // 提醒 AI 读取时间戳
-            sysPrompt += '\\n【注意】每条消息前方带有[时间: xx:xx]标识，请你读取并根据时间流逝的合理性进行回复与剧情推进。';
+            // 提醒 AI 读取时间戳，并严禁它自己输出时间戳
+            sysPrompt += '\\n【注意】聊天记录中带有[时间: xx:xx]标识，请你读取并感知时间流逝。但是你自己的回复中【绝对禁止】携带[时间: xx:xx]前缀，直接输出回复内容即可！';
 
             const apiMessages = [{ role: 'system', content: sysPrompt }];
             history.slice(-15).forEach(function (m) {
@@ -1455,11 +1455,14 @@ window.qqApp = {
                 }
 
                 const data = await res.json();
-                const reply = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
+                let reply = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
 
                 if (!reply || !reply.trim()) {
                     throw new Error('AI返回了空消息');
                 }
+
+                // 强制过滤掉AI可能错误生成的时间戳前缀 (例如 [时间: 19:05])
+                reply = reply.replace(/\[时间:\s*\d{1,2}:\d{1,2}\]\s*/g, '').replace(/【时间:\s*\d{1,2}:\d{1,2}】\s*/g, '').trim();
 
                 if (!c.offlineMode && reply.indexOf('\n') !== -1) {
                     const lines = reply.split('\n').filter(function (l) {
