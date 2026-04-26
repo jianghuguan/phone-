@@ -1,5 +1,6 @@
 /* eslint-disable */
-/* global Vue, document, FileReader, Image */
+/* eslint-env browser, es2021 */
+/* global Vue, window, document, FileReader, Image */
 'use strict';
 
 window.themeApp = {
@@ -41,7 +42,7 @@ window.themeApp = {
                     rows="5" 
                     class="settings-input" 
                     style="font-family: monospace; font-size: 12px;" 
-                    placeholder="例如：\n.qq-msg-bubble { border-radius: 0 !important; }\n.qq-msg-row.user .qq-msg-bubble { background: #ff9900 !important; }">
+                    placeholder=".qq-msg-bubble { border-radius: 0 !important; }">
                 </textarea>
                 <p style="font-size:11px; color:#888; margin-top:6px;">将全局应用于所有 QQ 聊天气泡</p>
             </div>
@@ -90,7 +91,6 @@ window.themeApp = {
     setup() {
         const store = window.store;
 
-        // 初始化 QQ美化主题数据
         if (!store.qqData.theme) {
             store.qqData.theme = { msgListBg: null, chatBg: null, bubbleCss: '' };
         }
@@ -168,7 +168,9 @@ window.themeApp = {
                     ctx.clearRect(0, 0, 160, 160);
                     ctx.drawImage(img, 0, 0, 160, 160);
 
-                    const targetApp = store.desktopItems.find(item => item.id === id);
+                    const targetApp = store.desktopItems.find(function (item) {
+                        return item.id === id;
+                    });
                     if (targetApp) {
                         targetApp.iconImage = canvas.toDataURL('image/png');
                         targetApp.color = 'transparent';
