@@ -1,6 +1,6 @@
 /* eslint-disable */
 /* eslint-env browser, es2021 */
-/* global window, document, FileReader, Blob, URL, fetch, prompt, alert, confirm */
+/* global window, document, FileReader, Blob, URL, fetch */
 'use strict';
 
 window.settingsApp = {
@@ -69,7 +69,7 @@ window.settingsApp = {
             </div>
         </div>
     `,
-    setup() {
+    setup: function () {
         const store = window.store;
 
         if (!store.apiSettings.draw) {
@@ -82,36 +82,49 @@ window.settingsApp = {
             store.fetchedModels = [];
         }
 
-        const exportData = () => {
+        const exportData = function () {
             const dataStr = JSON.stringify(store);
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = 'myPhoneData.json';
-            a.click(); URL.revokeObjectURL(url);
+            a.href = url;
+            a.download = 'myPhoneData.json';
+            a.click();
+            URL.revokeObjectURL(url);
         };
 
-        const triggerImport = () => document.getElementById('importJsonFile').click();
+        const triggerImport = function () {
+            const el = document.getElementById('importJsonFile');
+            if (el) {
+                el.click();
+            }
+        };
 
-        const importData = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        const importData = function (e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) {
+                return;
+            }
             const reader = new FileReader();
-            reader.onload = (event) => {
+            reader.onload = function (event) {
                 try {
                     const data = JSON.parse(event.target.result);
                     Object.assign(store, data);
-                    alert('导入成功！');
-                } catch(err) { alert('JSON 格式错误，导入失败！'); }
+                    window.alert('导入成功！');
+                } catch (err) {
+                    window.alert('JSON 格式错误，导入失败！');
+                }
                 e.target.value = '';
             };
             reader.readAsText(file);
         };
 
-        const savePreset = (type) => {
+        const savePreset = function (type) {
             const config = store.apiSettings[type];
-            if (!config.url || !config.key) return alert('URL和Key不能为空，无法保存！');
-            const name = prompt('请输入预设名称：');
+            if (!config.url || !config.key) {
+                return window.alert('URL和Key不能为空，无法保存！');
+            }
+            const name = window.prompt('请输入预设名称：');
             if (name) {
                 store.apiPresets.push({
                     id: 'preset_' + Date.now(),
@@ -120,14 +133,18 @@ window.settingsApp = {
                     key: config.key,
                     model: config.model
                 });
-                alert('预设保存成功！可在任一 API 下拉框中直接选用。');
+                window.alert('预设保存成功！可在任一 API 下拉框中直接选用。');
             }
         };
 
-        const loadPreset = (type, event) => {
+        const loadPreset = function (type, event) {
             const presetId = event.target.value;
-            if (!presetId) return;
-            const preset = store.apiPresets.find(p => p.id === presetId);
+            if (!presetId) {
+                return;
+            }
+            const preset = store.apiPresets.find(function (p) {
+                return p.id === presetId;
+            });
             if (preset) {
                 store.apiSettings[type].url = preset.url;
                 store.apiSettings[type].key = preset.key;
@@ -136,61 +153,86 @@ window.settingsApp = {
             event.target.value = ''; 
         };
 
-        const clearPresets = () => {
-            if (confirm('确认删除所有保存的 API 预设吗？')) {
+        const clearPresets = function () {
+            if (window.confirm('确认删除所有保存的 API 预设吗？')) {
                 store.apiPresets = [];
             }
         };
 
-        const fetchModels = async (type) => {
+        const fetchModels = async function (type) {
             const config = store.apiSettings[type];
-            if (!config.url || !config.key) return alert('请先填写完整的URL和Key！');
+            if (!config.url || !config.key) {
+                return window.alert('请先填写完整的URL和Key！');
+            }
             try {
-                let baseUrl = config.url.replace(/\/v1\/?$/, ''); 
+                const baseUrl = config.url.replace(/\/v1\/?$/, ''); 
                 const res = await fetch(baseUrl + '/v1/models', {
                     method: 'GET',
-                    headers: { 'Authorization': `Bearer ${config.key}` }
+                    headers: { 'Authorization': 'Bearer ' + config.key }
                 });
                 if (res.ok) {
                     const json = await res.json();
                     if (json && json.data && Array.isArray(json.data)) {
-                        store.fetchedModels = json.data.map(m => m.id);
-                        alert('拉取模型成功！请在下拉框中选择。');
+                        store.fetchedModels = json.data.map(function (m) {
+                            return m.id;
+                        });
+                        window.alert('拉取模型成功！请在下拉框中选择。');
                     } else {
                         throw new Error('未识别的模型列表格式');
                     }
                 } else {
                     throw new Error('服务器拒绝请求 ' + res.status);
                 }
-            } catch(e) {
-                alert('拉取异常: ' + e.message);
+            } catch (e) {
+                window.alert('拉取异常: ' + e.message);
             }
         };
 
-        const testApi = async (type) => {
+        const testApi = async function (type) {
             const config = store.apiSettings[type];
-            if (!config.url || !config.key) return alert('请填写完整URL和Key');
+            if (!config.url || !config.key) {
+                return window.alert('请填写完整URL和Key');
+            }
             try {
-                let baseUrl = config.url.replace(/\/v1\/?$/, '');
+                const baseUrl = config.url.replace(/\/v1\/?$/, '');
                 const res = await fetch(baseUrl + '/v1/chat/completions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + config.key
+                    },
                     body: JSON.stringify({
                         model: config.model || 'gpt-3.5-turbo',
                         messages: [{ role: 'user', content: 'hello' }],
                         max_tokens: 5
                     })
                 });
-                if (res.ok) alert('测试成功：API连接与模型响应正常！');
-                else {
+                if (res.ok) {
+                    window.alert('测试成功：API连接与模型响应正常！');
+                } else {
                     const errText = await res.text();
-                    alert('测试失败: ' + res.status + ' - ' + errText.slice(0,60));
+                    window.alert('测试失败: ' + res.status + ' - ' + errText.slice(0, 60));
                 }
-            } catch(e) { alert('测试异常: ' + e.message); }
+            } catch (e) {
+                window.alert('测试异常: ' + e.message);
+            }
         };
 
-        const saveMsg = () => alert('设置已自动保存！');
+        const saveMsg = function () {
+            window.alert('设置已自动保存！');
+        };
 
-        return { store, exportData, triggerImport, importData, testApi, saveMsg, savePreset, loadPreset, fetchModels, clearPresets };
+        return {
+            store: store,
+            exportData: exportData,
+            triggerImport: triggerImport,
+            importData: importData,
+            testApi: testApi,
+            saveMsg: saveMsg,
+            savePreset: savePreset,
+            loadPreset: loadPreset,
+            fetchModels: fetchModels,
+            clearPresets: clearPresets
+        };
     }
 };
