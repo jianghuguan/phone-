@@ -283,7 +283,7 @@ button:active,
     background: #fff;
 }
 
-/* QQ App */
+/* ====== QQ App ====== */
 .qq-container {
     height: calc(100% - 25px);
     display: flex;
@@ -423,7 +423,7 @@ button:active,
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    max-width: 90%; /* 气泡变宽 */
+    max-width: 90% !important; /* 气泡变宽 */
 }
 
 .qq-msg-row.user {
@@ -773,7 +773,32 @@ button:active,
 .moment-time {
     font-size: 12px;
     color: #999;
-    margin-bottom: 8px;
+}
+
+/* 朋友圈右下角操作菜单 */
+.moment-action-menu {
+    position: absolute;
+    right: 35px;
+    top: -10px;
+    background: #4c4c4c;
+    color: #fff;
+    border-radius: 6px;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 100;
+}
+
+.moment-action-menu span {
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-right: 1px solid #5c5c5c;
+    white-space: nowrap;
+}
+
+.moment-action-menu span:last-child {
+    border-right: none;
 }
 
 .moment-interactions {
@@ -802,6 +827,7 @@ button:active,
 .moment-comments div {
     margin-bottom: 4px;
     word-break: break-word;
+    cursor: pointer;
 }
 
 .moment-comments div:last-child {
