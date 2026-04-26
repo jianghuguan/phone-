@@ -336,7 +336,7 @@ window.qqApp = {
             </div>
 
             <div class="qq-modal-overlay" v-if="modal.show">
-                <div class="qq-modal">
+                <div class="qq-modal" style="max-height:85vh; overflow-y:auto;">
                     <h3 style="margin-bottom:18px; text-align:center; font-size:16px;">{{ modal.title }}</h3>
 
                     <template v-if="modal.type === 'char'">
@@ -392,13 +392,27 @@ window.qqApp = {
                         </div>
 
                         <div v-if="!tempData.timeSenseMode" style="margin-top:10px; margin-bottom:15px;">
-                            <label style="font-size:13px; color:#666;">虚拟时间初始值 (只读/初始设定)</label>
+                            <label style="font-size:13px; color:#666;">虚拟时间初始值</label>
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+                                <input
+                                    v-model="tempData.virtualTimeStr"
+                                    :disabled="currentContact.timeLocked"
+                                    placeholder="如 10:13，发送后锁定"
+                                    style="margin-bottom:0; flex:1;"
+                                />
+                                <button v-if="currentContact.timeLocked" @click="tempData.showTimeOverride = !tempData.showTimeOverride" style="font-size:12px; padding:6px 12px; margin:0; white-space:nowrap;">修改时间</button>
+                            </div>
                             <input
-                                v-model="tempData.virtualTimeStr"
-                                :disabled="currentContact.timeLocked"
-                                placeholder="如 10:13，发送后锁定"
-                                style="margin-bottom:0;"
+                                v-if="tempData.showTimeOverride"
+                                v-model="tempData.tempTimeOverride"
+                                placeholder="在此输入新时间(如 14:00)，下回合生效"
+                                style="margin-bottom:0; background:#fffbdd; border:1px solid #ffd000; color:#333;"
                             />
+                        </div>
+
+                        <div style="margin-top:10px; margin-bottom:15px;">
+                            <label style="font-size:13px; color:#666; font-weight:bold;">记忆区 (自动总结，可随意修改)</label>
+                            <textarea v-model="tempData.memory" rows="4" placeholder="每满10回合的聊天记录，会自动被抽取提炼成时间、地点、人物及事件总结，存储在这里供AI长久记忆..."></textarea>
                         </div>
                     </template>
 
@@ -449,7 +463,6 @@ window.qqApp = {
         const currentTab = Vue.ref('messages');
         const activeChatId = Vue.ref(null);
         
-        // 核心性能修复：限制默认只渲染最后 40 条数据，彻底消灭几千条DOM导致的卡顿
         const displayCount = Vue.ref(40); 
 
         const modal = Vue.reactive({ show: false, type: '', title: '', confirm: null });
@@ -501,14 +514,12 @@ window.qqApp = {
                 String(d.getMinutes()).padStart(2, '0');
         };
 
-        // 核心优化：懒加载/虚拟分页。切断整个历史记录与渲染之间的联系
         const enhancedMessages = Vue.computed(function () {
             const msgs = store.qqData.messages[activeChatId.value] || [];
             const c = currentContact.value;
             if (!c) return [];
             
             const isTimeSenseMode = c.timeSenseMode;
-            // 截取最后 N 条记录进行渲染，保护内存
             const startIndex = Math.max(0, msgs.length - displayCount.value);
             const result = [];
             
@@ -525,7 +536,6 @@ window.qqApp = {
                         if (!prev || !prev.timestamp) {
                             showTimeFlag = true;
                         } else {
-                            // 极速时间比对，不再创建额外的时间格式化字符串
                             const d1 = new Date(msg.timestamp);
                             const d2 = new Date(prev.timestamp);
                             if (d1.getFullYear() !== d2.getFullYear() || 
@@ -543,7 +553,7 @@ window.qqApp = {
 
                 result.push({
                     msg: msg,
-                    index: i, // 必须保留原始记录在完整数组里的真实索引
+                    index: i, 
                     showTimeFlag: showTimeFlag,
                     dateStr: dateStr
                 });
@@ -551,24 +561,19 @@ window.qqApp = {
             return result;
         });
 
-        // 向上滑动时，自动加载更早的聊天记录
         let isLoadingMore = false;
         const onChatScroll = function (e) {
             if (!e || !e.target || isLoadingMore) return;
             
-            // 当滑动到顶部（距离顶部小于 100px）时
             if (e.target.scrollTop < 100) {
                 const msgs = store.qqData.messages[activeChatId.value] || [];
                 if (displayCount.value < msgs.length) {
                     isLoadingMore = true;
-                    // 记录更新前的内容高度和滚动位置
                     const oldScrollHeight = e.target.scrollHeight;
                     const oldScrollTop = e.target.scrollTop;
                     
-                    // 每次多渲染 40 条
                     displayCount.value += 40;
 
-                    // 页面重绘后，重置滚动条位置，防止画面突然闪回顶部
                     Vue.nextTick(function () {
                         const newScrollHeight = e.target.scrollHeight;
                         e.target.scrollTop = newScrollHeight - oldScrollHeight + oldScrollTop;
@@ -726,6 +731,8 @@ window.qqApp = {
                     userCardId: store.qqData.userCards[0].id,
                     timeSenseMode: false,
                     virtualTimeStr: '',
+                    tempTimeOverride: '',
+                    memory: '',
                     timeLocked: false
                 });
                 store.qqData.messages[id] = [];
@@ -821,7 +828,10 @@ window.qqApp = {
                 userCardId: c.userCardId || store.qqData.userCards[0].id,
                 offlineMode: c.offlineMode || false,
                 timeSenseMode: c.timeSenseMode || false,
-                virtualTimeStr: c.virtualTimeStr || ''
+                virtualTimeStr: c.virtualTimeStr || '',
+                tempTimeOverride: c.tempTimeOverride || '',
+                showTimeOverride: false,
+                memory: c.memory || ''
             });
 
             modal.confirm = function () {
@@ -834,6 +844,8 @@ window.qqApp = {
                 c.offlineMode = tempData.offlineMode;
                 c.avatar = tempData.avatar;
                 c.timeSenseMode = tempData.timeSenseMode;
+                c.tempTimeOverride = tempData.tempTimeOverride;
+                c.memory = tempData.memory;
 
                 if (!c.timeSenseMode) {
                     if (oldTimeSenseMode) {
@@ -880,7 +892,7 @@ window.qqApp = {
 
         const openChat = function (id) {
             activeChatId.value = id;
-            displayCount.value = 40; // 每次进入初始化仅渲染最后40条，解决入场卡顿
+            displayCount.value = 40; 
             cancelSelection();
             clearQuote();
             closeMsgMenu();
@@ -1292,6 +1304,74 @@ window.qqApp = {
 
         // ====== 朋友圈方法结束 ======
 
+        // ====== 新增：自动聊天总结与记忆提取开始 ======
+        const checkAndSummarize = async function (chatId) {
+            const msgs = store.qqData.messages[chatId] || [];
+            const c = store.qqData.contacts.find(function(x) { return x.id === chatId; });
+            if (!c) return;
+
+            // 过滤出未总结的 user 消息
+            const unsummarizedUserMsgs = msgs.filter(function(m) { return m.role === 'user' && !m.isSummarized; });
+            
+            // 每满15回合触发总结，总结前10回合，保留最新的5回合不总结
+            if (unsummarizedUserMsgs.length >= 15) {
+                const eleventhUserMsg = unsummarizedUserMsgs[10];
+                const eleventhIndex = msgs.indexOf(eleventhUserMsg);
+
+                const msgsToSummarize = [];
+                for (let i = 0; i < eleventhIndex; i += 1) {
+                    if (!msgs[i].isSummarized) {
+                        msgsToSummarize.push(msgs[i]);
+                    }
+                }
+
+                if (msgsToSummarize.length === 0) return;
+
+                const uCard = store.qqData.userCards.find(function (card) {
+                    return card.id === (c.userCardId || store.qqData.userCards[0].id);
+                }) || store.qqData.userCards[0];
+
+                const textToSummarize = msgsToSummarize.map(function(m) {
+                    const name = m.role === 'ai' ? c.nickname : uCard.name;
+                    return '[' + m.timeStr + '] ' + name + ': ' + m.content;
+                }).join('\n');
+
+                const apiConfig = store.apiSettings.main;
+                if (!apiConfig.url || !apiConfig.key) return;
+
+                const prompt = '请将以下聊天记录总结为一条100字以内的摘要，必须包含时间、地点、人物及发生的事情。只输出总结文字，不要多余的废话：\n\n' + textToSummarize;
+
+                try {
+                    const res = await fetch(apiConfig.url + '/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + apiConfig.key
+                        },
+                        body: JSON.stringify({
+                            model: apiConfig.model,
+                            messages: [{ role: 'user', content: prompt }]
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        let summary = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
+                        summary = summary.trim();
+
+                        if (summary) {
+                            c.memory = c.memory ? c.memory + '\n\n' + summary : summary;
+                            // 标记这些消息为已总结，避免重复计算
+                            msgsToSummarize.forEach(function(m) { m.isSummarized = true; });
+                        }
+                    }
+                } catch (e) {
+                    console.error('自动总结失败:', e);
+                }
+            }
+        };
+        // ====== 自动聊天总结结束 ======
+
         const pad2 = function (n) {
             return String(n).padStart(2, '0');
         };
@@ -1364,6 +1444,17 @@ window.qqApp = {
                 return formatClock(now);
             }
 
+            // 新增：如果设置了单回合生效的时间覆盖，就拦截消费掉
+            if (contact.tempTimeOverride) {
+                const parsed = parseTimeStr(contact.tempTimeOverride);
+                contact.tempTimeOverride = ''; // 消费后清空，确保只生效一回合
+                if (parsed) {
+                    contact.virtualTimeStr = formatClock(parsed);
+                    contact.timeLocked = true;
+                    return contact.virtualTimeStr;
+                }
+            }
+
             const lastMsgTime = getLastMessageTimeStr(contact.id);
             let nextTime;
 
@@ -1391,16 +1482,27 @@ window.qqApp = {
                 return times;
             }
 
-            let base = getVirtualBaseTime(contact);
-            let firstAdd = Math.floor(Math.random() * 2) + 1;
             let firstTime;
+            // 新增：如果AI首发回复，且设置了时间覆盖，这里同样进行拦截消费
+            if (contact.tempTimeOverride) {
+                const parsed = parseTimeStr(contact.tempTimeOverride);
+                contact.tempTimeOverride = ''; 
+                if (parsed) {
+                    firstTime = parsed;
+                }
+            }
 
-            if (getLastMessageTimeStr(contact.id)) {
-                firstTime = addMinutesToTime(base, firstAdd);
-            } else if (contact.virtualTimeStr) {
-                firstTime = parseTimeStr(contact.virtualTimeStr) || getNowClock();
-            } else {
-                firstTime = getNowClock();
+            if (!firstTime) {
+                let base = getVirtualBaseTime(contact);
+                let firstAdd = Math.floor(Math.random() * 2) + 1;
+
+                if (getLastMessageTimeStr(contact.id)) {
+                    firstTime = addMinutesToTime(base, firstAdd);
+                } else if (contact.virtualTimeStr) {
+                    firstTime = parseTimeStr(contact.virtualTimeStr) || getNowClock();
+                } else {
+                    firstTime = getNowClock();
+                }
             }
 
             times.push(formatClock(firstTime));
@@ -1444,6 +1546,11 @@ window.qqApp = {
             inputText.value = '';
             resetInputHeight();
             scrollToBottom();
+            
+            // 用户发消息也可能触发满15回合的判定
+            window.setTimeout(function() {
+                checkAndSummarize(activeChatId.value);
+            }, 1000);
         };
 
         const triggerAI = async function () {
@@ -1471,17 +1578,25 @@ window.qqApp = {
                 '与你对话的用户名字是' + uCard.name + '，用户的人设是：' + uCard.persona + '。\\n' +
                 '请完全沉浸在你的人设中进行回复，绝对不要暴露你是AI模型。';
 
+            // 引入长期记忆能力
+            if (c.memory) {
+                sysPrompt += '\\n【之前的记忆与事件总结】：\\n' + c.memory;
+            }
+
             if (c.offlineMode) {
                 sysPrompt += '\\n【重要指令】当前已开启线下模式。请进行带有旁白和环境描写的沉浸式角色扮演。回复字数控制在150字到250字之间。';
             } else {
                 sysPrompt += '\\n【重要指令】当前未开启线下模式。请模拟手机在线聊天的场景，必须采用短句发送，禁止发送大段长文。一次可以回复1到5条消息的量（如果是多条消息，请用换行符分开）。';
             }
             
-            // 提醒 AI 读取时间戳，并严禁它自己输出时间戳
             sysPrompt += '\\n【注意】聊天记录中带有[时间: xx:xx]标识，请你读取并感知时间流逝。但是你自己的回复中【绝对禁止】携带[时间: xx:xx]前缀，直接输出回复内容即可！';
 
             const apiMessages = [{ role: 'system', content: sysPrompt }];
-            history.slice(-15).forEach(function (m) {
+            
+            // 精准投喂机制：只传入尚未被总结到记忆区里的纯净对话历史
+            const unsummarizedHistory = history.filter(function(m) { return !m.isSummarized; });
+            
+            unsummarizedHistory.forEach(function (m) {
                 let text = m.content;
                 if (m.quote) {
                     text = '[回复前文: ' + m.quote + ']\n' + text;
@@ -1520,7 +1635,6 @@ window.qqApp = {
                     throw new Error('AI返回了空消息');
                 }
 
-                // 强制过滤掉AI可能错误生成的时间戳前缀 (例如 [时间: 19:05])
                 reply = reply.replace(/\[时间:\s*\d{1,2}:\d{1,2}\]\s*/g, '').replace(/【时间:\s*\d{1,2}:\d{1,2}】\s*/g, '').trim();
 
                 if (!c.offlineMode && reply.indexOf('\n') !== -1) {
@@ -1553,6 +1667,11 @@ window.qqApp = {
                 showError('AI回复异常: ' + err.message);
             } finally {
                 isTyping.value = false;
+                
+                // 每次AI完成回复，判断是否达到15回合，如果是则进行静默总结
+                window.setTimeout(function() {
+                    checkAndSummarize(activeChatId.value);
+                }, 1000);
             }
         };
 
