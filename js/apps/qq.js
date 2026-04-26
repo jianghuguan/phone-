@@ -46,7 +46,7 @@ window.qqApp = {
                     </div>
                 </div>
 
-                <div class="qq-content" id="chat-area" style="padding-top:10px;" @touchstart="closeMsgMenu">
+                <div class="qq-content" id="chat-area" style="padding-top:10px;" @touchstart="closeMsgMenu" @scroll="onChatScroll">
                     <template v-for="item in enhancedMessages" :key="item.index">
                         <div class="qq-timestamp" v-if="item.showTimeFlag">{{ item.dateStr }}</div>
 
@@ -448,6 +448,9 @@ window.qqApp = {
         const store = window.store;
         const currentTab = Vue.ref('messages');
         const activeChatId = Vue.ref(null);
+        
+        // 核心性能修复：限制默认只渲染最后 40 条数据，彻底消灭几千条DOM导致的卡顿
+        const displayCount = Vue.ref(40); 
 
         const modal = Vue.reactive({ show: false, type: '', title: '', confirm: null });
         const tempData = Vue.reactive({});
@@ -498,27 +501,31 @@ window.qqApp = {
                 String(d.getMinutes()).padStart(2, '0');
         };
 
-        // 核心优化：将计算量极其巨大的时间判定抽象为 computed，彻底切断视图状态与底层列表重绘的绑定
+        // 核心优化：懒加载/虚拟分页。切断整个历史记录与渲染之间的联系
         const enhancedMessages = Vue.computed(function () {
             const msgs = store.qqData.messages[activeChatId.value] || [];
             const c = currentContact.value;
             if (!c) return [];
             
             const isTimeSenseMode = c.timeSenseMode;
+            // 截取最后 N 条记录进行渲染，保护内存
+            const startIndex = Math.max(0, msgs.length - displayCount.value);
+            const result = [];
             
-            return msgs.map(function (msg, index) {
+            for (let i = startIndex; i < msgs.length; i += 1) {
+                const msg = msgs[i];
                 let showTimeFlag = false;
                 let dateStr = '';
 
                 if (isTimeSenseMode && msg.timestamp) {
-                    if (index === 0) {
+                    if (i === 0) {
                         showTimeFlag = true;
                     } else {
-                        const prev = msgs[index - 1];
+                        const prev = msgs[i - 1];
                         if (!prev || !prev.timestamp) {
                             showTimeFlag = true;
                         } else {
-                            // 使用简单的数值比对代替消耗性能的 toDateString() 降低开销
+                            // 极速时间比对，不再创建额外的时间格式化字符串
                             const d1 = new Date(msg.timestamp);
                             const d2 = new Date(prev.timestamp);
                             if (d1.getFullYear() !== d2.getFullYear() || 
@@ -534,14 +541,42 @@ window.qqApp = {
                     dateStr = formatTime(msg.timestamp);
                 }
 
-                return {
+                result.push({
                     msg: msg,
-                    index: index,
+                    index: i, // 必须保留原始记录在完整数组里的真实索引
                     showTimeFlag: showTimeFlag,
                     dateStr: dateStr
-                };
-            });
+                });
+            }
+            return result;
         });
+
+        // 向上滑动时，自动加载更早的聊天记录
+        let isLoadingMore = false;
+        const onChatScroll = function (e) {
+            if (!e || !e.target || isLoadingMore) return;
+            
+            // 当滑动到顶部（距离顶部小于 100px）时
+            if (e.target.scrollTop < 100) {
+                const msgs = store.qqData.messages[activeChatId.value] || [];
+                if (displayCount.value < msgs.length) {
+                    isLoadingMore = true;
+                    // 记录更新前的内容高度和滚动位置
+                    const oldScrollHeight = e.target.scrollHeight;
+                    const oldScrollTop = e.target.scrollTop;
+                    
+                    // 每次多渲染 40 条
+                    displayCount.value += 40;
+
+                    // 页面重绘后，重置滚动条位置，防止画面突然闪回顶部
+                    Vue.nextTick(function () {
+                        const newScrollHeight = e.target.scrollHeight;
+                        e.target.scrollTop = newScrollHeight - oldScrollHeight + oldScrollTop;
+                        isLoadingMore = false;
+                    });
+                }
+            }
+        };
 
         const selectedCount = Vue.computed(function () {
             return selectedMsgIndexes.value.length;
@@ -845,6 +880,7 @@ window.qqApp = {
 
         const openChat = function (id) {
             activeChatId.value = id;
+            displayCount.value = 40; // 每次进入初始化仅渲染最后40条，解决入场卡顿
             cancelSelection();
             clearQuote();
             closeMsgMenu();
@@ -1543,6 +1579,7 @@ window.qqApp = {
             store: store,
             currentTab: currentTab,
             activeChatId: activeChatId,
+            displayCount: displayCount,
             modal: modal,
             tempData: tempData,
             triggerUpload: triggerUpload,
@@ -1563,6 +1600,7 @@ window.qqApp = {
             deleteChat: deleteChat,
             formatTime: formatTime,
             enhancedMessages: enhancedMessages,
+            onChatScroll: onChatScroll,
             getLastMsg: getLastMsg,
             openChat: openChat,
             currentContact: currentContact,
