@@ -4,50 +4,50 @@
 
 window.themeApp = {
     template: `
-        <div style="padding: 20px; height: calc(100% - 60px); overflow-y: auto;">
-            <h2 style="font-weight: 600; margin-bottom: 20px;">桌面与主题美化</h2>
-
-            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 16px;">
-                <div style="font-weight: bold; font-size: 15px; margin-bottom: 10px;">桌面背景图</div>
+        <div style="padding: 20px; height: calc(100% - 60px); overflow-y: auto; background: #fff;">
+            <h2 style="font-weight: 600; margin-bottom: 20px;">桌面与 QQ 美化</h2>
+            
+            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 20px;">
+                <div style="font-weight: bold; font-size: 15px; margin-bottom: 10px;">系统桌面背景</div>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                    <input id="desktopBgUpload" type="file" accept="image/*" style="display: none;" @change="handleDesktopBgUpload">
+                    <input id="desktopBgUpload" type="file" accept="image/*" style="display: none;" @change="handleUpload($event, 'desktopBgImage')">
                     <button class="btn-primary" style="font-size: 12px; padding: 6px 12px;" @click="triggerClick('desktopBgUpload')">更换背景图</button>
-                    <button v-if="store.desktopBgImage" class="btn-danger" style="font-size: 12px; padding: 6px 12px;" @click="resetDesktopBg">恢复默认</button>
+                    <button v-if="store.desktopBgImage" class="btn-danger" style="font-size: 12px; padding: 6px 12px;" @click="store.desktopBgImage = null">恢复默认</button>
                 </div>
             </div>
 
-            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 16px;">
-                <div style="font-weight: bold; font-size: 15px; margin-bottom: 10px;">QQ 界面深度美化</div>
-                
-                <div style="margin-bottom: 12px;">
-                    <span style="font-size: 13px; color: #666; display: block; margin-bottom: 6px;">QQ 消息列表背景图</span>
-                    <div style="display: flex; gap: 6px;">
-                        <input id="qqMsgBgUpload" type="file" accept="image/*" style="display: none;" @change="handleQQMsgBgUpload">
-                        <button class="btn-primary" style="font-size: 12px; padding: 6px 12px;" @click="triggerClick('qqMsgBgUpload')">更换背景</button>
-                        <button v-if="store.qqTheme.msgListBg" class="btn-danger" style="font-size: 12px; padding: 6px 12px;" @click="store.qqTheme.msgListBg = null">移除图片</button>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 12px;">
-                    <span style="font-size: 13px; color: #666; display: block; margin-bottom: 6px;">QQ 聊天界面背景图</span>
-                    <div style="display: flex; gap: 6px;">
-                        <input id="qqChatBgUpload" type="file" accept="image/*" style="display: none;" @change="handleQQChatBgUpload">
-                        <button class="btn-primary" style="font-size: 12px; padding: 6px 12px;" @click="triggerClick('qqChatBgUpload')">更换背景</button>
-                        <button v-if="store.qqTheme.chatBg" class="btn-danger" style="font-size: 12px; padding: 6px 12px;" @click="store.qqTheme.chatBg = null">移除图片</button>
-                    </div>
-                </div>
-
-                <div style="margin-top: 15px;">
-                    <span style="font-size: 13px; color: #666; display: block; margin-bottom: 6px;">自定义聊天气泡 CSS（作用于全局）</span>
-                    <textarea 
-                        v-model="store.qqTheme.bubbleCss" 
-                        rows="5" 
-                        style="width: 100%; border: 1px solid #ccc; border-radius: 8px; padding: 8px; font-size: 12px; font-family: monospace; outline: none; resize: vertical;" 
-                        placeholder="例如修改气泡颜色:\\n.qq-msg-row.user .qq-msg-bubble { background: pink !important; color: black !important; }"></textarea>
+            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 20px;">
+                <div style="font-weight: bold; font-size: 15px; margin-bottom: 10px;">QQ 消息界面背景</div>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <input id="qqMsgBgUpload" type="file" accept="image/*" style="display: none;" @change="handleUpload($event, 'msgListBg', true)">
+                    <button class="btn-primary" style="font-size: 12px; padding: 6px 12px;" @click="triggerClick('qqMsgBgUpload')">更换背景图</button>
+                    <button v-if="store.qqData.theme.msgListBg" class="btn-danger" style="font-size: 12px; padding: 6px 12px;" @click="store.qqData.theme.msgListBg = null">恢复默认</button>
                 </div>
             </div>
 
-            <p style="color: #666; font-size: 13px; margin-bottom: 15px; font-weight:bold;">更换 App 图标</p>
+            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 20px;">
+                <div style="font-weight: bold; font-size: 15px; margin-bottom: 10px;">QQ 聊天内页背景</div>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <input id="qqChatBgUpload" type="file" accept="image/*" style="display: none;" @change="handleUpload($event, 'chatBg', true)">
+                    <button class="btn-primary" style="font-size: 12px; padding: 6px 12px;" @click="triggerClick('qqChatBgUpload')">更换背景图</button>
+                    <button v-if="store.qqData.theme.chatBg" class="btn-danger" style="font-size: 12px; padding: 6px 12px;" @click="store.qqData.theme.chatBg = null">恢复默认</button>
+                </div>
+            </div>
+
+            <div style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 20px;">
+                <div style="font-weight: bold; font-size: 15px; margin-bottom: 10px;">自定义聊天气泡 CSS</div>
+                <textarea 
+                    v-model="store.qqData.theme.bubbleCss" 
+                    rows="5" 
+                    class="settings-input" 
+                    style="font-family: monospace; font-size: 12px;" 
+                    placeholder="例如：\n.qq-msg-bubble { border-radius: 0 !important; }\n.qq-msg-row.user .qq-msg-bubble { background: #ff9900 !important; }">
+                </textarea>
+                <p style="font-size:11px; color:#888; margin-top:6px;">将全局应用于所有 QQ 聊天气泡</p>
+            </div>
+
+            <div style="font-weight: bold; font-size: 16px; margin-bottom: 10px; margin-top: 30px;">更换 App 图标</div>
+            <p style="color: #666; font-size: 13px; margin-bottom: 15px;">上传图标后默认替换原文字内容</p>
             <div
                 v-for="app in apps"
                 :key="app.id"
@@ -74,7 +74,13 @@ window.themeApp = {
                 </div>
 
                 <div style="display: flex; gap: 6px;">
-                    <input :id="'iconUpload_' + app.id" type="file" accept="image/*" style="display: none;" @change="handleIconUpload($event, app.id)">
+                    <input
+                        :id="'iconUpload_' + app.id"
+                        type="file"
+                        accept="image/*"
+                        style="display: none;"
+                        @change="handleIconUpload($event, app.id)"
+                    >
                     <button class="btn-primary" style="font-size: 12px; padding: 6px 12px; margin: 0;" @click="triggerClick('iconUpload_' + app.id)">图库选择</button>
                     <button v-if="app.iconImage" class="btn-danger" style="font-size: 12px; padding: 6px 12px;" @click="resetIcon(app)">恢复</button>
                 </div>
@@ -84,8 +90,10 @@ window.themeApp = {
     setup() {
         const store = window.store;
 
-        // 兼容初始化 QQ Theme
-        if (!store.qqTheme) store.qqTheme = { msgListBg: null, chatBg: null, bubbleCss: '' };
+        // 初始化 QQ美化主题数据
+        if (!store.qqData.theme) {
+            store.qqData.theme = { msgListBg: null, chatBg: null, bubbleCss: '' };
+        }
 
         const apps = Vue.computed(function () {
             return store.desktopItems.filter(function (item) {
@@ -95,22 +103,26 @@ window.themeApp = {
 
         const triggerClick = function (id) {
             const el = document.getElementById(id);
-            if (el) el.click();
+            if (el) {
+                el.click();
+            }
         };
 
-        const compressImage = function (file, callback, maxWidth = 1000) {
+        const compressImage = function (file, callback) {
             const reader = new FileReader();
+
             reader.onload = function (event) {
                 const img = new Image();
+
                 img.onload = function () {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     let width = img.width;
                     let height = img.height;
 
-                    if (width > maxWidth) {
-                        height = Math.round((height * maxWidth) / width);
-                        width = maxWidth;
+                    if (width > 1000) {
+                        height = Math.round((height * 1000) / width);
+                        width = 1000;
                     }
 
                     canvas.width = width;
@@ -119,35 +131,25 @@ window.themeApp = {
 
                     callback(canvas.toDataURL('image/jpeg', 0.85));
                 };
+
                 img.src = event.target.result;
             };
+
             reader.readAsDataURL(file);
         };
 
-        const handleDesktopBgUpload = function (event) {
+        const handleUpload = function (event, fieldName, isQQ = false) {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
-            compressImage(file, function (base64) {
-                store.desktopBgImage = base64;
-            });
-            event.target.value = '';
-        };
 
-        const handleQQMsgBgUpload = function (event) {
-            const file = event.target.files && event.target.files[0];
-            if (!file) return;
             compressImage(file, function (base64) {
-                store.qqTheme.msgListBg = base64;
+                if (isQQ) {
+                    store.qqData.theme[fieldName] = base64;
+                } else {
+                    store[fieldName] = base64;
+                }
             });
-            event.target.value = '';
-        };
 
-        const handleQQChatBgUpload = function (event) {
-            const file = event.target.files && event.target.files[0];
-            if (!file) return;
-            compressImage(file, function (base64) {
-                store.qqTheme.chatBg = base64;
-            });
             event.target.value = '';
         };
 
@@ -166,7 +168,7 @@ window.themeApp = {
                     ctx.clearRect(0, 0, 160, 160);
                     ctx.drawImage(img, 0, 0, 160, 160);
 
-                    const targetApp = store.desktopItems.find(function (item) { return item.id === id; });
+                    const targetApp = store.desktopItems.find(item => item.id === id);
                     if (targetApp) {
                         targetApp.iconImage = canvas.toDataURL('image/png');
                         targetApp.color = 'transparent';
@@ -178,13 +180,18 @@ window.themeApp = {
             event.target.value = '';
         };
 
-        const resetDesktopBg = function () { store.desktopBgImage = null; };
-        const resetIcon = function (app) { app.iconImage = null; app.color = '#ffffff'; };
+        const resetIcon = function (app) {
+            app.iconImage = null;
+            app.color = '#ffffff';
+        };
 
         return {
-            store, apps, triggerClick,
-            handleDesktopBgUpload, handleQQMsgBgUpload, handleQQChatBgUpload, handleIconUpload,
-            resetDesktopBg, resetIcon
+            store: store,
+            apps: apps,
+            triggerClick: triggerClick,
+            handleUpload: handleUpload,
+            handleIconUpload: handleIconUpload,
+            resetIcon: resetIcon
         };
     }
 };
