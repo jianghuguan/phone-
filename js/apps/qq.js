@@ -82,7 +82,6 @@ window.qqApp = {
                                 <div class="bubble-time" v-if="msg.timeStr">{{ msg.timeStr }}</div>
                             </div>
 
-                            <!-- 同步当前使用名片的头像 -->
                             <div
                                 v-if="msg.role === 'user'"
                                 class="qq-msg-avatar"
@@ -165,53 +164,51 @@ window.qqApp = {
                     </div>
                 </div>
 
-                <div v-show="currentTab === 'moments'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+                <div v-show="currentTab === 'moments'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;" @click="showMomentsMenu = false">
                     <div class="qq-header">
-                        <span style="width:28px;"></span>
-                        <span style="flex:1; text-align:center; font-size:18px; font-weight:bold;">朋友圈</span>
-                        <span style="display:flex; gap:16px; align-items:center;">
-                            <span @click="refreshMoments" style="font-size:18px; cursor:pointer;" :class="{'rotating': isRefreshingMoments}">↻</span>
-                            <span @click="openAddMoment" style="font-size:24px; font-weight:300; cursor:pointer; padding-right:10px;">+</span>
-                        </span>
+                        <span style="font-size:20px; font-weight:bold;">朋友圈</span>
+                        <div style="position:relative;">
+                            <span @click.stop="showMomentsMenu = !showMomentsMenu" style="font-size:26px; font-weight:300; cursor:pointer; padding: 0 10px;">+</span>
+                            <div v-if="showMomentsMenu" class="moments-menu" @click.stop>
+                                <div @click="openPublishMoment">发布朋友圈</div>
+                                <div @click="refreshMoments">刷新动态</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="qq-content" style="padding-bottom:20px;">
                         <div
                             class="qq-profile-header"
-                            style="height:250px; border:none; margin-bottom:40px;"
+                            style="height:250px; border:none; margin-bottom:50px;"
                             :style="{ backgroundImage: store.qqData.profile.bgImage ? 'url(' + store.qqData.profile.bgImage + ')' : 'none' }"
                         >
                             <div
                                 class="qq-profile-avatar"
-                                style="bottom:-20px; right:20px; left:auto; width:75px; height:75px;"
+                                style="bottom:-30px; right:20px; left:auto; width:75px; height:75px;"
                                 :style="{ backgroundImage: store.qqData.profile.avatar ? 'url(' + store.qqData.profile.avatar + ')' : 'none' }"
                             ></div>
                             <div
-                                style="position:absolute; bottom:-15px; right:110px; font-weight:bold; font-size:18px; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.5);"
+                                style="position:absolute; bottom:-25px; right:110px; font-weight:bold; font-size:18px; color:#262626; text-shadow:0 0 5px #fff;"
                             >
                                 {{ store.qqData.profile.nickname }}
                             </div>
                         </div>
 
-                        <div v-if="!store.qqData.moments || store.qqData.moments.length === 0" style="text-align:center; padding:40px 0; color:#8e8e8e; font-size:14px;">
-                            暂无动态
-                        </div>
+                        <div v-if="!store.qqData.moments || store.qqData.moments.length === 0" style="text-align:center; padding:40px 0; color:#8e8e8e; font-size:14px;">暂无动态</div>
 
-                        <div v-for="m in store.qqData.moments" :key="m.id" style="padding:15px; border-bottom:1px solid #efefef;">
-                            <div style="display:flex; gap:10px;">
-                                <div style="width:45px; height:45px; border-radius:5px; background:#efefef; background-size:cover; background-position:center; flex-shrink:0;"
-                                     :style="{ backgroundImage: store.qqData.profile.avatar ? 'url(' + store.qqData.profile.avatar + ')' : 'none' }">
-                                </div>
-                                <div style="flex:1;">
-                                    <div style="font-weight:600; color:#576b95; margin-bottom:5px; font-size:15px;">{{ store.qqData.profile.nickname }}</div>
-                                    <div style="margin-bottom:10px; font-size:15px; line-height:1.4; word-break:break-all;">{{ m.text }}</div>
-                                    <div style="font-size:12px; color:#999; margin-bottom:10px;">{{ formatTime(m.time) }}</div>
-                                    
-                                    <div style="background:#f7f7f7; border-radius:4px; padding:8px;" v-if="(m.likes && m.likes.length) || (m.comments && m.comments.length)">
-                                        <div v-if="m.likes && m.likes.length" style="color:#576b95; font-size:13px; margin-bottom:5px;" :style="{ borderBottom: (m.comments && m.comments.length) ? '1px solid #ebebeb' : 'none', paddingBottom: (m.comments && m.comments.length) ? '5px' : '0' }">
-                                            ❤️ {{ getLikesNames(m.likes) }}
-                                        </div>
-                                        <div v-for="(c, cIndex) in m.comments" :key="cIndex" style="font-size:13px; margin-bottom:4px; line-height:1.4;">
-                                            <span style="color:#576b95; font-weight:600;">{{ getCharName(c.charId) }}</span>: {{ c.content }}
+                        <div v-for="m in store.qqData.moments" :key="m.id" class="moment-item">
+                            <div class="moment-avatar" :style="{ backgroundImage: store.qqData.profile.avatar ? 'url(' + store.qqData.profile.avatar + ')' : 'none' }"></div>
+                            <div class="moment-main">
+                                <div class="moment-name">{{ store.qqData.profile.nickname }}</div>
+                                <div class="moment-content">{{ m.content }}</div>
+                                <div class="moment-time">{{ formatTime(m.timestamp) }}</div>
+                                <div class="moment-interactions" v-if="(m.likes && m.likes.length) || (m.comments && m.comments.length)">
+                                    <div class="moment-likes" :class="{'has-border': m.comments && m.comments.length}" v-if="m.likes && m.likes.length">
+                                        <span style="color:#576b95; font-size:12px;">❤</span> {{ m.likes.map(id => getCharName(id)).join(', ') }}
+                                    </div>
+                                    <div class="moment-comments" v-if="m.comments && m.comments.length">
+                                        <div v-for="(cmt, idx) in m.comments" :key="idx">
+                                            <span style="color:#576b95; font-weight:600;">{{ getCharName(cmt.charId) }}:</span>
+                                            <span>{{ cmt.content }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -333,8 +330,8 @@ window.qqApp = {
                         <textarea v-model="tempData.persona" placeholder="详细人设描述" rows="3"></textarea>
                     </template>
 
-                    <template v-if="modal.type === 'moment'">
-                        <textarea v-model="tempData.text" placeholder="这一刻的想法..." rows="5"></textarea>
+                    <template v-if="modal.type === 'publish_moment'">
+                        <textarea v-model="tempData.momentContent" placeholder="这一刻的想法..." rows="4"></textarea>
                     </template>
 
                     <template v-if="modal.type === 'chat_settings'">
@@ -430,12 +427,6 @@ window.qqApp = {
     `,
     setup() {
         const store = window.store;
-
-        // 初始化朋友圈数组
-        if (!store.qqData.moments) {
-            store.qqData.moments = [];
-        }
-
         const currentTab = Vue.ref('messages');
         const activeChatId = Vue.ref(null);
 
@@ -453,7 +444,13 @@ window.qqApp = {
         const activeMsgMenu = Vue.ref(null);
         const selectMode = Vue.ref(false);
         const selectedMsgIndexes = Vue.ref([]);
+
+        const showMomentsMenu = Vue.ref(false);
         const isRefreshingMoments = Vue.ref(false);
+
+        if (!store.qqData.moments) {
+            store.qqData.moments = [];
+        }
 
         const currentContact = Vue.computed(function () {
             return store.qqData.contacts.find(function (c) {
@@ -461,15 +458,15 @@ window.qqApp = {
             });
         });
 
-        // 动态获取当前使用的名片，头像与之绑定
+        // 取出当前聊天对应的名片信息，用于渲染头像
         const currentUserCard = Vue.computed(function () {
-            if (!currentContact.value) {
-                return store.qqData.userCards[0];
+            const c = currentContact.value;
+            if (!c) {
+                return store.qqData.userCards[0] || {};
             }
-            const card = store.qqData.userCards.find(function (c) {
-                return c.id === currentContact.value.userCardId;
-            });
-            return card || store.qqData.userCards[0];
+            return store.qqData.userCards.find(function (card) {
+                return card.id === (c.userCardId || store.qqData.userCards[0].id);
+            }) || store.qqData.userCards[0] || {};
         });
 
         const currentMessages = Vue.computed(function () {
@@ -625,112 +622,6 @@ window.qqApp = {
             };
             reader.readAsDataURL(file);
             event.target.value = '';
-        };
-
-        const openAddMoment = function () {
-            modal.title = '发布朋友圈';
-            modal.type = 'moment';
-            tempData.text = '';
-            modal.confirm = function () {
-                if (!tempData.text.trim()) return showError('内容不能为空');
-                store.qqData.moments.unshift({
-                    id: 'm_' + Date.now(),
-                    text: tempData.text,
-                    time: Date.now(),
-                    likes: [],
-                    comments: []
-                });
-                modal.show = false;
-                showError('发布成功！');
-            };
-            modal.show = true;
-        };
-
-        const getCharName = function (charId) {
-            const c = store.qqData.contacts.find(x => x.id === charId);
-            return c ? c.nickname : '未知';
-        };
-
-        const getLikesNames = function (likes) {
-            return likes.map(id => getCharName(id)).join(', ');
-        };
-
-        const refreshMoments = async function () {
-            if (isRefreshingMoments.value) return;
-            if (!store.qqData.moments || store.qqData.moments.length === 0) {
-                return showError('请先发布一条朋友圈');
-            }
-
-            const apiConfig = store.apiSettings.sub;
-            if (!apiConfig.url || !apiConfig.key) {
-                return showError('请先在设置App中配置副API，以供朋友圈互动！');
-            }
-
-            const latestMoment = store.qqData.moments[0];
-            const contacts = store.qqData.contacts;
-            if (contacts.length === 0) {
-                return showError('暂无联系人可以互动');
-            }
-
-            isRefreshingMoments.value = true;
-            showError('正在召唤好友互动...');
-
-            const isSingle = contacts.length === 1;
-
-            for (const c of contacts) {
-                if (!latestMoment.likes) latestMoment.likes = [];
-                if (!latestMoment.comments) latestMoment.comments = [];
-
-                const hasLiked = latestMoment.likes.includes(c.id);
-                const hasCommented = latestMoment.comments.some(cm => cm.charId === c.id);
-
-                let shouldComment = isSingle ? true : (Math.random() < 0.35);
-                let shouldLike = isSingle ? (Math.random() < 0.5) : (Math.random() < 0.35);
-
-                if (shouldLike && !hasLiked) {
-                    latestMoment.likes.push(c.id);
-                }
-
-                if (shouldComment && !hasCommented) {
-                    try {
-                        let sysPrompt =
-                            '你的名字是' + c.name + '，昵称是' + c.nickname + '。你的人设是：' + c.persona + '。\n' +
-                            '用户刚刚在朋友圈发了一条动态：“' + latestMoment.text + '”。\n' +
-                            '请完全沉浸在你的人设中，以你的口吻写一句针对这条朋友圈的评论。必须非常简短、口语化（20字以内）。不要包含引号等特殊符号。';
-
-                        const res = await fetch(apiConfig.url + '/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': 'Bearer ' + apiConfig.key
-                            },
-                            body: JSON.stringify({
-                                model: apiConfig.model,
-                                messages: [{ role: 'system', content: sysPrompt }]
-                            })
-                        });
-
-                        if (res.ok) {
-                            const data = await res.json();
-                            let reply = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
-                            if (reply) {
-                                // 过滤首尾的引号
-                                reply = reply.replace(/^["'”]+|["'”]+$/g, '').trim();
-                                latestMoment.comments.push({
-                                    charId: c.id,
-                                    content: reply,
-                                    time: Date.now()
-                                });
-                            }
-                        }
-                    } catch (err) {
-                        console.error('获取评论失败', err);
-                    }
-                }
-            }
-
-            isRefreshingMoments.value = false;
-            showError('互动刷新完成');
         };
 
         const openAddModal = function () {
@@ -1044,6 +935,127 @@ window.qqApp = {
             quotedMsgText.value = '';
         };
 
+        // ====== 朋友圈方法开始 ======
+
+        const getCharName = function (id) {
+            const c = store.qqData.contacts.find(function (contact) {
+                return contact.id === id;
+            });
+            return c ? c.nickname || c.name : '未知';
+        };
+
+        const openPublishMoment = function () {
+            showMomentsMenu.value = false;
+            modal.title = '发布朋友圈';
+            modal.type = 'publish_moment';
+            tempData.momentContent = '';
+
+            modal.confirm = function () {
+                if (!tempData.momentContent.trim()) {
+                    return showError('内容不能为空');
+                }
+                store.qqData.moments.unshift({
+                    id: 'm_' + Date.now(),
+                    content: tempData.momentContent,
+                    timestamp: Date.now(),
+                    likes: [],
+                    comments: []
+                });
+                modal.show = false;
+            };
+            modal.show = true;
+        };
+
+        const refreshMoments = async function () {
+            showMomentsMenu.value = false;
+            if (isRefreshingMoments.value) {
+                return;
+            }
+            if (!store.qqData.moments || store.qqData.moments.length === 0) {
+                return showError('暂无朋友圈可以刷新');
+            }
+
+            const latestMoment = store.qqData.moments[0]; // 刷新最新的一条
+            const contacts = store.qqData.contacts;
+            if (contacts.length === 0) {
+                return showError('没有可以互动的AI好友');
+            }
+
+            const apiConfig = store.apiSettings.sub;
+            if (!apiConfig.url || !apiConfig.key) {
+                return showError('请先在设置App中配置副API(用于朋友圈)');
+            }
+
+            isRefreshingMoments.value = true;
+            showError('朋友圈刷新中...');
+
+            if (!latestMoment.likes) latestMoment.likes = [];
+            if (!latestMoment.comments) latestMoment.comments = [];
+
+            // 单个好友时100%回复，多个好友50%随机触发
+            const prob = contacts.length === 1 ? 1 : 0.5;
+
+            const promises = contacts.map(async function (c) {
+                const hasCommented = latestMoment.comments.some(function (cmt) {
+                    return cmt.charId === c.id;
+                });
+                if (hasCommented) {
+                    return; // 已经评论过就不重复评论了
+                }
+
+                if (Math.random() > prob) {
+                    return; // 没随到这名Char
+                }
+
+                // 随机点赞
+                if (Math.random() > 0.5) {
+                    if (latestMoment.likes.indexOf(c.id) === -1) {
+                        latestMoment.likes.push(c.id);
+                    }
+                }
+
+                const uCard = store.qqData.userCards.find(function (card) {
+                    return card.id === (c.userCardId || store.qqData.userCards[0].id);
+                }) || store.qqData.userCards[0];
+
+                const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。你的朋友' + uCard.name + '发了一条朋友圈：“' + latestMoment.content + '”。请根据你的人设，给这条朋友圈写一条简短的评论（不要超过30字，口语化，直接输出评论内容。如果不想评论请直接输出“无”）。';
+
+                try {
+                    const res = await fetch(apiConfig.url + '/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + apiConfig.key
+                        },
+                        body: JSON.stringify({
+                            model: apiConfig.model,
+                            messages: [{ role: 'user', content: prompt }]
+                        })
+                    });
+
+                    if (!res.ok) return;
+
+                    const data = await res.json();
+                    let reply = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
+                    if (reply) {
+                        // 移除前后的引号
+                        reply = reply.trim().replace(/^["']|["']$/g, '');
+                        if (reply && reply !== '无' && reply.toLowerCase() !== 'none') {
+                            latestMoment.comments.push({ charId: c.id, content: reply });
+                        }
+                    }
+                } catch (e) {
+                    // 出错忽略，不阻塞其他请求
+                }
+            });
+
+            await Promise.all(promises);
+            isRefreshingMoments.value = false;
+            showError('朋友圈刷新完成');
+        };
+
+        // ====== 朋友圈方法结束 ======
+
         const pad2 = function (n) {
             return String(n).padStart(2, '0');
         };
@@ -1214,30 +1226,31 @@ window.qqApp = {
             }
 
             const c = currentContact.value;
-            const uCard = currentUserCard.value; // 使用已计算出的当前名片
+            const uCard = store.qqData.userCards.find(function (card) {
+                return card.id === (c.userCardId || store.qqData.userCards[0].id);
+            }) || store.qqData.userCards[0];
 
             let sysPrompt =
-                '你的名字是' + c.name + '，昵称是' + c.nickname + '。你的人设是：' + c.persona + '。\n' +
-                '与你对话的用户名字是' + uCard.name + '，用户的人设是：' + uCard.persona + '。\n' +
+                '你的名字是' + c.name + '，昵称是' + c.nickname + '。你的人设是：' + c.persona + '。\\n' +
+                '与你对话的用户名字是' + uCard.name + '，用户的人设是：' + uCard.persona + '。\\n' +
                 '请完全沉浸在你的人设中进行回复，绝对不要暴露你是AI模型。';
 
             if (c.offlineMode) {
-                sysPrompt += '\n【重要指令】当前已开启线下模式。请进行带有旁白和环境描写的沉浸式角色扮演。回复字数控制在150字到250字之间。';
+                sysPrompt += '\\n【重要指令】当前已开启线下模式。请进行带有旁白和环境描写的沉浸式角色扮演。回复字数控制在150字到250字之间。';
             } else {
-                sysPrompt += '\n【重要指令】当前未开启线下模式。请模拟手机在线聊天的场景，必须采用短句发送，禁止发送大段长文。一次可以回复1到5条消息的量（如果是多条消息，请用换行符分开）。';
+                sysPrompt += '\\n【重要指令】当前未开启线下模式。请模拟手机在线聊天的场景，必须采用短句发送，禁止发送大段长文。一次可以回复1到5条消息的量（如果是多条消息，请用换行符分开）。';
             }
 
             const apiMessages = [{ role: 'system', content: sysPrompt }];
-            
-            // 发送给 AI 之前，将引用语加进提示里
             history.slice(-15).forEach(function (m) {
-                let contentStr = m.content;
-                if (m.quote && m.role === 'user') {
-                    contentStr = '[引用了刚才的一条消息：“' + m.quote + '”]\n' + m.content;
+                // 如果是回复消息，加上提示前缀让 AI 知道具体回复了哪条
+                let text = m.content;
+                if (m.quote) {
+                    text = '[回复前文: ' + m.quote + ']\n' + text;
                 }
                 apiMessages.push({
                     role: m.role === 'ai' ? 'assistant' : 'user',
-                    content: contentStr
+                    content: text
                 });
             });
 
@@ -1374,10 +1387,10 @@ window.qqApp = {
             deleteSelectedMsgs: deleteSelectedMsgs,
             cancelSelection: cancelSelection,
             backToChatList: backToChatList,
-            openAddMoment: openAddMoment,
-            refreshMoments: refreshMoments,
+            showMomentsMenu: showMomentsMenu,
             isRefreshingMoments: isRefreshingMoments,
-            getLikesNames: getLikesNames,
+            openPublishMoment: openPublishMoment,
+            refreshMoments: refreshMoments,
             getCharName: getCharName
         };
     }
