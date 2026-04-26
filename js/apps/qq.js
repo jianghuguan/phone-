@@ -6,6 +6,9 @@
 window.qqApp = {
     template: `
         <div class="qq-container" @touchstart="onSwipeStart" @touchend="onSwipeEnd">
+            <!-- 注入用户自定义气泡 CSS -->
+            <div v-if="store.qqTheme && store.qqTheme.bubbleCss" v-html="'<style>' + store.qqTheme.bubbleCss + '</style>'"></div>
+
             <div
                 class="qq-toast"
                 v-show="errorMsg"
@@ -16,11 +19,18 @@ window.qqApp = {
                 {{ errorMsg }}
             </div>
 
+            <!-- 聊天界面 -->
             <div
                 v-if="activeChatId"
-                style="height:100%; display:flex; flex-direction:column; background:#fff; position:absolute; width:100%; top:0; left:0; z-index:10;"
+                style="height:100%; display:flex; flex-direction:column; position:absolute; width:100%; top:0; left:0; z-index:10;"
+                :style="{
+                    backgroundColor: (store.qqTheme && store.qqTheme.chatBg) ? 'transparent' : '#fff',
+                    backgroundImage: (store.qqTheme && store.qqTheme.chatBg) ? 'url(' + store.qqTheme.chatBg + ')' : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                }"
             >
-                <div class="qq-header">
+                <div class="qq-header" :style="{ backgroundColor: (store.qqTheme && store.qqTheme.chatBg) ? 'rgba(255,255,255,0.85)' : '#fff' }">
                     <span
                         @click="backToChatList"
                         style="font-size:28px; padding-right:15px; font-weight:300; cursor:pointer;"
@@ -46,7 +56,7 @@ window.qqApp = {
                     </div>
                 </div>
 
-                <div class="qq-content" id="chat-area" style="padding-top:10px;" @touchstart="closeMsgMenu" @scroll="onChatScroll">
+                <div class="qq-content" id="chat-area" style="padding-top:10px;" :style="{ backgroundColor: 'transparent' }" @touchstart="closeMsgMenu" @scroll="onChatScroll">
                     <template v-for="item in enhancedMessages" :key="item.index">
                         <div class="qq-timestamp" v-if="item.showTimeFlag">{{ item.dateStr }}</div>
 
@@ -105,8 +115,8 @@ window.qqApp = {
                     </div>
                 </div>
 
-                <div class="qq-input-area">
-                    <div v-if="quotedMsgText" class="quote-preview">
+                <div class="qq-input-area" :style="{ backgroundColor: (store.qqTheme && store.qqTheme.chatBg) ? 'rgba(255,255,255,0.85)' : '#fff' }">
+                    <div v-if="quotedMsgText" class="quote-preview" style="background:transparent;">
                         <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                             回复: {{ quotedMsgText }}
                         </span>
@@ -124,19 +134,30 @@ window.qqApp = {
                             ref="chatInputRef"
                             rows="1"
                             placeholder="输入文字..."
+                            :style="{ background: (store.qqTheme && store.qqTheme.chatBg) ? 'rgba(255,255,255,0.7)' : '#fff' }"
                         ></textarea>
                         <button @click="handleAiBtnClick">{{ inputText.trim() ? '发送' : 'AI' }}</button>
                     </div>
                 </div>
             </div>
 
+            <!-- 主界面 (消息、朋友圈、设置、钱包) -->
             <div v-else style="height:100%; display:flex; flex-direction:column;">
-                <div v-show="currentTab === 'messages'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
-                    <div class="qq-header">
+                
+                <!-- 消息列表页 -->
+                <div v-show="currentTab === 'messages'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;"
+                    :style="{
+                        backgroundColor: (store.qqTheme && store.qqTheme.msgListBg) ? 'transparent' : '#fff',
+                        backgroundImage: (store.qqTheme && store.qqTheme.msgListBg) ? 'url(' + store.qqTheme.msgListBg + ')' : 'none',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                    }"
+                >
+                    <div class="qq-header" :style="{ backgroundColor: (store.qqTheme && store.qqTheme.msgListBg) ? 'rgba(255,255,255,0.85)' : '#fff' }">
                         <span style="font-size:20px; font-weight:bold;">消息</span>
                         <span @click="openAddModal" style="font-size:26px; font-weight:300; cursor:pointer;">+</span>
                     </div>
-                    <div class="qq-content">
+                    <div class="qq-content" :style="{ backgroundColor: 'transparent' }">
                         <div
                             v-if="store.qqData.contacts.length === 0"
                             style="text-align:center; margin-top:80px; color:#999; font-size:14px;"
@@ -149,6 +170,7 @@ window.qqApp = {
                             :key="c.id"
                             class="qq-contact-item"
                             @click="openChat(c.id)"
+                            :style="{ borderBottom: (store.qqTheme && store.qqTheme.msgListBg) ? '1px solid rgba(0,0,0,0.05)' : '1px solid #fafafa' }"
                         >
                             <div
                                 class="qq-contact-avatar"
@@ -158,12 +180,13 @@ window.qqApp = {
                             </div>
                             <div class="qq-contact-info">
                                 <div class="qq-contact-name">{{ c.nickname }}</div>
-                                <div class="qq-contact-preview">{{ getLastMsg(c.id) }}</div>
+                                <div class="qq-contact-preview" :style="{ color: (store.qqTheme && store.qqTheme.msgListBg) ? '#555' : '#8e8e8e' }">{{ getLastMsg(c.id) }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- 朋友圈页 -->
                 <div v-show="currentTab === 'moments'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;" @click="showMomentsMenu = false; activeMomentAction = null">
                     <div class="qq-header">
                         <span style="font-size:20px; font-weight:bold;">朋友圈</span>
@@ -232,6 +255,7 @@ window.qqApp = {
                     </div>
                 </div>
 
+                <!-- 设置页 -->
                 <div v-show="currentTab === 'profile'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
                     <div class="qq-header">
                         <span style="font-size:20px; font-weight:bold;">主页</span>
@@ -307,6 +331,7 @@ window.qqApp = {
                     </div>
                 </div>
 
+                <!-- 钱包页 -->
                 <div v-show="currentTab === 'wallet'" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
                     <div class="qq-header">
                         <span
@@ -324,7 +349,8 @@ window.qqApp = {
                     </div>
                 </div>
 
-                <div class="qq-bottom-bar" v-if="['messages', 'moments'].includes(currentTab)">
+                <!-- 底部导航 -->
+                <div class="qq-bottom-bar" v-if="['messages', 'moments'].includes(currentTab)" :style="{ backgroundColor: (store.qqTheme && store.qqTheme.msgListBg) ? 'rgba(255,255,255,0.85)' : '#fff' }">
                     <div :class="{ active: currentTab === 'messages' }" @click="currentTab = 'messages'">消息</div>
                     <div :class="{ active: currentTab === 'moments' }" @click="currentTab = 'moments'">朋友圈</div>
                 </div>
@@ -335,6 +361,7 @@ window.qqApp = {
                 </div>
             </div>
 
+            <!-- QQ 模态框 -->
             <div class="qq-modal-overlay" v-if="modal.show">
                 <div class="qq-modal" style="max-height:85vh; overflow-y:auto; padding-bottom:15px;">
                     <h3 style="margin-bottom:18px; text-align:center; font-size:16px;">{{ modal.title }}</h3>
@@ -453,6 +480,10 @@ window.qqApp = {
     `,
     setup() {
         const store = window.store;
+
+        // 兼容初始化 QQ Theme
+        if (!store.qqTheme) store.qqTheme = { msgListBg: null, chatBg: null, bubbleCss: '' };
+
         const currentTab = Vue.ref('messages');
         const activeChatId = Vue.ref(null);
         
@@ -861,7 +892,12 @@ window.qqApp = {
                 let prompt = '请将以下聊天记录总结成一条不超过100字的概括，必须包含时间、地点、人物和发生的事情。直接输出总结内容，不要有多余解释废话。\n聊天记录：\n' + chatText;
 
                 try {
-                    const res = await fetch(apiConfig.url + '/v1/chat/completions', {
+                    let checkUrl = apiConfig.url;
+                    if (!checkUrl.endsWith('/v1/chat/completions') && !checkUrl.endsWith('/chat/completions')) {
+                        checkUrl = checkUrl.replace(/\/$/, '') + '/v1/chat/completions';
+                    }
+
+                    const res = await fetch(checkUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiConfig.key },
                         body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'user', content: prompt }] })
@@ -1282,7 +1318,11 @@ window.qqApp = {
             const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。\\n你的朋友' + uCard.name + '在 ' + formatTime(moment.timestamp) + ' 发了一条朋友圈：“' + moment.content + '”。\\n你们在评论区有如下互动：\\n' + historyStr + '\\n请根据最新回复情况，给出你顺承的二次回复（字数不超过30字，口语化，直接输出内容）。如果不打算再回复请直接输出“无”。';
 
             try {
-                const res = await fetch(apiConfig.url + '/v1/chat/completions', {
+                let checkUrl = apiConfig.url;
+                if (!checkUrl.endsWith('/v1/chat/completions') && !checkUrl.endsWith('/chat/completions')) {
+                    checkUrl = checkUrl.replace(/\/$/, '') + '/v1/chat/completions';
+                }
+                const res = await fetch(checkUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1369,7 +1409,11 @@ window.qqApp = {
                 const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。你的朋友' + uCard.name + '在 ' + formatTime(latestMoment.timestamp) + ' 发了一条朋友圈：“' + latestMoment.content + '”。请根据你的人设，给这条朋友圈写一条简短的评论（不要超过30字，口语化，直接输出评论内容。如果不想评论请直接输出“无”）。';
 
                 try {
-                    const res = await fetch(apiConfig.url + '/v1/chat/completions', {
+                    let checkUrl = apiConfig.url;
+                    if (!checkUrl.endsWith('/v1/chat/completions') && !checkUrl.endsWith('/chat/completions')) {
+                        checkUrl = checkUrl.replace(/\/$/, '') + '/v1/chat/completions';
+                    }
+                    const res = await fetch(checkUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1604,7 +1648,12 @@ window.qqApp = {
                 let prompt = '请将以下聊天记录总结成一条不超过100字的概括，必须包含时间、地点、人物和发生的事情。直接输出总结内容，不要有多余解释废话。\n聊天记录：\n' + chatText;
 
                 try {
-                    const res = await fetch(apiConfig.url + '/v1/chat/completions', {
+                    let checkUrl = apiConfig.url;
+                    if (!checkUrl.endsWith('/v1/chat/completions') && !checkUrl.endsWith('/chat/completions')) {
+                        checkUrl = checkUrl.replace(/\/$/, '') + '/v1/chat/completions';
+                    }
+
+                    const res = await fetch(checkUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiConfig.key },
                         body: JSON.stringify({ model: apiConfig.model, messages: [{ role: 'user', content: prompt }] })
@@ -1736,7 +1785,12 @@ window.qqApp = {
             scrollToBottom();
 
             try {
-                const res = await fetch(apiConfig.url + '/v1/chat/completions', {
+                let checkUrl = apiConfig.url;
+                if (!checkUrl.endsWith('/v1/chat/completions') && !checkUrl.endsWith('/chat/completions')) {
+                    checkUrl = checkUrl.replace(/\/$/, '') + '/v1/chat/completions';
+                }
+
+                const res = await fetch(checkUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
