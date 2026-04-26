@@ -47,12 +47,12 @@ window.qqApp = {
                 </div>
 
                 <div class="qq-content" id="chat-area" style="padding-top:10px;" @touchstart="closeMsgMenu">
-                    <template v-for="(msg, i) in currentMessages" :key="i">
-                        <div class="qq-timestamp" v-if="showTime(msg, i)">{{ formatTime(msg.timestamp) }}</div>
+                    <template v-for="item in enhancedMessages" :key="item.index">
+                        <div class="qq-timestamp" v-if="item.showTimeFlag">{{ item.dateStr }}</div>
 
-                        <div class="qq-msg-row" :class="msg.role">
+                        <div class="qq-msg-row" :class="item.msg.role">
                             <div
-                                v-if="msg.role === 'ai'"
+                                v-if="item.msg.role === 'ai'"
                                 class="qq-msg-avatar"
                                 :style="{ backgroundImage: currentContact.avatar ? 'url(' + currentContact.avatar + ')' : 'none' }"
                             >
@@ -61,29 +61,29 @@ window.qqApp = {
 
                             <div class="msg-bubble-container">
                                 <div style="position:relative;">
-                                    <div v-if="activeMsgMenu === i" class="msg-menu" @touchstart.stop>
-                                        <span @click.stop="toggleSelectMsg(i)">选择</span>
-                                        <span @click.stop="replyMsg(i)">回复</span>
+                                    <div v-if="activeMsgMenu === item.index" class="msg-menu" @touchstart.stop>
+                                        <span @click.stop="toggleSelectMsg(item.index)">选择</span>
+                                        <span @click.stop="replyMsg(item.index)">回复</span>
                                     </div>
 
                                     <div
                                         class="qq-msg-bubble"
-                                        :class="{ 'selected-msg': isSelected(i) }"
-                                        @click.stop="handleMsgClick(i)"
-                                        @touchstart.stop="onMsgTs($event, i)"
+                                        :class="{ 'selected-msg': isSelected(item.index) }"
+                                        @click.stop="handleMsgClick(item.index)"
+                                        @touchstart.stop="onMsgTs($event, item.index)"
                                         @touchend.stop="onMsgTe"
                                         @touchmove.stop="onMsgTm"
                                     >
-                                        <div v-if="msg.quote" class="quote-box">{{ msg.quote }}</div>
-                                        {{ msg.content }}
+                                        <div v-if="item.msg.quote" class="quote-box">{{ item.msg.quote }}</div>
+                                        {{ item.msg.content }}
                                     </div>
                                 </div>
 
-                                <div class="bubble-time" v-if="msg.timeStr">{{ msg.timeStr }}</div>
+                                <div class="bubble-time" v-if="item.msg.timeStr">{{ item.msg.timeStr }}</div>
                             </div>
 
                             <div
-                                v-if="msg.role === 'user'"
+                                v-if="item.msg.role === 'user'"
                                 class="qq-msg-avatar"
                                 :style="{ backgroundImage: currentUserCard.avatar ? 'url(' + currentUserCard.avatar + ')' : 'none' }"
                             >
@@ -488,8 +488,59 @@ window.qqApp = {
             }) || store.qqData.userCards[0] || {};
         });
 
-        const currentMessages = Vue.computed(function () {
-            return store.qqData.messages[activeChatId.value] || [];
+        const formatTime = function (ts) {
+            if (!ts) {
+                return '';
+            }
+            const d = new Date(ts);
+            return (d.getMonth() + 1) + '-' + d.getDate() + ' ' +
+                String(d.getHours()).padStart(2, '0') + ':' +
+                String(d.getMinutes()).padStart(2, '0');
+        };
+
+        // 核心优化：将计算量极其巨大的时间判定抽象为 computed，彻底切断视图状态与底层列表重绘的绑定
+        const enhancedMessages = Vue.computed(function () {
+            const msgs = store.qqData.messages[activeChatId.value] || [];
+            const c = currentContact.value;
+            if (!c) return [];
+            
+            const isTimeSenseMode = c.timeSenseMode;
+            
+            return msgs.map(function (msg, index) {
+                let showTimeFlag = false;
+                let dateStr = '';
+
+                if (isTimeSenseMode && msg.timestamp) {
+                    if (index === 0) {
+                        showTimeFlag = true;
+                    } else {
+                        const prev = msgs[index - 1];
+                        if (!prev || !prev.timestamp) {
+                            showTimeFlag = true;
+                        } else {
+                            // 使用简单的数值比对代替消耗性能的 toDateString() 降低开销
+                            const d1 = new Date(msg.timestamp);
+                            const d2 = new Date(prev.timestamp);
+                            if (d1.getFullYear() !== d2.getFullYear() || 
+                                d1.getMonth() !== d2.getMonth() || 
+                                d1.getDate() !== d2.getDate()) {
+                                showTimeFlag = true;
+                            }
+                        }
+                    }
+                }
+                
+                if (showTimeFlag) {
+                    dateStr = formatTime(msg.timestamp);
+                }
+
+                return {
+                    msg: msg,
+                    index: index,
+                    showTimeFlag: showTimeFlag,
+                    dateStr: dateStr
+                };
+            });
         });
 
         const selectedCount = Vue.computed(function () {
@@ -528,37 +579,6 @@ window.qqApp = {
                     errorMsg.value = '';
                 }
             }
-        };
-
-        const formatTime = function (ts) {
-            if (!ts) {
-                return '';
-            }
-            const d = new Date(ts);
-            return (d.getMonth() + 1) + '-' + d.getDate() + ' ' +
-                String(d.getHours()).padStart(2, '0') + ':' +
-                String(d.getMinutes()).padStart(2, '0');
-        };
-
-        const showTime = function (msg, index) {
-            const c = currentContact.value;
-            if (!c) return false;
-            
-            // 虚拟模式（关闭时间感知模式时），不要出现真实日期时间
-            if (!c.timeSenseMode) {
-                return false;
-            }
-
-            if (!msg.timestamp) return false;
-            if (index === 0) return true;
-
-            const prev = currentMessages.value[index - 1];
-            if (!prev || !prev.timestamp) return true;
-
-            // 真实时间感知模式时，每天只出现一次
-            const d1 = new Date(msg.timestamp);
-            const d2 = new Date(prev.timestamp);
-            return d1.toDateString() !== d2.toDateString();
         };
 
         let touchStartX = 0;
@@ -1076,7 +1096,6 @@ window.qqApp = {
                 replyToName: tempData.replyToName
             });
             
-            const text = tempData.content;
             const targetCharId = tempData.replyToCharId;
             modal.show = false;
             
@@ -1543,12 +1562,11 @@ window.qqApp = {
             openChatSettings: openChatSettings,
             deleteChat: deleteChat,
             formatTime: formatTime,
-            showTime: showTime,
+            enhancedMessages: enhancedMessages,
             getLastMsg: getLastMsg,
             openChat: openChat,
             currentContact: currentContact,
             currentUserCard: currentUserCard,
-            currentMessages: currentMessages,
             inputText: inputText,
             isTyping: isTyping,
             chatInputRef: chatInputRef,
