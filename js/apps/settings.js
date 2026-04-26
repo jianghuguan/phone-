@@ -1,5 +1,6 @@
 /* eslint-disable */
-/* global window, document, FileReader, Blob, URL, fetch, prompt, alert */
+/* eslint-env browser, es2021 */
+/* global window, document, FileReader, Blob, URL, fetch, prompt, alert, confirm */
 'use strict';
 
 window.settingsApp = {
@@ -71,7 +72,6 @@ window.settingsApp = {
     setup() {
         const store = window.store;
 
-        // 初始化缺失数据结构
         if (!store.apiSettings.draw) {
             store.apiSettings.draw = { url: '', key: '', model: '' };
         }
@@ -133,7 +133,7 @@ window.settingsApp = {
                 store.apiSettings[type].key = preset.key;
                 store.apiSettings[type].model = preset.model;
             }
-            event.target.value = ''; // 恢复默认选项
+            event.target.value = ''; 
         };
 
         const clearPresets = () => {
@@ -146,7 +146,7 @@ window.settingsApp = {
             const config = store.apiSettings[type];
             if (!config.url || !config.key) return alert('请先填写完整的URL和Key！');
             try {
-                let baseUrl = config.url.replace(/\/v1\/?$/, ''); // 防止重复v1
+                let baseUrl = config.url.replace(/\/v1\/?$/, ''); 
                 const res = await fetch(baseUrl + '/v1/models', {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${config.key}` }
