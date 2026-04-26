@@ -283,6 +283,7 @@ button:active,
     background: #fff;
 }
 
+/* QQ App */
 .qq-container {
     height: calc(100% - 25px);
     display: flex;
@@ -422,7 +423,7 @@ button:active,
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    max-width: 90%;
+    max-width: 90% !important; /* 变宽 */
 }
 
 .qq-msg-row.user {
@@ -704,4 +705,15 @@ button:active,
     border-radius: 12px;
     padding: 12px;
     margin-bottom: 10px;
+}
+
+/* 朋友圈刷新动画 */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.rotating {
+    display: inline-block;
+    animation: spin 1s linear infinite;
 }
