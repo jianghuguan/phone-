@@ -398,6 +398,11 @@ window.qqApp = {
                         </div>
 
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+                            <span style="font-size:14px; font-weight:bold;">读取朋友圈 (AI回复时参考)</span>
+                            <input type="checkbox" v-model="tempData.readMoments" style="width:20px; height:20px; margin:0; border:none;" />
+                        </div>
+
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
                             <span style="font-size:14px; font-weight:bold;">时间感知模式 (真实时间)</span>
                             <input type="checkbox" v-model="tempData.timeSenseMode" style="width:20px; height:20px; margin:0; border:none;" />
                         </div>
@@ -465,25 +470,24 @@ window.qqApp = {
     setup() {
         const store = window.store;
 
-        // 初始化兜底数据
         if (!store.qqData.theme) {
             store.qqData.theme = { msgListBg: null, chatBg: null, bubbleCss: '' };
         }
 
-        const customStyleHtml = Vue.computed(() => {
+        const customStyleHtml = Vue.computed(function () {
             return store.qqData.theme && store.qqData.theme.bubbleCss
                 ? `<style type="text/css">${store.qqData.theme.bubbleCss}</style>`
                 : '';
         });
 
-        const msgListBgStyle = Vue.computed(() => {
+        const msgListBgStyle = Vue.computed(function () {
             const bg = store.qqData.theme?.msgListBg;
             return bg 
                 ? { backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center', padding: '10px' } 
                 : {};
         });
 
-        const chatBgStyle = Vue.computed(() => {
+        const chatBgStyle = Vue.computed(function () {
             const bg = store.qqData.theme?.chatBg;
             return bg 
                 ? { backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center', paddingTop: '10px' } 
@@ -542,6 +546,24 @@ window.qqApp = {
             return (d.getMonth() + 1) + '-' + d.getDate() + ' ' +
                 String(d.getHours()).padStart(2, '0') + ':' +
                 String(d.getMinutes()).padStart(2, '0');
+        };
+
+        // 提取最新聊天记录作为上下文辅助
+        const getRecentChatText = function (charId, turns) {
+            const msgs = store.qqData.messages[charId] || [];
+            const c = store.qqData.contacts.find(function (x) {
+                return x.id === charId;
+            });
+            if (!c) return '无';
+            const currentTurn = c.currentTurn || 0;
+            const startTurn = Math.max(1, currentTurn - turns + 1);
+            const recentMsgs = msgs.filter(function (m) {
+                return m.turn >= startTurn;
+            });
+            if (recentMsgs.length === 0) return '无最近聊天记录';
+            return recentMsgs.map(function (m) {
+                return (m.role === 'user' ? '我' : c.nickname) + ': ' + m.content;
+            }).join('\n');
         };
 
         const enhancedMessages = Vue.computed(function () {
@@ -758,6 +780,7 @@ window.qqApp = {
                     persona: tempData.persona,
                     avatar: null,
                     offlineMode: false,
+                    readMoments: false,
                     userCardId: store.qqData.userCards[0].id,
                     timeSenseMode: false,
                     virtualTimeStr: '',
@@ -916,8 +939,8 @@ window.qqApp = {
                             return (parseInt(a.split('.')[0]) || 0) - (parseInt(b.split('.')[0]) || 0);
                         });
                         mem = lines.join('\n');
-                        tempData.memory = mem; // 同步给UI
-                        c.memory = mem; // 同步给联系人数据
+                        tempData.memory = mem; 
+                        c.memory = mem; 
                         c.summarizedTurnCount = Math.max(c.summarizedTurnCount || 0, end);
                     } else {
                         throw new Error('API返回为空');
@@ -947,6 +970,7 @@ window.qqApp = {
                 avatar: c.avatar,
                 userCardId: c.userCardId || store.qqData.userCards[0].id,
                 offlineMode: c.offlineMode || false,
+                readMoments: c.readMoments || false,
                 timeSenseMode: c.timeSenseMode || false,
                 virtualTimeStr: c.virtualTimeStr || '',
                 nextOverrideTime: c.nextOverrideTime || '',
@@ -961,6 +985,7 @@ window.qqApp = {
                 c.persona = tempData.persona;
                 c.userCardId = tempData.userCardId;
                 c.offlineMode = tempData.offlineMode;
+                c.readMoments = tempData.readMoments;
                 c.avatar = tempData.avatar;
                 c.timeSenseMode = tempData.timeSenseMode;
                 c.nextOverrideTime = tempData.nextOverrideTime;
@@ -1307,16 +1332,20 @@ window.qqApp = {
                 return card.id === (c.userCardId || store.qqData.userCards[0].id);
             }) || store.qqData.userCards[0];
             
+            const recentChat = getRecentChatText(charId, 5);
+
             let historyStr = '';
             moment.comments.forEach(function(cmt) {
-                if (!cmt.isUser && cmt.charId === charId) {
-                    historyStr += c.nickname + '评论道：' + cmt.content + '\\n';
-                } else if (cmt.isUser && cmt.replyToCharId === charId) {
-                    historyStr += uCard.name + '回复' + c.nickname + '：' + cmt.content + '\\n';
-                }
+                let name = cmt.isUser ? uCard.name : getCharName(cmt.charId);
+                let replyStr = cmt.replyToName ? (' 回复 ' + cmt.replyToName) : '';
+                historyStr += name + replyStr + '：' + cmt.content + '\n';
             });
 
-            const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。\\n你的朋友' + uCard.name + '在 ' + formatTime(moment.timestamp) + ' 发了一条朋友圈：“' + moment.content + '”。\\n你们在评论区有如下互动：\\n' + historyStr + '\\n请根据最新回复情况，给出你顺承的二次回复（字数不超过30字，口语化，直接输出内容）。如果不打算再回复请直接输出“无”。';
+            const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。\n' +
+                '【你与该朋友的最新5回合聊天记录参考】\n' + recentChat + '\n\n' +
+                '你的朋友' + uCard.name + '在 ' + formatTime(moment.timestamp) + ' 发了一条朋友圈：“' + moment.content + '”。\n' +
+                '【当前评论区互动记录】\n' + historyStr + '\n' +
+                '请结合聊天记录与朋友圈互动情况，给出你顺承的二次回复（字数不超过30字，口语化，直接输出内容）。如果不打算再回复请直接输出“无”。';
 
             try {
                 const res = await fetch(apiConfig.url + '/v1/chat/completions', {
@@ -1342,7 +1371,7 @@ window.qqApp = {
                             isUser: false,
                             charId: c.id,
                             content: reply,
-                            replyToCharId: null,
+                            replyToCharId: 'user',
                             replyToName: uCard.name
                         });
                     }
@@ -1382,28 +1411,64 @@ window.qqApp = {
             const prob = contacts.length === 1 ? 1 : 0.5;
 
             const promises = contacts.map(async function (c) {
-                const hasCommented = latestMoment.comments.some(function (cmt) {
-                    return cmt.charId === c.id;
-                });
-                if (hasCommented) {
-                    return;
-                }
-
-                if (Math.random() > prob) {
-                    return;
-                }
-
-                if (Math.random() > 0.5) {
-                    if (latestMoment.likes.indexOf(c.id) === -1) {
-                        latestMoment.likes.push(c.id);
-                    }
-                }
-
                 const uCard = store.qqData.userCards.find(function (card) {
                     return card.id === (c.userCardId || store.qqData.userCards[0].id);
                 }) || store.qqData.userCards[0];
 
-                const prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。你的朋友' + uCard.name + '在 ' + formatTime(latestMoment.timestamp) + ' 发了一条朋友圈：“' + latestMoment.content + '”。请根据你的人设，给这条朋友圈写一条简短的评论（不要超过30字，口语化，直接输出评论内容。如果不想评论请直接输出“无”）。';
+                const userComments = latestMoment.comments.filter(function(cmt) { return cmt.isUser; });
+                const latestUserComment = userComments.length > 0 ? userComments[userComments.length - 1] : null;
+
+                let hasRepliedToLatestUserComment = false;
+                if (latestUserComment) {
+                    const idx = latestMoment.comments.lastIndexOf(latestUserComment);
+                    const subsequent = latestMoment.comments.slice(idx + 1);
+                    hasRepliedToLatestUserComment = subsequent.some(function(cmt) {
+                        return !cmt.isUser && cmt.charId === c.id;
+                    });
+                }
+
+                const hasCommentedAtAll = latestMoment.comments.some(function(cmt) {
+                    return cmt.charId === c.id && !cmt.replyToName; 
+                });
+
+                let action = null;
+                if (latestUserComment && !hasRepliedToLatestUserComment) {
+                    if (Math.random() <= prob) action = 'reply_user_comment';
+                } else if (!hasCommentedAtAll) {
+                    if (Math.random() <= prob) action = 'comment_post';
+                }
+
+                if (!action) {
+                    if (Math.random() > 0.5 && latestMoment.likes.indexOf(c.id) === -1) {
+                        latestMoment.likes.push(c.id);
+                    }
+                    return;
+                }
+
+                if (Math.random() > 0.5 && latestMoment.likes.indexOf(c.id) === -1) {
+                    latestMoment.likes.push(c.id);
+                }
+
+                const recentChat = getRecentChatText(c.id, 5);
+                let commentsHistory = latestMoment.comments.map(function(cmt) {
+                    let name = cmt.isUser ? uCard.name : getCharName(cmt.charId);
+                    let replyStr = cmt.replyToName ? (' 回复 ' + cmt.replyToName) : '';
+                    return name + replyStr + '：' + cmt.content;
+                }).join('\n');
+
+                let prompt = '你是' + c.name + '，昵称' + c.nickname + '。人设：' + c.persona + '。\n' +
+                '【你与该朋友的最新5回合聊天记录参考】\n' + recentChat + '\n\n' +
+                '你的朋友' + uCard.name + '在 ' + formatTime(latestMoment.timestamp) + ' 发了一条朋友圈：“' + latestMoment.content + '”。\n';
+
+                if (commentsHistory) {
+                    prompt += '【当前评论区记录】\n' + commentsHistory + '\n\n';
+                }
+
+                if (action === 'reply_user_comment') {
+                    prompt += '请结合你的人设、聊天记录以及评论区上下文，针对' + uCard.name + '的最新评论进行顺承回复（不要超过30字，口语化，直接输出回复内容。如果不想回复请直接输出“无”）。';
+                } else {
+                    prompt += '请根据你的人设和最近的聊天记录，给这条朋友圈写一条简短的评论（不要超过30字，口语化，直接输出评论内容。如果不想评论请直接输出“无”）。';
+                }
 
                 try {
                     const res = await fetch(apiConfig.url + '/v1/chat/completions', {
@@ -1429,8 +1494,8 @@ window.qqApp = {
                                 isUser: false,
                                 charId: c.id, 
                                 content: reply,
-                                replyToCharId: null,
-                                replyToName: null
+                                replyToCharId: action === 'reply_user_comment' ? 'user' : null,
+                                replyToName: action === 'reply_user_comment' ? uCard.name : null
                             });
                         }
                     }
@@ -1740,6 +1805,21 @@ window.qqApp = {
             // 提取记忆区并提示AI
             if (c.memory) {
                 sysPrompt += '\\n\\n【记忆区(过往聊天总结)】\\n' + c.memory + '\\n(重要：请结合以上记忆区内容和接下来的最新未总结聊天记录进行连贯回复)';
+            }
+
+            // 如果勾选了读取朋友圈参考
+            if (c.readMoments && store.qqData.moments && store.qqData.moments.length > 0) {
+                const latestMoment = store.qqData.moments[0];
+                let momentStr = '【用户的朋友圈动态】\\n内容：“' + latestMoment.content + '”\\n';
+                if (latestMoment.comments && latestMoment.comments.length > 0) {
+                    momentStr += '评论区互动：\\n';
+                    latestMoment.comments.forEach(function(cmt) {
+                        let name = cmt.isUser ? uCard.name : getCharName(cmt.charId);
+                        let replyStr = cmt.replyToName ? (' 回复 ' + cmt.replyToName) : '';
+                        momentStr += name + replyStr + '：' + cmt.content + '\\n';
+                    });
+                }
+                sysPrompt += '\\n\\n' + momentStr + '\\n(重要提示：以上是该用户最新发布的朋友圈及评论区互动，你可以结合你的人设，在接下来的聊天中自然地提及或参考相关内容)';
             }
 
             if (c.offlineMode) {
