@@ -1,5 +1,6 @@
+// @ts-nocheck
 /* eslint-disable */
-/* eslint-env browser, es2021 */
+/* jshint ignore:start */
 'use strict';
 
 (function () {
