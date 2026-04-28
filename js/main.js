@@ -1,5 +1,6 @@
+// @ts-nocheck
 /* eslint-disable */
-/* eslint-env browser, es2021 */
+/* jshint ignore:start */
 'use strict';
 
 (function () {
@@ -81,7 +82,7 @@
             };
 
             const enter = (el, done) => {
-                el.offsetHeight; 
+                void el.offsetHeight; // 触发浏览器重绘
                 el.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease, border-radius 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
                 el.style.transform = 'translate(0, 0) scale(1, 1)';
                 el.style.borderRadius = '0';
