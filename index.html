@@ -13,45 +13,44 @@
 </head>
 <body>
     <div id="app">
-        <!-- DB 数据加载中的遮罩 -->
-        <div v-if="!isStoreLoaded" style="position:absolute; top:0; left:0; width:100%; height:100%; background:#fff; z-index:9999; display:flex; align-items:center; justify-content:center; color:#999; font-size:14px; font-weight:bold;">
-            读取数据中...
-        </div>
-
-        <template v-else>
-            <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
-                <span class="time">{{ time }}</span>
-                <div class="dynamic-island"></div>
-                <div class="battery">
-                    <span class="battery-text">{{ battery }}%</span>
-                    <div class="battery-icon">
-                        <div class="battery-level" :style="{ width: battery + '%' }"></div>
-                    </div>
+        <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
+            <span class="time">{{ time }}</span>
+            <div class="dynamic-island"></div>
+            <div class="battery">
+                <span class="battery-text">{{ battery }}%</span>
+                <div class="battery-icon">
+                    <div class="battery-level" :style="{ width: battery + '%' }"></div>
                 </div>
             </div>
+        </div>
 
-            <!-- 独立出来的背景层，用于单独处理放大动效 -->
-            <div class="desktop-bg" 
-                :class="{ 'is-zoomed': store.currentApp }" 
-                :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' }">
-            </div>
-
+        <div
+            class="desktop"
+            :class="{ 'desktop-app-active': desktopAppActive }"
+        >
             <div
-                id="desktop-grid"
-                class="desktop"
-                :class="{ 'is-shrunk': store.currentApp }"
-            >
+                class="desktop-bg-layer"
+                :style="{
+                    backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none'
+                }"
+            ></div>
+
+            <div id="desktop-grid" class="desktop-content-layer">
                 <div
                     v-for="item in store.desktopItems"
                     :key="item.id"
-                    :class="{ 'widget-box': item.type === 'widget', 'app-icon': item.type === 'app' }"
+                    :data-app-id="item.type === 'app' ? item.id : null"
+                    :class="[
+                        item.type === 'widget' ? 'widget-box' : 'app-icon',
+                        item.type === 'app' ? 'app-launcher' : ''
+                    ]"
                     :style="item.type === 'widget'
                         ? {
                             gridColumn: 'span ' + item.span.split('/')[0].trim(),
                             gridRow: 'span ' + item.span.split('/')[1].trim()
                         }
                         : {}"
-                    @click="item.type === 'app' ? openApp(item.id, $event) : null"
+                    @click="item.type === 'app' ? openApp(item.id, $event.currentTarget) : null"
                 >
                     <div
                         v-if="item.widgetType === 'time'"
@@ -96,27 +95,20 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- 使用 JS 挂钩代替原纯 CSS 滑动动画 -->
-            <transition 
-                @before-enter="beforeEnter" 
-                @enter="enter" 
-                @leave="leave"
-                :css="false"
+        <div v-show="store.currentApp" id="app-view-panel" class="app-view">
+            <component :is="store.currentApp" v-if="store.currentApp"></component>
+            <div
+                class="home-indicator-wrapper"
+                @touchstart="homeTouchStart"
+                @touchmove="homeTouchMove"
+                @touchend="homeTouchEnd"
+                @click="closeApp"
             >
-                <div v-show="store.currentApp" class="app-view">
-                    <component :is="store.currentApp" v-if="store.currentApp"></component>
-                    <div
-                        class="home-indicator-wrapper"
-                        @touchstart="homeTouchStart"
-                        @touchmove="homeTouchMove"
-                        @touchend="homeTouchEnd"
-                    >
-                        <div class="home-indicator"></div>
-                    </div>
-                </div>
-            </transition>
-        </template>
+                <div class="home-indicator"></div>
+            </div>
+        </div>
     </div>
 
     <script src="./js/store.js"></script>
