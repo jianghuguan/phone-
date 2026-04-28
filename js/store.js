@@ -1,9 +1,9 @@
-// @ts-nocheck
 /* eslint-disable */
-/* jshint ignore:start */
+/* eslint-env browser, es2021 */
+// @ts-nocheck
 'use strict';
 
-(function () {
+;(function () {
     const defaultDesktopItems = [
         { type: 'widget', widgetType: 'time', id: 'timeWidget_1', name: '时钟天气', span: '4 / 2', bgImage: null },
         { type: 'widget', widgetType: 'photo', id: 'photoWidget_1', name: '照片墙', span: '2 / 2', bgImage: null },
@@ -51,14 +51,16 @@
     const initDB = function () {
         return new Promise(function (resolve, reject) {
             const req = window.indexedDB.open(DB_NAME, 1);
-            req.onupgradeneeded = function (e) {
-                e.target.result.createObjectStore(STORE_NAME);
+            
+            // 规避 GitHub linter 对 e.target.result 的误判，直接使用 req.result
+            req.onupgradeneeded = function () {
+                req.result.createObjectStore(STORE_NAME);
             };
-            req.onsuccess = function (e) {
-                resolve(e.target.result);
+            req.onsuccess = function () {
+                resolve(req.result);
             };
-            req.onerror = function (e) {
-                reject(e.target.error);
+            req.onerror = function () {
+                reject(req.error);
             };
         });
     };
@@ -72,11 +74,11 @@
             req.onsuccess = function () {
                 let parsed = null;
                 if (req.result) {
-                    try { parsed = JSON.parse(req.result); } catch (e) { console.error(e); }
+                    try { parsed = JSON.parse(req.result); } catch (err) { window.console.error(err); }
                 } else {
                     const oldData = window.localStorage.getItem('myPhoneData');
                     if (oldData) {
-                        try { parsed = JSON.parse(oldData); } catch (e) { console.error(e); }
+                        try { parsed = JSON.parse(oldData); } catch (err) { window.console.error(err); }
                     }
                 }
                 
@@ -99,16 +101,16 @@
                         const dbConn = await initDB();
                         const writeTx = dbConn.transaction(STORE_NAME, 'readwrite');
                         writeTx.objectStore(STORE_NAME).put(JSON.stringify(newState), 'myPhoneData');
-                    } catch (e) {
-                        console.warn('IDB Save failed', e);
+                    } catch (err) {
+                        window.console.warn('IDB Save failed', err);
                     }
                 }, { deep: true });
             };
             req.onerror = function () { 
                 window.isStoreLoaded.value = true; 
             };
-        } catch (e) {
-            console.error('IDB load error', e);
+        } catch (err) {
+            window.console.error('IDB load error', err);
             window.isStoreLoaded.value = true;
         }
     };
