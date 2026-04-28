@@ -69,44 +69,45 @@ window.qqApp = {
                                 <div style="position:relative;">
                                     <div v-if="activeMsgMenu === item.index" class="msg-menu" @touchstart.stop>
                                         <span @click.stop="toggleSelectMsg(item.index)">选择</span>
-                                        <span v-if="!item.msg.type || item.msg.type === 'text'" @click.stop="replyMsg(item.index)">回复</span>
+                                        <span @click.stop="replyMsg(item.index)">回复</span>
                                     </div>
 
                                     <div
                                         class="qq-msg-bubble"
-                                        :style="item.msg.type === 'image' || item.msg.type === 'transfer' ? { padding: '0', background: 'transparent', boxShadow: 'none' } : {}"
-                                        :class="{ 'selected-msg': isSelected(item.index) }"
-                                        @click.stop="handleMsgClick(item.index, item.msg)"
+                                        :class="{ 'selected-msg': isSelected(item.index), 'custom-bubble': item.msg.type && item.msg.type !== 'text' }"
+                                        :style="(item.msg.type && item.msg.type !== 'text') ? 'padding:0; background:transparent; box-shadow:none;' : ''"
+                                        @click.stop="handleMsgClick(item.index)"
                                         @touchstart.stop="onMsgTs($event, item.index)"
                                         @touchend.stop="onMsgTe"
                                         @touchmove.stop="onMsgTm"
                                     >
-                                        <div v-if="item.msg.quote" class="quote-box">{{ item.msg.quote }}</div>
-                                        
-                                        <!-- 文本消息 -->
                                         <template v-if="!item.msg.type || item.msg.type === 'text'">
+                                            <div v-if="item.msg.quote" class="quote-box">{{ item.msg.quote }}</div>
                                             {{ item.msg.content }}
                                         </template>
 
-                                        <!-- 转账消息 -->
                                         <template v-else-if="item.msg.type === 'transfer'">
-                                            <div style="background:#f39c12; color:#fff; border-radius:8px; padding:10px; width:200px; box-sizing:border-box;">
-                                                <div style="display:flex; align-items:center; margin-bottom:8px;">
-                                                    <div style="width:32px; height:32px; background:rgba(255,255,255,0.2); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:10px; flex-shrink:0;">¥</div>
-                                                    <div style="overflow:hidden;">
-                                                        <div style="font-size:16px; font-weight:bold; margin-bottom:2px;">¥{{ item.msg.transferData.amount }}</div>
-                                                        <div style="font-size:12px; opacity:0.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ item.msg.transferData.memo }}</div>
+                                            <div @click.stop="handleTransferClick(item.msg)" style="background:#ff9800; color:#fff; padding:12px 16px; border-radius:12px; width:200px; display:flex; flex-direction:column; gap:6px;">
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <div style="width:36px; height:36px; background:rgba(255,255,255,0.2); border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:18px;">💸</div>
+                                                    <div style="flex:1; overflow:hidden;">
+                                                        <div style="font-size:16px; font-weight:bold;">¥ {{ item.msg.amount }}</div>
+                                                        <div style="font-size:12px; opacity:0.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ item.msg.transferMsg }}</div>
                                                     </div>
                                                 </div>
-                                                <div style="font-size:11px; border-top:1px solid rgba(255,255,255,0.2); padding-top:6px;">
-                                                    QQ转账 - {{ item.msg.transferData.status === 'pending' ? (item.msg.role === 'ai' ? '点击收款' : '待对方收款') : (item.msg.transferData.status === 'received' ? '已收款' : '已退回') }}
+                                                <div style="font-size:11px; margin-top:4px; border-top:1px solid rgba(255,255,255,0.2); padding-top:6px;">
+                                                    {{ item.msg.transferStatus === 1 ? '已收款' : (item.msg.transferStatus === 2 ? '已退回' : 'QQ转账') }}
                                                 </div>
                                             </div>
                                         </template>
 
-                                        <!-- 图片消息 -->
                                         <template v-else-if="item.msg.type === 'image'">
-                                            <img :src="item.msg.imageUrl" style="max-width:200px; border-radius:8px; display:block; border:1px solid #eee;" />
+                                            <img v-if="item.msg.imageUrl" :src="item.msg.imageUrl" style="max-width:200px; border-radius:12px; display:block;" />
+                                            <div v-else style="background:#eee; padding:20px; text-align:center; color:#666; border-radius:12px; width:150px; border:1px solid #ddd;">
+                                                <div style="font-size:32px; margin-bottom:8px;">🖼️</div>
+                                                <div style="font-size:12px;">{{ item.msg.imageDesc }}</div>
+                                                <div style="font-size:10px; color:#999; margin-top:5px;">(文字版图片)</div>
+                                            </div>
                                         </template>
                                     </div>
                                 </div>
@@ -132,7 +133,7 @@ window.qqApp = {
                             {{ !currentContact.avatar ? currentContact.nickname[0] : '' }}
                         </div>
                         <div class="msg-bubble-container">
-                            <div class="qq-msg-bubble typing-anim">对方正在输入中...</div>
+                            <div class="qq-msg-bubble typing-anim">正在输入中...</div>
                         </div>
                     </div>
                 </div>
@@ -148,34 +149,32 @@ window.qqApp = {
                         >×</span>
                     </div>
 
-                    <div class="qq-input-bar">
-                        <button @click="showPlusMenu = !showPlusMenu" style="width:32px; height:32px; border-radius:50%; font-size:24px; line-height:28px; padding:0; margin-right:10px; border:1px solid #ccc !important;">+</button>
+                    <div class="qq-input-bar" style="gap: 8px;">
                         <textarea
                             v-model="inputText"
                             @input="adjustHeight"
-                            @focus="showPlusMenu = false"
                             @keydown.enter.prevent="handleEnter"
                             ref="chatInputRef"
                             rows="1"
                             placeholder="输入文字..."
+                            style="margin-right: 0;"
                         ></textarea>
-                        <button @click="handleAiBtnClick">{{ inputText.trim() ? '发送' : 'AI' }}</button>
+                        <button @click="showPlusPanel = !showPlusPanel" style="width:36px; height:36px; padding:0; border-radius:50%; font-size:20px; line-height:1; flex-shrink:0;">+</button>
+                        <button @click="handleAiBtnClick" style="margin:0; flex-shrink:0;">{{ inputText.trim() ? '发送' : 'AI' }}</button>
                     </div>
 
-                    <!-- 扩展菜单 (转账、照片) -->
-                    <div v-show="showPlusMenu" style="display:flex; gap:15px; padding:15px 20px; background:#f9f9f9; border-top:1px solid #eee;">
-                        <div @click="openTransferModal" style="display:flex; flex-direction:column; align-items:center; cursor:pointer;">
-                            <div style="width:50px; height:50px; background:#fff; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; border:1px solid #e0e0e0;">转账</div>
+                    <!-- 加号展开面板 -->
+                    <div v-if="showPlusPanel" style="padding:15px 25px; background:#f7f7f7; display:flex; gap:25px; border-top:1px solid #eee;">
+                        <div @click="openTransferModal" style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;">
+                            <div style="width:55px; height:55px; background:#fff; border-radius:14px; display:flex; justify-content:center; align-items:center; font-size:28px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">💸</div>
+                            <span style="font-size:12px; color:#666;">转账</span>
                         </div>
-                        <div @click="triggerUpload('qq_chat_img')" style="display:flex; flex-direction:column; align-items:center; cursor:pointer;">
-                            <div style="width:50px; height:50px; background:#fff; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; border:1px solid #e0e0e0;">相册</div>
-                        </div>
-                        <div @click="openDrawModal" style="display:flex; flex-direction:column; align-items:center; cursor:pointer;">
-                            <div style="width:50px; height:50px; background:#fff; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; border:1px solid #e0e0e0;">AI绘图</div>
+                        <div @click="openPhotoMenu" style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;">
+                            <div style="width:55px; height:55px; background:#fff; border-radius:14px; display:flex; justify-content:center; align-items:center; font-size:28px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">🖼️</div>
+                            <span style="font-size:12px; color:#666;">照片</span>
                         </div>
                     </div>
                 </div>
-                <input type="file" id="qq_chat_img" accept="image/*" style="display:none" @change="handleChatImgUpload" />
             </div>
 
             <!-- 主页消息列表等，应用消息列表背景 -->
@@ -373,6 +372,16 @@ window.qqApp = {
                             <div style="color:#666; font-size:15px; margin-bottom:15px;">我的零钱</div>
                             <div style="font-size:40px; font-weight:bold;">¥ {{ store.qqData.wallet.balance.toFixed(2) }}</div>
                         </div>
+                        <div style="background:#fff; padding: 15px 20px;">
+                            <div style="font-weight:bold; margin-bottom:10px;">账单记录</div>
+                            <div v-for="(rec, idx) in store.qqData.wallet.history.slice().reverse()" :key="idx" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f0f0f0;">
+                                <div>
+                                    <div style="font-size:14px; margin-bottom:4px;">{{ rec.desc }}</div>
+                                    <div style="font-size:12px; color:#999;">{{ formatTime(rec.time) }}</div>
+                                </div>
+                                <div style="font-weight:bold; font-size:16px;" :style="rec.amount.startsWith('+') ? 'color:#34c759;' : 'color:#000;'">{{ rec.amount }}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -387,10 +396,10 @@ window.qqApp = {
                 </div>
             </div>
 
-            <!-- 全局弹窗 -->
+            <!-- 联系人及功能弹窗 -->
             <div class="qq-modal-overlay" v-if="modal.show" style="z-index: 2500;">
                 <div class="qq-modal" style="max-height:85vh; overflow-y:auto; padding-bottom:15px;">
-                    <h3 v-if="modal.title" style="margin-bottom:18px; text-align:center; font-size:16px;">{{ modal.title }}</h3>
+                    <h3 style="margin-bottom:18px; text-align:center; font-size:16px;">{{ modal.title }}</h3>
 
                     <template v-if="modal.type === 'char'">
                         <input v-model="tempData.name" placeholder="真实姓名 (必填)" />
@@ -404,38 +413,6 @@ window.qqApp = {
                     
                     <template v-if="modal.type === 'moment_comment'">
                         <textarea v-model="tempData.content" placeholder="输入评论内容..." rows="4"></textarea>
-                    </template>
-
-                    <!-- 转账发起弹窗 -->
-                    <template v-if="modal.type === 'transfer_send'">
-                        <input type="number" v-model="tempData.transferAmount" placeholder="转账金额 (例如: 50.00)" />
-                        <input type="text" v-model="tempData.transferMemo" maxlength="12" placeholder="转账留言 (最多12字)" />
-                    </template>
-
-                    <!-- 收到AI转账的操作弹窗 -->
-                    <template v-if="modal.type === 'transfer_action'">
-                        <div style="text-align:center; margin-bottom:25px; margin-top:10px;">
-                            <div style="font-size:32px; font-weight:bold; margin-bottom:8px; color:#f39c12;">¥{{ tempData.transferMsg.transferData.amount }}</div>
-                            <div style="color:#666; font-size:14px;">{{ tempData.transferMsg.transferData.memo }}</div>
-                        </div>
-                        <div style="display:flex; gap:12px;">
-                            <button @click="handleTransferReceive" style="flex:1; background:#f39c12 !important; color:#fff !important; border:none !important;">收款</button>
-                            <button @click="handleTransferReturn" style="flex:1;">退回</button>
-                        </div>
-                    </template>
-
-                    <!-- 照片描述弹窗 -->
-                    <template v-if="modal.type === 'image_desc'">
-                        <img :src="tempData.imageLocalUrl" style="width:100%; max-height:200px; object-fit:contain; border-radius:8px; margin-bottom:12px;" />
-                        <input type="text" v-model="tempData.imageDesc" placeholder="请输入图片的文字描述 (便于AI理解画面)" />
-                    </template>
-
-                    <!-- 绘制图片弹窗 -->
-                    <template v-if="modal.type === 'draw_image'">
-                        <textarea v-model="tempData.drawPrompt" placeholder="输入提示词调用绘图API生成图片" rows="3"></textarea>
-                        <button @click="doUserDraw" style="width:100%; padding:10px; margin-bottom:15px; background:#000 !important; color:#fff !important;">生成图片</button>
-                        <div v-if="tempData.isDrawing" style="text-align:center; padding:20px; font-size:14px; color:#666;">正在调用API绘制中，请稍候...</div>
-                        <img v-if="tempData.drawResultUrl" :src="tempData.drawResultUrl" style="width:100%; max-height:200px; object-fit:contain; border-radius:8px; margin-bottom:10px;" />
                     </template>
 
                     <template v-if="modal.type === 'chat_settings'">
@@ -477,8 +454,8 @@ window.qqApp = {
                         </div>
 
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
-                            <span style="font-size:14px; font-weight:bold;">允许 Char 调用绘图 API</span>
-                            <input type="checkbox" v-model="tempData.allowDraw" style="width:20px; height:20px; margin:0; border:none;" />
+                            <span style="font-size:14px; font-weight:bold;">允许调用绘图 API 发图</span>
+                            <input type="checkbox" v-model="tempData.allowDrawApi" style="width:20px; height:20px; margin:0; border:none;" />
                         </div>
 
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
@@ -538,10 +515,55 @@ window.qqApp = {
                         <textarea v-model="tempData.signature" placeholder="个性签名" rows="2"></textarea>
                     </template>
 
-                    <div class="qq-modal-btns" style="margin-top:20px;" v-if="modal.type !== 'transfer_action'">
+                    <!-- 转账面板 -->
+                    <template v-if="modal.type === 'transfer_send'">
+                        <div style="text-align:center; padding: 10px 0 20px;">
+                            <div style="font-size:40px; margin-bottom:10px;">💸</div>
+                            <input v-model.number="tempData.amount" type="number" placeholder="¥ 0.00" style="text-align:center; font-size:24px; font-weight:bold; height:50px;" />
+                            <input v-model="tempData.transferMsg" placeholder="添加转账说明 (最多12字)" maxlength="12" style="text-align:center;" />
+                            <div style="font-size:12px; color:#999; margin-top:10px;">当前余额: ¥ {{ store.qqData.wallet.balance.toFixed(2) }}</div>
+                        </div>
+                    </template>
+
+                    <!-- 收到AI转账操作界面 -->
+                    <template v-if="modal.type === 'transfer_action'">
+                        <div style="text-align:center; padding: 20px 0;">
+                            <div style="font-size:32px; font-weight:bold; margin-bottom:10px;">¥ {{ tempData.targetMsg.amount }}</div>
+                            <div style="color:#666; margin-bottom:25px;">{{ tempData.targetMsg.transferMsg }}</div>
+                            <div style="display:flex; gap:15px; justify-content:center;">
+                                <button @click="processTransfer(1)" style="flex:1; background:#34c759 !important; color:#fff !important; border:none !important; padding:12px;">收款</button>
+                                <button @click="processTransfer(2)" style="flex:1; background:#ff3b30 !important; color:#fff !important; border:none !important; padding:12px;">退回</button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- 照片选择面板 -->
+                    <template v-if="modal.type === 'photo_menu'">
+                        <button @click="openAlbumUpload" style="width:100%; padding:15px; margin-bottom:10px; font-size:16px;">从相册选取</button>
+                        <button @click="openPhotoDraw" style="width:100%; padding:15px; font-size:16px;">AI 绘图并发送</button>
+                    </template>
+
+                    <!-- 相册选取面板 -->
+                    <template v-if="modal.type === 'album_upload'">
+                        <input type="file" accept="image/*" @change="handleImgUpload($event, 'temp_album_img')" style="display:block; padding:10px 0;" />
+                        <div v-if="tempData.previewUrl" style="margin: 15px 0; text-align:center;">
+                            <img :src="tempData.previewUrl" style="max-width:100%; max-height:200px; border-radius:8px;" />
+                        </div>
+                        <textarea v-model="tempData.imageDesc" placeholder="输入图片的文字描述 (必填，供AI理解该画面内容)" rows="3"></textarea>
+                    </template>
+
+                    <!-- AI 绘图发送面板 -->
+                    <template v-if="modal.type === 'photo_draw'">
+                        <textarea v-model="tempData.prompt" placeholder="输入你想绘制的画面提示词..." rows="3"></textarea>
+                        <button @click="executeDraw" style="width:100%; margin-bottom:15px; background:#007aff !important; color:#fff !important; border:none !important;">{{ tempData.isDrawing ? '绘图中...' : '开始绘图' }}</button>
+                        <div v-if="tempData.previewUrl" style="margin: 10px 0; text-align:center;">
+                            <img :src="tempData.previewUrl" style="max-width:100%; max-height:200px; border-radius:8px;" />
+                        </div>
+                    </template>
+
+                    <div class="qq-modal-btns" style="margin-top:20px;" v-if="modal.type !== 'transfer_action' && modal.type !== 'photo_menu'">
                         <button @click="modal.show = false">取消</button>
-                        <!-- 绘图时如果还没有结果，不显示发送按钮 -->
-                        <button v-if="!(modal.type === 'draw_image' && !tempData.drawResultUrl)" @click="modal.confirm">{{ modal.type === 'draw_image' ? '发送图片' : '确定' }}</button>
+                        <button @click="modal.confirm" v-if="modal.confirm">确定</button>
                     </div>
                 </div>
             </div>
@@ -552,9 +574,6 @@ window.qqApp = {
 
         if (!store.qqData.theme) {
             store.qqData.theme = { msgListBg: null, chatBg: null, bubbleCss: '' };
-        }
-        if (!store.qqData.wallet) {
-            store.qqData.wallet = { balance: 1000, history: [] };
         }
 
         const customStyleHtml = Vue.computed(function () {
@@ -573,8 +592,8 @@ window.qqApp = {
         const chatBgStyle = Vue.computed(function () {
             const bg = store.qqData.theme?.chatBg;
             return bg 
-                ? { backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center', paddingBottom: '10px' } 
-                : { paddingBottom: '10px' };
+                ? { backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center', paddingTop: '10px' } 
+                : { paddingTop: '10px' };
         });
 
         const currentTab = Vue.ref('messages');
@@ -592,8 +611,6 @@ window.qqApp = {
         const isTyping = Vue.ref(false);
         const chatInputRef = Vue.ref(null);
         const quotedMsgText = Vue.ref('');
-        
-        const showPlusMenu = Vue.ref(false);
 
         const activeMsgMenu = Vue.ref(null);
         const selectMode = Vue.ref(false);
@@ -602,6 +619,8 @@ window.qqApp = {
         const showMomentsMenu = Vue.ref(false);
         const isRefreshingMoments = Vue.ref(false);
         const activeMomentAction = Vue.ref(null);
+
+        const showPlusPanel = Vue.ref(false);
 
         if (!store.qqData.moments) {
             store.qqData.moments = [];
@@ -646,7 +665,13 @@ window.qqApp = {
             });
             if (recentMsgs.length === 0) return '无最近聊天记录';
             return recentMsgs.map(function (m) {
-                return (m.role === 'user' ? '我' : c.nickname) + ': ' + m.content;
+                let text = m.content;
+                if (m.type === 'transfer') {
+                    text = `[QQ转账] 金额:${m.amount} 状态:${m.transferStatus===0?'未领':(m.transferStatus===1?'已收款':'已退回')}`;
+                } else if (m.type === 'image') {
+                    text = `[QQ图片] 画面:${m.imageDesc}`;
+                }
+                return (m.role === 'user' ? '我' : c.nickname) + ': ' + text;
             }).join('\n');
         };
 
@@ -728,7 +753,6 @@ window.qqApp = {
             if (el) {
                 el.click();
             }
-            showPlusMenu.value = false;
         };
 
         const showError = function (msg) {
@@ -809,7 +833,9 @@ window.qqApp = {
 
         const handleImgUpload = function (event, targetField) {
             const file = event.target.files && event.target.files[0];
-            if (!file) return;
+            if (!file) {
+                return;
+            }
 
             const reader = new FileReader();
             reader.onload = function (e) {
@@ -835,6 +861,8 @@ window.qqApp = {
                         tempData.avatar = b64;
                     } else if (targetField === 'chat_temp_avatar') {
                         tempData.avatar = b64;
+                    } else if (targetField === 'temp_album_img') {
+                        tempData.previewUrl = b64;
                     } else {
                         store.qqData.profile[targetField] = b64;
                     }
@@ -844,181 +872,6 @@ window.qqApp = {
             reader.readAsDataURL(file);
             event.target.value = '';
         };
-
-        // --- 照片发送流程 ---
-        const handleChatImgUpload = function(event) {
-            const file = event.target.files && event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    let w = img.width;
-                    let h = img.height;
-                    if (w > 1000) { h = Math.round(h * 1000 / w); w = 1000; }
-                    canvas.width = w; canvas.height = h;
-                    ctx.drawImage(img, 0, 0, w, h);
-                    
-                    const b64 = canvas.toDataURL('image/jpeg', 0.8);
-                    openImageDescModal(b64);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-            event.target.value = '';
-        };
-
-        const openImageDescModal = function(base64Url) {
-            modal.title = '发送照片';
-            modal.type = 'image_desc';
-            tempData.imageLocalUrl = base64Url;
-            tempData.imageDesc = '';
-            
-            modal.confirm = function() {
-                const desc = tempData.imageDesc || '未描述画面';
-                pushInteractiveMsg('image', `[发送了一张图片, 画面描述: ${desc}]`, { imageUrl: tempData.imageLocalUrl });
-                modal.show = false;
-            };
-            modal.show = true;
-        };
-
-        // --- 绘图流程 ---
-        const openDrawModal = function() {
-            showPlusMenu.value = false;
-            modal.title = 'AI 绘图并发送';
-            modal.type = 'draw_image';
-            tempData.drawPrompt = '';
-            tempData.drawResultUrl = null;
-            tempData.isDrawing = false;
-            
-            modal.confirm = function() {
-                if (tempData.drawResultUrl) {
-                    pushInteractiveMsg('image', `[发送了一张生成的图片, 画面描述: ${tempData.drawPrompt}]`, { imageUrl: tempData.drawResultUrl });
-                    modal.show = false;
-                }
-            };
-            modal.show = true;
-        };
-
-        const doUserDraw = async function() {
-            if (!tempData.drawPrompt) return showError('请输入提示词');
-            const drawConfig = store.apiSettings.draw;
-            if (!drawConfig || !drawConfig.url || !drawConfig.key) return showError('请先在设置App中配置绘图API');
-            
-            tempData.isDrawing = true;
-            try {
-                let baseUrl = drawConfig.url.replace(/\/v1\/?$/, '');
-                const res = await fetch(baseUrl + '/v1/images/generations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + drawConfig.key },
-                    body: JSON.stringify({
-                        model: drawConfig.model || 'dall-e-3',
-                        prompt: tempData.drawPrompt,
-                        n: 1, size: '1024x1024', response_format: 'b64_json'
-                    })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.data && data.data[0]) {
-                        tempData.drawResultUrl = data.data[0].b64_json ? ('data:image/png;base64,' + data.data[0].b64_json) : data.data[0].url;
-                    } else {
-                        showError('接口返回空图像');
-                    }
-                } else {
-                    showError('绘图请求失败: ' + res.status);
-                }
-            } catch(e) {
-                showError('绘图异常: ' + e.message);
-            } finally {
-                tempData.isDrawing = false;
-            }
-        };
-
-        // --- 转账流程 ---
-        const openTransferModal = function() {
-            showPlusMenu.value = false;
-            modal.title = '发起转账';
-            modal.type = 'transfer_send';
-            tempData.transferAmount = '';
-            tempData.transferMemo = '';
-
-            modal.confirm = function() {
-                const amt = parseFloat(tempData.transferAmount);
-                if (isNaN(amt) || amt <= 0) return showError('金额必须大于0');
-                if (amt > store.qqData.wallet.balance) return showError('零钱余额不足');
-                
-                const memo = tempData.transferMemo.trim() || '转账';
-                
-                // 扣费
-                store.qqData.wallet.balance -= amt;
-                store.qqData.wallet.history.unshift({ desc: `转账给 ${currentContact.value.nickname}`, amount: `-${amt.toFixed(2)}`, time: Date.now() });
-                
-                // 为了顺畅，用户给AI发转账默认直接标记为已收款 (AI侧不用点)
-                pushInteractiveMsg('transfer', `[发起转账: ${amt}元, 留言: ${memo}]`, {
-                    transferData: { amount: amt, memo: memo, status: 'received' }
-                });
-                modal.show = false;
-            };
-            modal.show = true;
-        };
-
-        const handleTransferClick = function(msg) {
-            if (selectMode.value) return;
-            if (msg.type === 'transfer' && msg.role === 'ai' && msg.transferData.status === 'pending') {
-                modal.title = '';
-                modal.type = 'transfer_action';
-                tempData.transferMsg = msg;
-                modal.show = true;
-            }
-        };
-
-        const handleTransferReceive = function() {
-            if (!tempData.transferMsg) return;
-            const amt = parseFloat(tempData.transferMsg.transferData.amount);
-            store.qqData.wallet.balance += amt;
-            store.qqData.wallet.history.unshift({ desc: `收到 ${currentContact.value.nickname} 的转账`, amount: `+${amt.toFixed(2)}`, time: Date.now() });
-            
-            tempData.transferMsg.transferData.status = 'received';
-            // 添加一条系统底层提示告诉 AI 已经被领了
-            pushInteractiveMsg('text', `[已收款: ${amt}元]`, { isSystemInvisible: true }); 
-            modal.show = false;
-        };
-
-        const handleTransferReturn = function() {
-            if (!tempData.transferMsg) return;
-            tempData.transferMsg.transferData.status = 'returned';
-            pushInteractiveMsg('text', `[已退回转账: ${tempData.transferMsg.transferData.amount}元]`, { isSystemInvisible: true });
-            modal.show = false;
-        };
-
-        // 封装通用的特殊类型发送
-        const pushInteractiveMsg = function(type, contentText, extras) {
-            const c = currentContact.value;
-            if (!c) return;
-            if (typeof c.currentTurn === 'undefined') c.currentTurn = 0;
-            const history = store.qqData.messages[activeChatId.value] || [];
-            const lastMsg = history[history.length - 1];
-            if (!lastMsg || lastMsg.role === 'ai') c.currentTurn += 1;
-
-            if (extras && extras.isSystemInvisible) {
-                history.push({ role: 'user', type: 'text', content: contentText, timestamp: Date.now(), timeStr: getMsgTimeStr(c), turn: c.currentTurn });
-            } else {
-                const msgObj = {
-                    role: 'user',
-                    type: type,
-                    content: contentText,
-                    timestamp: Date.now(),
-                    timeStr: getMsgTimeStr(c),
-                    turn: c.currentTurn
-                };
-                if (extras) Object.assign(msgObj, extras);
-                history.push(msgObj);
-            }
-            scrollToBottom();
-        };
-
 
         const openAddModal = function () {
             modal.title = '创建AI好友';
@@ -1039,7 +892,7 @@ window.qqApp = {
                     avatar: null,
                     offlineMode: false,
                     readMoments: false,
-                    allowDraw: false,
+                    allowDrawApi: false,
                     userCardId: store.qqData.userCards[0].id,
                     timeSenseMode: false,
                     virtualTimeStr: '',
@@ -1129,6 +982,71 @@ window.qqApp = {
             modal.show = false;
         };
 
+        const openChatSettings = function () {
+            modal.title = '聊天设置';
+            modal.type = 'chat_settings';
+
+            const c = currentContact.value;
+            Object.assign(tempData, {
+                name: c.name,
+                nickname: c.nickname,
+                persona: c.persona,
+                avatar: c.avatar,
+                userCardId: c.userCardId || store.qqData.userCards[0].id,
+                offlineMode: c.offlineMode || false,
+                readMoments: c.readMoments || false,
+                allowDrawApi: typeof c.allowDrawApi !== 'undefined' ? c.allowDrawApi : false,
+                timeSenseMode: c.timeSenseMode || false,
+                virtualTimeStr: c.virtualTimeStr || '',
+                nextOverrideTime: c.nextOverrideTime || '',
+                memory: c.memory || ''
+            });
+
+            modal.confirm = function () {
+                const oldTimeSenseMode = c.timeSenseMode;
+
+                c.name = tempData.name;
+                c.nickname = tempData.nickname;
+                c.persona = tempData.persona;
+                c.userCardId = tempData.userCardId;
+                c.offlineMode = tempData.offlineMode;
+                c.readMoments = tempData.readMoments;
+                c.allowDrawApi = tempData.allowDrawApi;
+                c.avatar = tempData.avatar;
+                c.timeSenseMode = tempData.timeSenseMode;
+                c.nextOverrideTime = tempData.nextOverrideTime;
+                c.memory = tempData.memory;
+
+                if (!c.timeSenseMode) {
+                    if (oldTimeSenseMode) {
+                        const lastTime = getLastMessageTimeStr(c.id);
+                        if (lastTime) {
+                            c.virtualTimeStr = lastTime;
+                            c.timeLocked = true;
+                        } else if (!c.timeLocked) {
+                            c.virtualTimeStr = tempData.virtualTimeStr;
+                            if (c.virtualTimeStr) {
+                                c.timeLocked = true;
+                            }
+                        }
+                    } else if (!c.timeLocked) {
+                        c.virtualTimeStr = tempData.virtualTimeStr;
+                        if (c.virtualTimeStr) {
+                            c.timeLocked = true;
+                        }
+                    }
+                }
+
+                modal.show = false;
+            };
+
+            modal.show = true;
+
+            window.setTimeout(function() {
+                manualSummarize(null, true);
+            }, 300);
+        };
+
         const manualSummarize = async function (e, isAuto = false) {
             if (e && e.preventDefault) e.preventDefault();
             const c = currentContact.value;
@@ -1174,7 +1092,12 @@ window.qqApp = {
                 const blockMsgs = msgs.filter(function(m) { return m.turn >= start && m.turn <= end; });
                 if (blockMsgs.length === 0) continue;
 
-                let chatText = blockMsgs.map(function(m) { return (m.role === 'user' ? '我' : c.nickname) + ': ' + m.content; }).join('\n');
+                let chatText = blockMsgs.map(function(m) { 
+                    let text = m.content;
+                    if (m.type === 'transfer') text = '[转账操作]';
+                    if (m.type === 'image') text = '[发送了图片: ' + m.imageDesc + ']';
+                    return (m.role === 'user' ? '我' : c.nickname) + ': ' + text; 
+                }).join('\n');
                 if (chatText.length > 3000) chatText = chatText.slice(-3000);
 
                 let prompt = '请将以下聊天记录总结成一条不超过100字的概括，必须包含时间、地点、人物和发生的事情。直接输出总结内容，不要有多余解释废话。\n聊天记录：\n' + chatText;
@@ -1217,71 +1140,181 @@ window.qqApp = {
             }
         };
 
-        const openChatSettings = function () {
-            modal.title = '聊天设置';
-            modal.type = 'chat_settings';
-
-            const c = currentContact.value;
-            Object.assign(tempData, {
-                name: c.name,
-                nickname: c.nickname,
-                persona: c.persona,
-                avatar: c.avatar,
-                userCardId: c.userCardId || store.qqData.userCards[0].id,
-                offlineMode: c.offlineMode || false,
-                readMoments: c.readMoments || false,
-                allowDraw: c.allowDraw || false,
-                timeSenseMode: c.timeSenseMode || false,
-                virtualTimeStr: c.virtualTimeStr || '',
-                nextOverrideTime: c.nextOverrideTime || '',
-                memory: c.memory || ''
-            });
-
+        // ====== 转账与照片面板逻辑开始 ======
+        
+        const openTransferModal = function () {
+            showPlusPanel.value = false;
+            modal.title = '发起转账';
+            modal.type = 'transfer_send';
+            tempData.amount = '';
+            tempData.transferMsg = '';
+            
             modal.confirm = function () {
-                const oldTimeSenseMode = c.timeSenseMode;
+                const amt = parseFloat(tempData.amount);
+                if (isNaN(amt) || amt <= 0) return showError('请输入正确的金额');
+                if (amt > store.qqData.wallet.balance) return showError('余额不足');
+                
+                // 扣除余额并记录
+                store.qqData.wallet.balance -= amt;
+                store.qqData.wallet.history.push({
+                    desc: '转账给 ' + currentContact.value.nickname,
+                    amount: '-' + amt.toFixed(2),
+                    time: Date.now()
+                });
 
-                c.name = tempData.name;
-                c.nickname = tempData.nickname;
-                c.persona = tempData.persona;
-                c.userCardId = tempData.userCardId;
-                c.offlineMode = tempData.offlineMode;
-                c.readMoments = tempData.readMoments;
-                c.allowDraw = tempData.allowDraw;
-                c.avatar = tempData.avatar;
-                c.timeSenseMode = tempData.timeSenseMode;
-                c.nextOverrideTime = tempData.nextOverrideTime;
-                c.memory = tempData.memory;
-
-                if (!c.timeSenseMode) {
-                    if (oldTimeSenseMode) {
-                        const lastTime = getLastMessageTimeStr(c.id);
-                        if (lastTime) {
-                            c.virtualTimeStr = lastTime;
-                            c.timeLocked = true;
-                        } else if (!c.timeLocked) {
-                            c.virtualTimeStr = tempData.virtualTimeStr;
-                            if (c.virtualTimeStr) {
-                                c.timeLocked = true;
-                            }
-                        }
-                    } else if (!c.timeLocked) {
-                        c.virtualTimeStr = tempData.virtualTimeStr;
-                        if (c.virtualTimeStr) {
-                            c.timeLocked = true;
-                        }
-                    }
-                }
-
+                sendSpecialMsg({
+                    type: 'transfer',
+                    amount: amt.toFixed(2),
+                    transferMsg: tempData.transferMsg || '转账',
+                    transferStatus: 0 // 0:未领 1:收款 2:退回
+                });
                 modal.show = false;
             };
-
             modal.show = true;
-
-            // 打开后自动触发查缺补漏
-            window.setTimeout(function() {
-                manualSummarize(null, true);
-            }, 300);
         };
+
+        const handleTransferClick = function (msg) {
+            if (msg.role === 'user') return; 
+            if (msg.transferStatus !== 0) return; 
+
+            modal.title = '收到转账';
+            modal.type = 'transfer_action';
+            tempData.targetMsg = msg;
+            modal.show = true;
+        };
+
+        const processTransfer = function (status) {
+            const msg = tempData.targetMsg;
+            if (!msg || msg.transferStatus !== 0) return;
+            
+            msg.transferStatus = status;
+            
+            if (status === 1) {
+                const amt = parseFloat(msg.amount);
+                store.qqData.wallet.balance += amt;
+                store.qqData.wallet.history.push({
+                    desc: '收到 ' + currentContact.value.nickname + ' 的转账',
+                    amount: '+' + amt.toFixed(2),
+                    time: Date.now()
+                });
+                showError('已收款 ¥' + msg.amount);
+            } else {
+                showError('已退回转账');
+            }
+            modal.show = false;
+        };
+
+        const openPhotoMenu = function () {
+            showPlusPanel.value = false;
+            modal.title = '选择发图方式';
+            modal.type = 'photo_menu';
+            modal.show = true;
+        };
+
+        const openAlbumUpload = function () {
+            modal.title = '发送照片 (相册)';
+            modal.type = 'album_upload';
+            tempData.previewUrl = '';
+            tempData.imageDesc = '';
+            
+            modal.confirm = function () {
+                if (!tempData.previewUrl) return showError('请先选择图片');
+                if (!tempData.imageDesc.trim()) return showError('请填写图片描述词供AI理解');
+                
+                sendSpecialMsg({
+                    type: 'image',
+                    imageUrl: tempData.previewUrl,
+                    imageDesc: tempData.imageDesc.trim()
+                });
+                modal.show = false;
+            };
+        };
+
+        const openPhotoDraw = function () {
+            modal.title = 'AI 绘图发送';
+            modal.type = 'photo_draw';
+            tempData.prompt = '';
+            tempData.previewUrl = '';
+            tempData.isDrawing = false;
+            
+            modal.confirm = function () {
+                if (!tempData.previewUrl) return showError('请先生成绘图');
+                sendSpecialMsg({
+                    type: 'image',
+                    imageUrl: tempData.previewUrl,
+                    imageDesc: tempData.prompt
+                });
+                modal.show = false;
+            };
+        };
+
+        const callDrawApi = async function (promptText) {
+            const config = store.apiSettings.draw;
+            if (!config.url || !config.key) throw new Error('未配置绘图API，请前往设置');
+            
+            const res = await fetch(config.url + '/v1/images/generations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + config.key },
+                body: JSON.stringify({
+                    model: config.model || 'dall-e-3',
+                    prompt: promptText,
+                    n: 1,
+                    size: "1024x1024",
+                    response_format: "b64_json"
+                })
+            });
+            if (!res.ok) throw new Error('API 响应失败 (' + res.status + ')');
+            
+            const data = await res.json();
+            if (data.data && data.data[0]) {
+                if (data.data[0].b64_json) {
+                    return 'data:image/png;base64,' + data.data[0].b64_json;
+                } else if (data.data[0].url) {
+                    return data.data[0].url;
+                }
+            }
+            throw new Error('未返回图片数据');
+        };
+
+        const executeDraw = async function () {
+            if (!tempData.prompt.trim()) return showError('提示词不能为空');
+            tempData.isDrawing = true;
+            try {
+                const url = await callDrawApi(tempData.prompt);
+                tempData.previewUrl = url;
+                showError('绘图完成，确认即可发送');
+            } catch (e) {
+                showError(e.message);
+            } finally {
+                tempData.isDrawing = false;
+            }
+        };
+
+        const sendSpecialMsg = function (extraData) {
+            const c = currentContact.value;
+            if (typeof c.currentTurn === 'undefined') c.currentTurn = 0;
+            const history = store.qqData.messages[activeChatId.value] || [];
+            const lastMsg = history[history.length - 1];
+
+            if (!lastMsg || lastMsg.role === 'ai') c.currentTurn += 1;
+
+            let textContent = '';
+            if (extraData.type === 'transfer') textContent = `[转账] ¥${extraData.amount} 留言: ${extraData.transferMsg}`;
+            if (extraData.type === 'image') textContent = `[图片] 画面内容: ${extraData.imageDesc}`;
+
+            const newMsg = Object.assign({
+                role: 'user',
+                content: textContent,
+                timestamp: Date.now(),
+                timeStr: getMsgTimeStr(c),
+                turn: c.currentTurn
+            }, extraData);
+
+            store.qqData.messages[activeChatId.value].push(newMsg);
+            scrollToBottom();
+        };
+
+        // ====== 转账与照片面板逻辑结束 ======
 
         const deleteChat = function () {
             const id = activeChatId.value;
@@ -1298,21 +1331,20 @@ window.qqApp = {
         const getLastMsg = function (id) {
             const msgs = store.qqData.messages[id] || [];
             if (msgs.length === 0) return '暂无消息';
-            const last = msgs[msgs.length - 1];
-            if (last.type === 'transfer') return '[转账消息]';
-            if (last.type === 'image') return '[图片]';
-            return last.content;
+            const m = msgs[msgs.length - 1];
+            if (m.type === 'transfer') return '[转账]';
+            if (m.type === 'image') return '[图片]';
+            return m.content;
         };
 
         const openChat = function (id) {
             activeChatId.value = id;
             displayCount.value = 40; 
-            showPlusMenu.value = false;
+            showPlusPanel.value = false;
             
             const c = store.qqData.contacts.find(function(x){ return x.id === id; });
             const history = store.qqData.messages[id] || [];
             
-            // 老旧存档兼容：如果没有回合数，则自动补齐所有气泡的回合归属
             if (c && typeof c.currentTurn === 'undefined') {
                 let currentT = 0;
                 history.forEach(function (m, idx) {
@@ -1422,12 +1454,11 @@ window.qqApp = {
             activeMsgMenu.value = null;
         };
 
-        const handleMsgClick = function (index, msg) {
-            if (selectMode.value) {
-                toggleSelectMsg(index);
-            } else {
-                handleTransferClick(msg);
+        const handleMsgClick = function (index) {
+            if (!selectMode.value) {
+                return;
             }
+            toggleSelectMsg(index);
         };
 
         const cancelSelection = function () {
@@ -1454,10 +1485,13 @@ window.qqApp = {
 
         const replyMsg = function (index) {
             const msg = store.qqData.messages[activeChatId.value][index];
-            if (!msg || msg.type === 'transfer' || msg.type === 'image') {
+            if (!msg) {
                 return;
             }
-            quotedMsgText.value = msg.content.length > 40 ? msg.content.slice(0, 40) + '...' : msg.content;
+            let text = msg.content;
+            if (msg.type === 'transfer') text = '[转账消息]';
+            if (msg.type === 'image') text = '[图片消息]';
+            quotedMsgText.value = text.length > 40 ? text.slice(0, 40) + '...' : text;
             activeMsgMenu.value = null;
         };
 
@@ -1466,7 +1500,7 @@ window.qqApp = {
         };
 
         // ====== 朋友圈方法开始 ======
-
+        
         const getCharName = function (id) {
             const c = store.qqData.contacts.find(function (contact) {
                 return contact.id === id;
@@ -1547,7 +1581,7 @@ window.qqApp = {
         };
 
         const openReplyModal = function(m, cmt) {
-            if (cmt.isUser) return; // 不能自己回复自己的评论
+            if (cmt.isUser) return; 
             activeMomentAction.value = null;
             modal.title = '回复 ' + getCharName(cmt.charId);
             modal.type = 'moment_comment';
@@ -1894,7 +1928,7 @@ window.qqApp = {
                 const parsed = parseTimeStr(contact.nextOverrideTime);
                 if (parsed) {
                     firstTime = parsed;
-                    contact.nextOverrideTime = ''; 
+                    contact.nextOverrideTime = ''; // AI如果先回复，也会清空单次使用标识
                 }
             }
 
@@ -1967,7 +2001,12 @@ window.qqApp = {
                 const blockMsgs = msgs.filter(function(m) { return m.turn >= start && m.turn <= end; });
                 if (blockMsgs.length === 0) continue;
 
-                let chatText = blockMsgs.map(function(m) { return (m.role === 'user' ? '我' : c.nickname) + ': ' + m.content; }).join('\n');
+                let chatText = blockMsgs.map(function(m) { 
+                    let text = m.content;
+                    if (m.type === 'transfer') text = '[转账操作]';
+                    if (m.type === 'image') text = '[发送了图片]';
+                    return (m.role === 'user' ? '我' : c.nickname) + ': ' + text; 
+                }).join('\n');
                 if (chatText.length > 3000) chatText = chatText.slice(-3000);
 
                 let prompt = '请将以下聊天记录总结成一条不超过100字的概括，必须包含时间、地点、人物和发生的事情。直接输出总结内容，不要有多余解释废话。\n聊天记录：\n' + chatText;
@@ -2019,7 +2058,6 @@ window.qqApp = {
             const history = store.qqData.messages[activeChatId.value] || [];
             const lastMsg = history[history.length - 1];
 
-            // 回合推进逻辑：如果前一条是ai或者是空，则User这句算开启新的回合
             if (typeof c.currentTurn === 'undefined') c.currentTurn = 0;
             if (!lastMsg || lastMsg.role === 'ai') {
                 c.currentTurn += 1;
@@ -2027,7 +2065,6 @@ window.qqApp = {
 
             const newMsg = {
                 role: 'user',
-                type: 'text',
                 content: inputText.value,
                 timestamp: Date.now(),
                 timeStr: getMsgTimeStr(c),
@@ -2041,75 +2078,14 @@ window.qqApp = {
 
             store.qqData.messages[activeChatId.value].push(newMsg);
             inputText.value = '';
-            showPlusMenu.value = false;
             resetInputHeight();
             scrollToBottom();
         };
 
-        // --- 保底文字图片生成器 ---
-        const fallbackGenerateImage = function(text) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 400;
-            canvas.height = 400;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#f0f0f0';
-            ctx.fillRect(0, 0, 400, 400);
-            ctx.fillStyle = '#333';
-            ctx.font = '22px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            const words = text.split('');
-            let line = '';
-            const lines = [];
-            for(let i=0; i<words.length; i++) {
-                const testLine = line + words[i];
-                const metrics = ctx.measureText(testLine);
-                if (metrics.width > 340 && i > 0) {
-                    lines.push(line);
-                    line = words[i];
-                } else {
-                    line = testLine;
-                }
-            }
-            lines.push(line);
-            
-            const startY = 200 - ((lines.length - 1) * 30) / 2;
-            for(let i=0; i<lines.length; i++) {
-                ctx.fillText(lines[i], 200, startY + i * 30);
-            }
-            return canvas.toDataURL('image/jpeg');
-        };
-
-        const generateAiImage = async function(prompt, allowDraw) {
-            const drawConfig = store.apiSettings.draw;
-            if (allowDraw && drawConfig && drawConfig.url && drawConfig.key) {
-                try {
-                    let baseUrl = drawConfig.url.replace(/\/v1\/?$/, '');
-                    const res = await fetch(baseUrl + '/v1/images/generations', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${drawConfig.key}` },
-                        body: JSON.stringify({
-                            model: drawConfig.model || 'dall-e-3', prompt: prompt,
-                            n: 1, size: '1024x1024', response_format: 'b64_json'
-                        })
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.data && data.data[0]) {
-                            return data.data[0].b64_json ? ('data:image/png;base64,' + data.data[0].b64_json) : data.data[0].url;
-                        }
-                    }
-                } catch(e) {
-                    console.error('Draw API error:', e);
-                }
-            }
-            // 未开启或报错走保底
-            return fallbackGenerateImage(prompt);
-        };
-
         const triggerAI = async function () {
-            if (isTyping.value) return;
+            if (isTyping.value) {
+                return;
+            }
 
             const history = store.qqData.messages[activeChatId.value] || [];
             if (history.length === 0 || history[history.length - 1].role === 'ai') {
@@ -2127,38 +2103,43 @@ window.qqApp = {
             }) || store.qqData.userCards[0];
 
             let sysPrompt =
-                '你的名字是' + c.name + '，昵称是' + c.nickname + '。你的人设是：' + c.persona + '。\n' +
-                '与你对话的用户名字是' + uCard.name + '，用户的人设是：' + uCard.persona + '。\n' +
-                '【重要背景】你们正在名为“QQ”的社交软件上聊天。\n' +
-                '【交互指令-转账】如果你想给对方转账（给钱），请在回复中单独成段包含 `[转账: 金额, 留言]`（例如 `[转账: 50, 请你喝奶茶]`，留言最多12个字）。\n' +
-                '【交互指令-图片】如果你想给对方发照片或图片，请在回复中单独成段包含 `[发送图片: 画面详细描述]`（例如 `[发送图片: 一只可爱的小猫]`）。\n' +
+                '你的名字是' + c.name + '，昵称是' + c.nickname + '。你的人设是：' + c.persona + '。\\n' +
+                '与你对话的用户名字是' + uCard.name + '，用户的人设是：' + uCard.persona + '。\\n' +
                 '请完全沉浸在你的人设中进行回复，绝对不要暴露你是AI模型。';
 
+            // 强制内置QQ聊天与功能指令
+            sysPrompt += '\\n\\n【重要设定】你们目前正在使用腾讯QQ进行手机在线聊天。';
+            sysPrompt += '\\n【动作指令】作为AI，你可以通过输出特定格式的代码来模拟发送QQ内置功能：';
+            sysPrompt += '\\n1. 若要转账，请在回复中包含且仅包含格式：[发送转账: 金额, 留言] (例如 [发送转账: 520, 买奶茶]，留言最多12字)。';
+            sysPrompt += '\\n2. 若要发图，请在回复中包含且仅包含格式：[发送图片: 图片画面详细描述] (例如 [发送图片: 一张在海边的自拍])。';
+
+            // 提取记忆区并提示AI
             if (c.memory) {
-                sysPrompt += '\n\n【记忆区(过往聊天总结)】\n' + c.memory + '\n(重要：请结合以上记忆区内容和接下来的最新未总结聊天记录进行连贯回复)';
+                sysPrompt += '\\n\\n【记忆区(过往聊天总结)】\\n' + c.memory + '\\n(重要：请结合以上记忆区内容和接下来的最新未总结聊天记录进行连贯回复)';
             }
 
+            // 如果勾选了读取朋友圈参考
             if (c.readMoments && store.qqData.moments && store.qqData.moments.length > 0) {
                 const latestMoment = store.qqData.moments[0];
-                let momentStr = '【用户的朋友圈动态】\n内容：“' + latestMoment.content + '”\n';
+                let momentStr = '【用户的朋友圈动态】\\n内容：“' + latestMoment.content + '”\\n';
                 if (latestMoment.comments && latestMoment.comments.length > 0) {
-                    momentStr += '评论区互动：\n';
+                    momentStr += '评论区互动：\\n';
                     latestMoment.comments.forEach(function(cmt) {
                         let name = cmt.isUser ? uCard.name : getCharName(cmt.charId);
                         let replyStr = cmt.replyToName ? (' 回复 ' + cmt.replyToName) : '';
-                        momentStr += name + replyStr + '：' + cmt.content + '\n';
+                        momentStr += name + replyStr + '：' + cmt.content + '\\n';
                     });
                 }
-                sysPrompt += '\n\n' + momentStr + '\n(重要提示：以上是该用户最新发布的朋友圈及评论区互动，你可以结合你的人设，在接下来的聊天中自然地提及或参考相关内容)';
+                sysPrompt += '\\n\\n' + momentStr + '\\n(重要提示：以上是该用户最新发布的朋友圈及评论区互动，你可以结合你的人设，在接下来的聊天中自然地提及或参考相关内容)';
             }
 
             if (c.offlineMode) {
-                sysPrompt += '\n【指令】当前已开启线下模式。请进行带有旁白和环境描写的沉浸式角色扮演。回复字数控制在150字到250字之间。';
+                sysPrompt += '\\n【指令】当前已开启线下模式。请进行带有旁白和环境描写的沉浸式角色扮演。回复字数控制在150字到250字之间。';
             } else {
-                sysPrompt += '\n【指令】当前未开启线下模式。请模拟手机在线聊天的场景，采用短句发送，禁止发送大段长文。一次可以回复1到5条消息的量（多条消息用换行符分开）。';
+                sysPrompt += '\\n【指令】当前未开启线下模式。请模拟手机在线聊天的场景，采用短句发送，禁止发送大段长文。一次可以回复1到5条消息的量（多条消息用换行符分开）。';
             }
             
-            sysPrompt += '\n【注意】聊天记录中带有[时间: xx:xx]标识，请你读取并感知时间流逝。但你的回复中【绝对禁止】携带[时间: xx:xx]前缀，直接输出回复即可！';
+            sysPrompt += '\\n【注意】聊天记录中带有[时间: xx:xx]标识，请你读取并感知时间流逝。但你的回复中【绝对禁止】携带[时间: xx:xx]前缀，直接输出回复即可！';
 
             const apiMessages = [{ role: 'system', content: sysPrompt }];
             
@@ -2167,6 +2148,12 @@ window.qqApp = {
             
             unsummarizedMsgs.slice(-40).forEach(function (m) {
                 let text = m.content;
+                if (m.type === 'transfer') {
+                    text = `[QQ转账] 金额:${m.amount} 留言:${m.transferMsg} 状态:${m.transferStatus===0?'未领':(m.transferStatus===1?'已收款':'已退回')}`;
+                } else if (m.type === 'image') {
+                    text = `[QQ图片] 画面内容:${m.imageDesc}`;
+                }
+
                 if (m.quote) {
                     text = '[回复前文: ' + m.quote + ']\n' + text;
                 }
@@ -2183,75 +2170,99 @@ window.qqApp = {
             try {
                 const res = await fetch(apiConfig.url + '/v1/chat/completions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiConfig.key },
-                    body: JSON.stringify({ model: apiConfig.model, messages: apiMessages })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiConfig.key
+                    },
+                    body: JSON.stringify({
+                        model: apiConfig.model,
+                        messages: apiMessages
+                    })
                 });
 
-                if (!res.ok) throw new Error('请求失败 (' + res.status + ')');
+                if (!res.ok) {
+                    throw new Error('请求失败 (' + res.status + ')');
+                }
 
                 const data = await res.json();
                 let reply = data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
-                if (!reply || !reply.trim()) throw new Error('AI返回了空消息');
+
+                if (!reply || !reply.trim()) {
+                    throw new Error('AI返回了空消息');
+                }
 
                 reply = reply.replace(/\[时间:\s*\d{1,2}:\d{1,2}\]\s*/g, '').replace(/【时间:\s*\d{1,2}:\d{1,2}】\s*/g, '').trim();
                 
-                // 解析 AI 主动发起的高级交互命令
-                const transferRegex = /\[转账:\s*([\d.]+)\s*,\s*([^\]]{1,20})\]/g;
-                let tMatch;
-                const aiTransfers = [];
-                while ((tMatch = transferRegex.exec(reply)) !== null) {
-                    let amount = parseFloat(tMatch[1]);
-                    if (!isNaN(amount)) aiTransfers.push({ amount: amount, memo: tMatch[2].slice(0, 12).trim() });
-                }
-                reply = reply.replace(transferRegex, '');
-
-                const imgRegex = /\[发送图片:\s*([^\]]+)\]/g;
-                let iMatch;
-                const aiImages = [];
-                while ((iMatch = imgRegex.exec(reply)) !== null) {
-                    aiImages.push(iMatch[1].trim());
-                }
-                reply = reply.replace(imgRegex, '');
-                
-                reply = reply.trim();
-                
                 if (typeof c.currentTurn === 'undefined') c.currentTurn = 1;
 
-                // 1. 发送正常的文本消息
+                // 提取 AI 特定动作指令（转账/发图）
+                const transferRegex = /\[发送转账:\s*(\d+(?:\.\d+)?)\s*,\s*([^\]]{1,12})\]/g;
+                const imageRegex = /\[发送图片:\s*([^\]]+)\]/g;
+                
+                let actions = [];
+                let match;
+                
+                while ((match = transferRegex.exec(reply)) !== null) {
+                    actions.push({ type: 'transfer', amount: parseFloat(match[1]).toFixed(2), msg: match[2] });
+                    reply = reply.replace(match[0], '');
+                }
+                while ((match = imageRegex.exec(reply)) !== null) {
+                    actions.push({ type: 'image', desc: match[1] });
+                    reply = reply.replace(match[0], '');
+                }
+
+                reply = reply.trim();
+
+                // 若有普通文本，先发送文本
                 if (reply) {
                     if (!c.offlineMode && reply.indexOf('\n') !== -1) {
                         const lines = reply.split('\n').filter(function (l) { return l.trim() !== ''; });
                         const timeList = buildAiBatchTimeList(c, lines.length);
                         for (let i = 0; i < lines.length; i += 1) {
-                            history.push({ role: 'ai', type: 'text', content: lines[i].trim(), timestamp: Date.now(), timeStr: timeList[i], turn: c.currentTurn });
+                            history.push({
+                                role: 'ai', content: lines[i].trim(), timestamp: Date.now(),
+                                timeStr: timeList[i], turn: c.currentTurn
+                            });
                         }
                     } else {
                         const oneTime = buildAiBatchTimeList(c, 1)[0];
-                        history.push({ role: 'ai', type: 'text', content: reply, timestamp: Date.now(), timeStr: oneTime, turn: c.currentTurn });
+                        history.push({
+                            role: 'ai', content: reply, timestamp: Date.now(),
+                            timeStr: oneTime, turn: c.currentTurn
+                        });
                     }
                 }
 
-                // 2. 发送被解析出的转账消息
-                for (let i = 0; i < aiTransfers.length; i++) {
-                    const t = aiTransfers[i];
-                    history.push({
-                        role: 'ai', type: 'transfer',
-                        content: `[对方发来转账: ${t.amount}元, 留言: ${t.memo}]`,
-                        transferData: { amount: t.amount, memo: t.memo, status: 'pending' },
-                        timestamp: Date.now(), timeStr: buildAiBatchTimeList(c, 1)[0], turn: c.currentTurn
-                    });
-                }
+                // 依次发送特殊动作卡片
+                for (let i = 0; i < actions.length; i++) {
+                    let action = actions[i];
+                    let actTime = buildAiBatchTimeList(c, 1)[0];
 
-                // 3. 发送被解析出的图片消息（异步绘制）
-                for (let i = 0; i < aiImages.length; i++) {
-                    const prompt = aiImages[i];
-                    const url = await generateAiImage(prompt, c.allowDraw);
-                    history.push({
-                        role: 'ai', type: 'image',
-                        content: `[对方发来一张图片, 画面描述: ${prompt}]`,
-                        imageUrl: url,
-                        timestamp: Date.now(), timeStr: buildAiBatchTimeList(c, 1)[0], turn: c.currentTurn
-                    });
+                    if (action.type === 'transfer') {
+                        history.push({
+                            role: 'ai', type: 'transfer',
+                            amount: action.amount, transferMsg: action.msg, transferStatus: 0,
+                            content: `[转账] ¥${action.amount} 留言: ${action.msg}`,
+                            timestamp: Date.now(), timeStr: actTime, turn: c.currentTurn
+                        });
+                    } else if (action.type === 'image') {
+                        let aiImageUrl = '';
+                        if (c.allowDrawApi && store.apiSettings.draw && store.apiSettings.draw.url) {
+                            try {
+                                showError('AI正在绘制图片...');
+                                aiImageUrl = await callDrawApi(action.desc);
+                                showError('AI发送了图片');
+                            } catch (err) {
+                                console.error('AI绘图失败:', err);
+                            }
+                        }
+                        history.push({
+                            role: 'ai', type: 'image',
+                            imageDesc: action.desc, imageUrl: aiImageUrl,
+                            content: `[图片] 画面内容: ${action.desc}`,
+                            timestamp: Date.now(), timeStr: actTime, turn: c.currentTurn
+                        });
+                    }
                 }
 
                 scrollToBottom();
@@ -2292,6 +2303,7 @@ window.qqApp = {
             displayCount: displayCount,
             modal: modal,
             tempData: tempData,
+            showPlusPanel: showPlusPanel,
             triggerUpload: triggerUpload,
             errorMsg: errorMsg,
             toastY: toastY,
@@ -2302,19 +2314,19 @@ window.qqApp = {
             startPress: startPress,
             cancelPress: cancelPress,
             handleImgUpload: handleImgUpload,
-            handleChatImgUpload: handleChatImgUpload,
-            openTransferModal: openTransferModal,
-            handleTransferClick: handleTransferClick,
-            handleTransferReceive: handleTransferReceive,
-            handleTransferReturn: handleTransferReturn,
-            openDrawModal: openDrawModal,
-            doUserDraw: doUserDraw,
             openAddModal: openAddModal,
             openEditProfile: openEditProfile,
             openUserCardModal: openUserCardModal,
             deleteUserCard: deleteUserCard,
             openChatSettings: openChatSettings,
             manualSummarize: manualSummarize,
+            openTransferModal: openTransferModal,
+            handleTransferClick: handleTransferClick,
+            processTransfer: processTransfer,
+            openPhotoMenu: openPhotoMenu,
+            openAlbumUpload: openAlbumUpload,
+            openPhotoDraw: openPhotoDraw,
+            executeDraw: executeDraw,
             deleteChat: deleteChat,
             formatTime: formatTime,
             enhancedMessages: enhancedMessages,
@@ -2326,7 +2338,6 @@ window.qqApp = {
             inputText: inputText,
             isTyping: isTyping,
             chatInputRef: chatInputRef,
-            showPlusMenu: showPlusMenu,
             adjustHeight: adjustHeight,
             activeMsgMenu: activeMsgMenu,
             onMsgTs: onMsgTs,
