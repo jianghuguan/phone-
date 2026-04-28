@@ -13,93 +13,110 @@
 </head>
 <body>
     <div id="app">
-        <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
-            <span class="time">{{ time }}</span>
-            <div class="dynamic-island"></div>
-            <div class="battery">
-                <span class="battery-text">{{ battery }}%</span>
-                <div class="battery-icon">
-                    <div class="battery-level" :style="{ width: battery + '%' }"></div>
-                </div>
-            </div>
+        <!-- DB 数据加载中的遮罩 -->
+        <div v-if="!isStoreLoaded" style="position:absolute; top:0; left:0; width:100%; height:100%; background:#fff; z-index:9999; display:flex; align-items:center; justify-content:center; color:#999; font-size:14px; font-weight:bold;">
+            读取数据中...
         </div>
 
-        <div
-            id="desktop-grid"
-            class="desktop"
-            :style="{
-                backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none'
-            }"
-        >
+        <template v-else>
+            <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
+                <span class="time">{{ time }}</span>
+                <div class="dynamic-island"></div>
+                <div class="battery">
+                    <span class="battery-text">{{ battery }}%</span>
+                    <div class="battery-icon">
+                        <div class="battery-level" :style="{ width: battery + '%' }"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 独立出来的背景层，用于单独处理放大动效 -->
+            <div class="desktop-bg" 
+                :class="{ 'is-zoomed': store.currentApp }" 
+                :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' }">
+            </div>
+
             <div
-                v-for="item in store.desktopItems"
-                :key="item.id"
-                :class="{ 'widget-box': item.type === 'widget', 'app-icon': item.type === 'app' }"
-                :style="item.type === 'widget'
-                    ? {
-                        gridColumn: 'span ' + item.span.split('/')[0].trim(),
-                        gridRow: 'span ' + item.span.split('/')[1].trim()
-                    }
-                    : {}"
-                @click="item.type === 'app' ? openApp(item.id) : null"
+                id="desktop-grid"
+                class="desktop"
+                :class="{ 'is-shrunk': store.currentApp }"
             >
                 <div
-                    v-if="item.widgetType === 'time'"
-                    class="widget-time"
-                    :style="{
-                        backgroundColor: 'transparent',
-                        backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none',
-                        color: item.bgImage ? '#fff' : '#333'
-                    }"
+                    v-for="item in store.desktopItems"
+                    :key="item.id"
+                    :class="{ 'widget-box': item.type === 'widget', 'app-icon': item.type === 'app' }"
+                    :style="item.type === 'widget'
+                        ? {
+                            gridColumn: 'span ' + item.span.split('/')[0].trim(),
+                            gridRow: 'span ' + item.span.split('/')[1].trim()
+                        }
+                        : {}"
+                    @click="item.type === 'app' ? openApp(item.id, $event) : null"
                 >
-                    <div class="time-header">
-                        <h1>{{ time }}</h1>
-                        <div class="weather-info">
-                            <span class="temp">{{ temperature }}</span>
-                            <span class="desc">{{ weatherDesc }}</span>
-                        </div>
-                    </div>
-                    <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">
-                        {{ date }} {{ weekday }}
-                    </p>
-                </div>
-
-                <div
-                    v-else-if="item.widgetType === 'photo'"
-                    class="widget-photo"
-                    :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }"
-                >
-                    <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">去小组件App设置</span>
-                </div>
-
-                <div v-else-if="item.type === 'app'" style="display: contents;">
                     <div
-                        class="icon-img"
+                        v-if="item.widgetType === 'time'"
+                        class="widget-time"
                         :style="{
-                            backgroundColor: item.color,
-                            backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none'
+                            backgroundColor: 'transparent',
+                            backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none',
+                            color: item.bgImage ? '#fff' : '#333'
                         }"
                     >
-                        <template v-if="!item.iconImage">{{ item.textIcon }}</template>
+                        <div class="time-header">
+                            <h1>{{ time }}</h1>
+                            <div class="weather-info">
+                                <span class="temp">{{ temperature }}</span>
+                                <span class="desc">{{ weatherDesc }}</span>
+                            </div>
+                        </div>
+                        <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">
+                            {{ date }} {{ weekday }}
+                        </p>
                     </div>
-                    <span class="icon-name">{{ item.name }}</span>
-                </div>
-            </div>
-        </div>
 
-        <transition name="app-slide">
-            <div v-show="store.currentApp" class="app-view">
-                <component :is="store.currentApp" v-if="store.currentApp"></component>
-                <div
-                    class="home-indicator-wrapper"
-                    @touchstart="homeTouchStart"
-                    @touchmove="homeTouchMove"
-                    @touchend="homeTouchEnd"
-                >
-                    <div class="home-indicator"></div>
+                    <div
+                        v-else-if="item.widgetType === 'photo'"
+                        class="widget-photo"
+                        :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }"
+                    >
+                        <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">去小组件App设置</span>
+                    </div>
+
+                    <div v-else-if="item.type === 'app'" style="display: contents;">
+                        <div
+                            class="icon-img"
+                            :style="{
+                                backgroundColor: item.color,
+                                backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none'
+                            }"
+                        >
+                            <template v-if="!item.iconImage">{{ item.textIcon }}</template>
+                        </div>
+                        <span class="icon-name">{{ item.name }}</span>
+                    </div>
                 </div>
             </div>
-        </transition>
+
+            <!-- 使用 JS 挂钩代替原纯 CSS 滑动动画 -->
+            <transition 
+                @before-enter="beforeEnter" 
+                @enter="enter" 
+                @leave="leave"
+                :css="false"
+            >
+                <div v-show="store.currentApp" class="app-view">
+                    <component :is="store.currentApp" v-if="store.currentApp"></component>
+                    <div
+                        class="home-indicator-wrapper"
+                        @touchstart="homeTouchStart"
+                        @touchmove="homeTouchMove"
+                        @touchend="homeTouchEnd"
+                    >
+                        <div class="home-indicator"></div>
+                    </div>
+                </div>
+            </transition>
+        </template>
     </div>
 
     <script src="./js/store.js"></script>
