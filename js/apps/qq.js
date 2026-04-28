@@ -100,11 +100,11 @@ window.qqApp = {
                                         <img :src="item.msg.imageUrl" style="max-width: 220px; display: block; width: 100%; border-radius: 12px;" />
                                     </div>
 
-                                    <!-- 转账气泡 (INS 风) -->
+                                    <!-- 转账气泡 (黑白 INS 风) -->
                                     <div
                                         v-else-if="item.msg.type === 'transfer'"
                                         class="qq-msg-bubble"
-                                        style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); color: #fff; padding: 12px 18px; min-width: 180px; border-radius: 18px; box-shadow: 0 4px 12px rgba(255,154,158,0.3);"
+                                        style="background: #000; color: #fff; padding: 12px 18px; min-width: 180px; border-radius: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
                                         :class="{ 'selected-msg': isSelected(item.index) }"
                                         @click.stop="handleTransferClick(item)"
                                         @touchstart.stop="onMsgTs($event, item.index)"
@@ -113,16 +113,16 @@ window.qqApp = {
                                     >
                                         <div style="font-size:22px; font-weight:bold; margin-bottom:2px;">¥ {{ Number(item.msg.amount).toFixed(2) }}</div>
                                         <div style="font-size:13px; opacity:0.95;">{{ item.msg.desc }}</div>
-                                        <div style="font-size:11px; margin-top:10px; border-top:1px solid rgba(255,255,255,0.4); padding-top:6px; font-weight: 500;">
+                                        <div style="font-size:11px; margin-top:10px; border-top:1px solid rgba(255,255,255,0.3); padding-top:6px; font-weight: 500;">
                                             {{ item.msg.transferStatus === 'pending' ? '待收款 (点击处理)' : (item.msg.transferStatus === 'received' ? '已收款' : '已退还') }}
                                         </div>
                                     </div>
 
-                                    <!-- 收款/退回 提示气泡 (INS 风) -->
+                                    <!-- 收款/退回 提示气泡 (黑白 INS 风) -->
                                     <div
                                         v-else-if="item.msg.type === 'transfer_receive' || item.msg.type === 'transfer_return'"
                                         class="qq-msg-bubble"
-                                        style="background: #fff; color: #ff7eb3; border: 1px solid #ff7eb3; padding: 6px 14px; border-radius: 20px; font-size: 13px; display: flex; align-items: center; gap: 6px; font-weight: 500; box-shadow: 0 2px 6px rgba(255,126,179,0.15);"
+                                        style="background: #fff; color: #000; border: 1px solid #000; padding: 6px 14px; border-radius: 20px; font-size: 13px; display: flex; align-items: center; gap: 6px; font-weight: 500; box-shadow: 0 2px 6px rgba(0,0,0,0.05);"
                                         :class="{ 'selected-msg': isSelected(item.index) }"
                                         @click.stop="handleMsgClick(item.index)"
                                         @touchstart.stop="onMsgTs($event, item.index)"
@@ -174,7 +174,7 @@ window.qqApp = {
                     <div class="qq-input-bar">
                         <button 
                             @click="showPlusMenu = !showPlusMenu" 
-                            style="width:36px; height:36px; padding:0; font-size:24px; line-height:34px; border-radius:50%; margin-right:10px; flex-shrink:0; background:#f0f0f0 !important; border:none !important; color:#333 !important;"
+                            style="width:36px; height:36px; padding:0; font-size:24px; line-height:32px; border-radius:50% !important; margin-right:10px; flex-shrink:0; background:#fff !important; border:1px solid #000 !important; color:#000 !important;"
                         >+</button>
                         <textarea
                             v-model="inputText"
@@ -189,8 +189,8 @@ window.qqApp = {
                     </div>
 
                     <div v-if="showPlusMenu" style="display:flex; padding:12px 20px; gap:20px; border-top:1px solid #efefef; background:#fafafa;">
-                        <div @click="openTransferModal" style="color:#007aff; font-size:15px; font-weight:600; cursor:pointer;">转账</div>
-                        <div @click="openPhotoOptionsModal" style="color:#007aff; font-size:15px; font-weight:600; cursor:pointer;">照片</div>
+                        <div @click="openTransferModal" style="color:#000; font-size:15px; font-weight:600; cursor:pointer;">转账</div>
+                        <div @click="openPhotoOptionsModal" style="color:#000; font-size:15px; font-weight:600; cursor:pointer;">照片</div>
                     </div>
                 </div>
             </div>
@@ -389,10 +389,21 @@ window.qqApp = {
                         <span style="flex:1; text-align:center;">钱包</span>
                         <span style="width:28px;"></span>
                     </div>
-                    <div class="qq-content" style="background:#f5f5f5;">
-                        <div style="background:#fff; padding:40px 20px; text-align:center; margin-bottom:10px;">
+                    <div class="qq-content" style="background:#f5f5f5; display:flex; flex-direction:column;">
+                        <div style="background:#fff; padding:40px 20px; text-align:center; margin-bottom:10px; flex-shrink:0;">
                             <div style="color:#666; font-size:15px; margin-bottom:15px;">我的零钱</div>
                             <div style="font-size:40px; font-weight:bold;">¥ {{ store.qqData.wallet.balance.toFixed(2) }}</div>
+                        </div>
+                        <div style="background:#fff; flex:1; overflow-y:auto;">
+                            <div style="padding:15px 20px; font-weight:bold; border-bottom:1px solid #eee; position:sticky; top:0; background:#fff;">零钱明细</div>
+                            <div v-if="!sortedWalletHistory || sortedWalletHistory.length === 0" style="text-align:center; padding:20px; color:#999; font-size:14px;">暂无明细</div>
+                            <div v-for="(record, idx) in sortedWalletHistory" :key="idx" style="padding:15px 20px; border-bottom:1px solid #fafafa; display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <div style="font-size:15px; color:#333; margin-bottom:4px;">{{ record.desc }}</div>
+                                    <div style="font-size:12px; color:#999;">{{ formatTime(record.time) }}</div>
+                                </div>
+                                <div :style="{ fontSize:'16px', fontWeight:'bold', color: record.amount.startsWith('+') ? '#34c759' : '#333' }">{{ record.amount }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -429,15 +440,15 @@ window.qqApp = {
                     
                     <!-- AI转账处理 -->
                     <template v-if="modal.type === 'ai_transfer_action'">
-                        <div style="text-align:center; font-size:24px; font-weight:bold; margin-bottom:10px; color:#ff7eb3;">
+                        <div style="text-align:center; font-size:24px; font-weight:bold; margin-bottom:10px; color:#000;">
                             ¥ {{ Number(tempData.aiTransferMsg.amount).toFixed(2) }}
                         </div>
                         <div style="text-align:center; font-size:14px; margin-bottom:20px; color:#666;">
                             来自 {{ currentContact.nickname }} 的转账
                         </div>
                         <div class="qq-modal-btns">
-                            <button @click="handleAiTransfer('return')" style="background:#f5f5f5 !important; color:#333 !important; border:none !important;">退回金额</button>
-                            <button @click="handleAiTransfer('receive')" style="background:#ff7eb3 !important; color:#fff !important; border:none !important;">确认收款</button>
+                            <button @click="handleAiTransfer('return')" style="background:#fff !important; color:#000 !important; border:1px solid #000 !important;">退回金额</button>
+                            <button @click="handleAiTransfer('receive')" style="background:#000 !important; color:#fff !important; border:1px solid #000 !important;">确认收款</button>
                         </div>
                         <!-- 这里直接返回，不展示底部的公共取消/确认按钮 -->
                         <div style="text-align:center; margin-top:15px;">
@@ -450,7 +461,7 @@ window.qqApp = {
                         <div style="display:flex; flex-direction:column; gap:12px;">
                             <button @click="triggerUpload('local_photo_upload')" style="padding:14px; background:#f0f0f0 !important; border:none !important; font-weight:600 !important;">从相册选择</button>
                             <input type="file" id="local_photo_upload" accept="image/*" style="display:none" @change="handlePhotoUpload" />
-                            <button @click="openDrawApiModal" style="padding:14px; background:#007aff !important; color:#fff !important; border:none !important; font-weight:600 !important;">调用绘图 API</button>
+                            <button @click="openDrawApiModal" style="padding:14px; background:#000 !important; color:#fff !important; border:none !important; font-weight:600 !important;">调用绘图 API</button>
                         </div>
                     </template>
 
@@ -669,6 +680,14 @@ window.qqApp = {
             return store.qqData.userCards.find(function (card) {
                 return card.id === (c.userCardId || store.qqData.userCards[0].id);
             }) || store.qqData.userCards[0] || {};
+        });
+
+        const sortedWalletHistory = Vue.computed(function () {
+            if (!store.qqData.wallet) return [];
+            const history = store.qqData.wallet.history || [];
+            return history.slice().sort(function (a, b) {
+                return b.time - a.time;
+            });
         });
 
         const formatTime = function (ts) {
@@ -1327,8 +1346,16 @@ window.qqApp = {
                 if (!num || num <= 0) return showError('请输入有效金额');
                 if (num > store.qqData.wallet.balance) return showError('余额不足');
                 
-                store.qqData.wallet.balance -= num;
                 const c = currentContact.value;
+
+                store.qqData.wallet.balance -= num;
+                if (!store.qqData.wallet.history) store.qqData.wallet.history = [];
+                store.qqData.wallet.history.push({
+                    desc: '转账给 ' + c.nickname,
+                    amount: '-' + num.toFixed(2),
+                    time: Date.now()
+                });
+
                 if (typeof c.currentTurn === 'undefined') c.currentTurn = 0;
                 const history = store.qqData.messages[activeChatId.value] || [];
                 const lastMsg = history[history.length - 1];
@@ -1376,6 +1403,13 @@ window.qqApp = {
 
             if (action === 'receive') {
                 store.qqData.wallet.balance += Number(msg.amount);
+                if (!store.qqData.wallet.history) store.qqData.wallet.history = [];
+                store.qqData.wallet.history.push({
+                    desc: '收到转账 (' + c.nickname + ')',
+                    amount: '+' + Number(msg.amount).toFixed(2),
+                    time: Date.now()
+                });
+
                 msg.transferStatus = 'received';
                 history.push({
                     role: 'user',
@@ -1535,21 +1569,37 @@ window.qqApp = {
         const generateFallbackTextImage = function (desc) {
             const canvas = document.createElement('canvas');
             canvas.width = 600;
-            canvas.height = 400;
+            canvas.height = 600; 
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#f0f0f5';
-            ctx.fillRect(0, 0, 600, 400);
+            ctx.fillRect(0, 0, 600, 600);
             
-            ctx.fillStyle = '#333';
-            ctx.font = 'bold 24px sans-serif';
+            ctx.fillStyle = '#000';
+            ctx.font = '24px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            const text = desc.length > 20 ? desc.slice(0, 20) + '...' : desc;
-            ctx.fillText(text, 300, 180);
             
-            ctx.fillStyle = '#888';
-            ctx.font = '16px sans-serif';
-            ctx.fillText('(AI没有配置绘图API，此为纯文本意象图片)', 300, 230);
+            const maxWidth = 520;
+            const words = desc.split('');
+            let line = '';
+            const lines = [];
+
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n];
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth && n > 0) {
+                    lines.push(line);
+                    line = words[n];
+                } else {
+                    line = testLine;
+                }
+            }
+            lines.push(line);
+
+            let startY = 300 - ((lines.length - 1) * 36) / 2;
+            for (let i = 0; i < lines.length; i++) {
+                ctx.fillText(lines[i], 300, startY + (i * 36));
+            }
             
             return canvas.toDataURL('image/png');
         };
@@ -2219,6 +2269,14 @@ window.qqApp = {
                         const target = pendingUserTransfers[pendingUserTransfers.length - 1];
                         target.transferStatus = 'returned';
                         store.qqData.wallet.balance += Number(target.amount);
+                        
+                        if (!store.qqData.wallet.history) store.qqData.wallet.history = [];
+                        store.qqData.wallet.history.push({
+                            desc: '转账退回 (' + c.nickname + ')',
+                            amount: '+' + Number(target.amount).toFixed(2),
+                            time: Date.now()
+                        });
+
                         history.push({
                             role: 'ai',
                             type: 'transfer_return',
@@ -2368,6 +2426,7 @@ window.qqApp = {
             openChat: openChat,
             currentContact: currentContact,
             currentUserCard: currentUserCard,
+            sortedWalletHistory: sortedWalletHistory,
             inputText: inputText,
             isTyping: isTyping,
             chatInputRef: chatInputRef,
