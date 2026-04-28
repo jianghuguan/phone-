@@ -16,15 +16,15 @@ const app = createApp({
         const isAppAnimating = ref(false);
         const launchRect = ref(null);
 
-        const updateTime = () => {
+        const updateTime = function () {
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            time.value = `${hours}:${minutes}`;
+            time.value = hours + ':' + minutes;
 
             const month = now.getMonth() + 1;
             const day = now.getDate();
-            date.value = `${month}月${day}日`;
+            date.value = month + '月' + day + '日';
 
             const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
             weekday.value = days[now.getDay()];
@@ -34,7 +34,7 @@ const app = createApp({
         let batteryInterval = null;
 
         const battery = ref(100);
-        const updateBattery = () => {
+        const updateBattery = function () {
             if (battery.value > 1) {
                 battery.value -= 1;
             }
@@ -49,7 +49,9 @@ const app = createApp({
 
         const getLauncherRectById = function (id) {
             const el = window.document.querySelector('.app-launcher[data-app-id="' + id + '"]');
-            if (!el) return null;
+            if (!el) {
+                return null;
+            }
             return el.getBoundingClientRect();
         };
 
@@ -81,9 +83,11 @@ const app = createApp({
                 }
 
                 const anim = el.animate(keyframes, options);
+
                 anim.onfinish = function () {
                     resolve();
                 };
+
                 anim.oncancel = function () {
                     resolve();
                 };
@@ -92,7 +96,9 @@ const app = createApp({
 
         const playOpenAnimation = async function () {
             const appEl = window.document.getElementById('app-view-panel');
-            if (!appEl) return;
+            if (!appEl) {
+                return;
+            }
 
             const fromTransform = buildTransformFromRect(launchRect.value);
 
@@ -128,7 +134,9 @@ const app = createApp({
 
         const playCloseAnimation = async function (id) {
             const appEl = window.document.getElementById('app-view-panel');
-            if (!appEl) return;
+            if (!appEl) {
+                return;
+            }
 
             const rect = getLauncherRectById(id) || launchRect.value;
             const toTransform = buildTransformFromRect(rect);
@@ -158,9 +166,14 @@ const app = createApp({
         };
 
         const openApp = async function (id, evt) {
-            if (isAppAnimating.value || store.currentApp) return;
+            if (isAppAnimating.value || store.currentApp) {
+                return;
+            }
 
-            const launcher = evt && evt.currentTarget ? evt.currentTarget : window.document.querySelector('.app-launcher[data-app-id="' + id + '"]');
+            const launcher = evt && evt.currentTarget
+                ? evt.currentTarget
+                : window.document.querySelector('.app-launcher[data-app-id="' + id + '"]');
+
             launchRect.value = launcher ? launcher.getBoundingClientRect() : null;
 
             desktopAppActive.value = true;
@@ -174,7 +187,9 @@ const app = createApp({
         };
 
         const closeApp = async function () {
-            if (!store.currentApp || isAppAnimating.value) return;
+            if (!store.currentApp || isAppAnimating.value) {
+                return;
+            }
 
             const closingId = store.currentApp;
             desktopAppActive.value = false;
@@ -187,77 +202,108 @@ const app = createApp({
         };
 
         let homeStartY = 0;
-        const homeTouchStart = (e) => {
-            if (e.touches && e.touches.length > 0) homeStartY = e.touches[0].clientY;
-        };
-        const homeTouchMove = (e) => { e.preventDefault(); };
-        const homeTouchEnd = (e) => {
-            if (e.changedTouches && e.changedTouches.length > 0) {
-                const endY = e.changedTouches[0].clientY;
-                if (homeStartY - endY > 30) closeApp();
+
+        const homeTouchStart = function (e) {
+            if (e.touches && e.touches.length > 0) {
+                homeStartY = e.touches[0].clientY;
             }
         };
 
-        const initSortable = () => {
+        const homeTouchMove = function (e) {
+            e.preventDefault();
+        };
+
+        const homeTouchEnd = function (e) {
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                const endY = e.changedTouches[0].clientY;
+                if (homeStartY - endY > 30) {
+                    closeApp();
+                }
+            }
+        };
+
+        const initSortable = function () {
             const grid = window.document.getElementById('desktop-grid');
-            if (!grid) return;
+            if (!grid || !window.Sortable) {
+                return;
+            }
 
             window.Sortable.create(grid, {
                 animation: 250,
                 ghostClass: 'sortable-ghost',
                 delay: 200,
                 delayOnTouchOnly: true,
-                onEnd: (evt) => {
+                onEnd: function (evt) {
                     const oldIdx = evt.oldIndex;
                     const newIdx = evt.newIndex;
-                    if (oldIdx === newIdx) return;
-                    const items = [...store.desktopItems];
-                    const [movedItem] = items.splice(oldIdx, 1);
+
+                    if (oldIdx === newIdx) {
+                        return;
+                    }
+
+                    const items = store.desktopItems.slice();
+                    const movedItem = items.splice(oldIdx, 1)[0];
                     items.splice(newIdx, 0, movedItem);
                     store.desktopItems = items;
                 }
             });
         };
 
-        onMounted(() => {
+        onMounted(function () {
             updateTime();
             timeInterval = window.setInterval(updateTime, 1000);
 
             battery.value = 100;
             batteryInterval = window.setInterval(updateBattery, 60000);
 
-            nextTick(() => { initSortable(); });
+            nextTick(function () {
+                initSortable();
+            });
         });
 
-        onUnmounted(() => {
-            if (timeInterval) window.clearInterval(timeInterval);
-            if (batteryInterval) window.clearInterval(batteryInterval);
+        onUnmounted(function () {
+            if (timeInterval) {
+                window.clearInterval(timeInterval);
+            }
+            if (batteryInterval) {
+                window.clearInterval(batteryInterval);
+            }
         });
 
         return {
-            store,
-            time,
-            date,
-            weekday,
-            battery,
-            temperature,
-            weatherDesc,
-            openApp,
-            closeApp,
-            homeTouchStart,
-            homeTouchMove,
-            homeTouchEnd,
-            desktopAppActive,
-            appVisible
+            store: store,
+            time: time,
+            date: date,
+            weekday: weekday,
+            battery: battery,
+            temperature: temperature,
+            weatherDesc: weatherDesc,
+            openApp: openApp,
+            closeApp: closeApp,
+            homeTouchStart: homeTouchStart,
+            homeTouchMove: homeTouchMove,
+            homeTouchEnd: homeTouchEnd,
+            desktopAppActive: desktopAppActive,
+            appVisible: appVisible
         };
     }
 });
 
-if (window.widgetApp) app.component('widgetApp', window.widgetApp);
-if (window.themeApp) app.component('theme', window.themeApp);
-if (window.weiboApp) app.component('weibo', window.weiboApp);
-if (window.settingsApp) app.component('settings', window.settingsApp);
-if (window.qqApp) app.component('qq', window.qqApp);
+if (window.widgetApp) {
+    app.component('widgetApp', window.widgetApp);
+}
+if (window.themeApp) {
+    app.component('theme', window.themeApp);
+}
+if (window.weiboApp) {
+    app.component('weibo', window.weiboApp);
+}
+if (window.settingsApp) {
+    app.component('settings', window.settingsApp);
+}
+if (window.qqApp) {
+    app.component('qq', window.qqApp);
+}
 
 Promise.resolve(window.storeReady).finally(function () {
     app.mount('#app');
