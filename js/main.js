@@ -7,6 +7,7 @@ const { createApp, ref, onMounted, onUnmounted, nextTick } = window.Vue;
 const app = createApp({
     setup() {
         const store = window.store;
+        const isStoreLoaded = window.isStoreLoaded; 
 
         const time = ref('');
         const date = ref('');
@@ -39,7 +40,18 @@ const app = createApp({
         const temperature = ref('26°C');
         const weatherDesc = ref('晴转多云');
 
-        const openApp = (id) => { store.currentApp = id; };
+        const appRect = ref(null); // 记录被点击App坐标
+        
+        const openApp = (id, event) => { 
+            if (event && event.currentTarget) {
+                const rect = event.currentTarget.getBoundingClientRect();
+                appRect.value = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+            } else {
+                appRect.value = null;
+            }
+            store.currentApp = id; 
+        };
+        
         const closeApp = () => { store.currentApp = null; };
 
         let homeStartY = 0;
@@ -52,6 +64,44 @@ const app = createApp({
                 const endY = e.changedTouches[0].clientY;
                 if (homeStartY - endY > 30) closeApp();
             }
+        };
+
+        // Vue Transition 动画钩子
+        const beforeEnter = (el) => {
+            if (appRect.value) {
+                const sx = appRect.value.width / window.innerWidth;
+                const sy = appRect.value.height / window.innerHeight;
+                el.style.transformOrigin = 'top left';
+                el.style.transform = `translate(${appRect.value.left}px, ${appRect.value.top}px) scale(${sx}, ${sy})`;
+                el.style.borderRadius = '35px';
+                el.style.opacity = '0';
+            } else {
+                el.style.transform = 'translateY(100%)';
+            }
+        };
+
+        const enter = (el, done) => {
+            el.offsetHeight; // trigger reflow
+            el.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease, border-radius 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
+            el.style.transform = 'translate(0, 0) scale(1, 1)';
+            el.style.borderRadius = '0';
+            el.style.opacity = '1';
+            el.addEventListener('transitionend', done, { once: true });
+        };
+
+        const leave = (el, done) => {
+            el.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-radius 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
+            if (appRect.value) {
+                const sx = appRect.value.width / window.innerWidth;
+                const sy = appRect.value.height / window.innerHeight;
+                el.style.transform = `translate(${appRect.value.left}px, ${appRect.value.top}px) scale(${sx}, ${sy})`;
+                el.style.borderRadius = '35px';
+                el.style.opacity = '0';
+            } else {
+                el.style.transform = 'translateY(100%)';
+                el.style.opacity = '0';
+            }
+            el.addEventListener('transitionend', done, { once: true });
         };
 
         const initSortable = () => {
@@ -79,11 +129,18 @@ const app = createApp({
             updateTime();
             timeInterval = window.setInterval(updateTime, 1000);
             
-            // 每次打开强制 100% 电量，每分钟掉 1 点
             battery.value = 100;
             batteryInterval = window.setInterval(updateBattery, 60000);
 
-            nextTick(() => { initSortable(); });
+            nextTick(() => { 
+                // 防止渲染太快导致找不到 grid，轮询一下
+                const checker = setInterval(() => {
+                    if (document.getElementById('desktop-grid')) {
+                        initSortable();
+                        clearInterval(checker);
+                    }
+                }, 100);
+            });
         });
 
         onUnmounted(() => {
@@ -92,8 +149,9 @@ const app = createApp({
         });
 
         return {
-            store, time, date, weekday, battery, temperature, weatherDesc,
-            openApp, closeApp, homeTouchStart, homeTouchMove, homeTouchEnd
+            store, isStoreLoaded, time, date, weekday, battery, temperature, weatherDesc,
+            openApp, closeApp, homeTouchStart, homeTouchMove, homeTouchEnd,
+            beforeEnter, enter, leave
         };
     }
 });
