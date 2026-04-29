@@ -58,12 +58,12 @@ const app = createApp({
         let holdTimer = null;
         let cloneEl = null;
 
-        const onItemTouchStart = (item, e) => {
+        const onItemTouchStart = function (item, e) {
             if (dragState.value) return;
             const touch = e.touches[0];
             const target = e.currentTarget;
             
-            holdTimer = setTimeout(() => {
+            holdTimer = setTimeout(function () {
                 if (navigator.vibrate) navigator.vibrate(50);
                 const rect = target.getBoundingClientRect();
                 
@@ -85,28 +85,32 @@ const app = createApp({
             }, 400); 
         };
 
-        const onItemTouchEnd = () => { if (holdTimer) clearTimeout(holdTimer); };
+        const onItemTouchEnd = function () { 
+            if (holdTimer) clearTimeout(holdTimer); 
+        };
 
-        const checkCollisionsAndPush = (droppedItem, newX, newY) => {
+        const checkCollisionsAndPush = function (droppedItem, newX, newY) {
             const testRect = { x: newX, y: newY, w: droppedItem.w, h: droppedItem.h };
             const collided = [];
-            store.desktopItems.forEach(i => {
+            store.desktopItems.forEach(function (i) {
                 if (i.id === droppedItem.id) return;
                 if (!(testRect.x + testRect.w <= i.x || i.x + i.w <= testRect.x || testRect.y + testRect.h <= i.y || i.y + i.h <= testRect.y)) {
                     collided.push(i);
                 }
             });
 
-            const findEmptySpot = (w, h, ignoreIds, startY) => {
+            const findEmptySpot = function (w, h, ignoreIds, startY) {
                 let r = startY;
-                while(r < 100) {
-                    for(let c = 0; c <= 4 - w; c++) {
-                        const tr = { x: c, y: r, w, h };
+                while (r < 100) {
+                    for (let c = 0; c <= 4 - w; c++) {
+                        const tr = { x: c, y: r, w: w, h: h };
                         let hit = false;
-                        for(let item of store.desktopItems) {
+                        for (let k = 0; k < store.desktopItems.length; k++) {
+                            let item = store.desktopItems[k];
                             if (ignoreIds.includes(item.id)) continue;
                             if (!(tr.x + tr.w <= item.x || item.x + item.w <= tr.x || tr.y + tr.h <= item.y || item.y + item.h <= tr.y)) {
-                                hit = true; break;
+                                hit = true; 
+                                break;
                             }
                         }
                         if (!hit) return { x: c, y: r };
@@ -116,14 +120,14 @@ const app = createApp({
                 return { x: 0, y: startY + 2 };
             };
 
-            collided.forEach(cItem => {
+            collided.forEach(function (cItem) {
                 const spot = findEmptySpot(cItem.w, cItem.h, [droppedItem.id, cItem.id], Math.max(0, newY - 1));
                 cItem.x = spot.x;
                 cItem.y = spot.y;
             });
         };
 
-        const handleGlobalTouchMove = (e) => {
+        const handleGlobalTouchMove = function (e) {
             if (holdTimer) clearTimeout(holdTimer);
             if (!dragState.value) return;
             e.preventDefault(); 
@@ -154,7 +158,7 @@ const app = createApp({
             ghostY.value = tY;
         };
 
-        const handleGlobalTouchEnd = () => {
+        const handleGlobalTouchEnd = function () {
             if (holdTimer) clearTimeout(holdTimer);
             if (!dragState.value) return;
 
@@ -189,9 +193,9 @@ const app = createApp({
         });
 
         return {
-            store, time, date, weekday, battery, temperature, weatherDesc,
-            openApp, closeApp, homeTouchStart, homeTouchMove, homeTouchEnd,
-            dragState, ghostX, ghostY, onItemTouchStart, onItemTouchEnd
+            store: store, time: time, date: date, weekday: weekday, battery: battery, temperature: temperature, weatherDesc: weatherDesc,
+            openApp: openApp, closeApp: closeApp, homeTouchStart: homeTouchStart, homeTouchMove: homeTouchMove, homeTouchEnd: homeTouchEnd,
+            dragState: dragState, ghostX: ghostX, ghostY: ghostY, onItemTouchStart: onItemTouchStart, onItemTouchEnd: onItemTouchEnd
         };
     }
 });
