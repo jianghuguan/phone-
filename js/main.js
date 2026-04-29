@@ -1,5 +1,6 @@
+// @ts-nocheck
 /* eslint-disable */
-/* jshint esversion: 8 */
+/* jshint esversion: 11 */
 /* global window */
 'use strict';
 
@@ -79,17 +80,16 @@ const app = createApp({
             window.Sortable.create(grid, {
                 animation: 250,
                 ghostClass: 'sortable-ghost',
-                delay: 300,             // 【长按拖动】300毫秒
+                delay: 300,             
                 delayOnTouchOnly: true,
-                swap: true,             // 【核心修改】启用 Swap (交换模式)，杜绝连带的自动补位！
-                swapClass: 'sortable-swap-highlight', // 拖拽目标的高亮提示
+                swap: true,             
+                swapClass: 'sortable-swap-highlight', 
                 onEnd: function (evt) {
                     const oldIdx = evt.oldIndex;
                     const newIdx = evt.newIndex;
                     if (oldIdx === newIdx) return;
                     
                     const items = store.desktopItems.slice();
-                    // 在 swap 模式下，直接只交换这两个坑位，不影响大环境
                     const temp = items[oldIdx];
                     items[oldIdx] = items[newIdx];
                     items[newIdx] = temp;
