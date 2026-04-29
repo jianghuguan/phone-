@@ -1,102 +1,130 @@
-// @ts-nocheck
 /* eslint-disable */
-/* jshint esversion: 11 */
-/* global window */
+/* jshint ignore:start */
 'use strict';
 
-const { createApp, ref, onMounted, onUnmounted, nextTick } = window.Vue;
+var Vue = window.Vue;
+var createApp = Vue.createApp;
+var ref = Vue.ref;
+var onMounted = Vue.onMounted;
+var onUnmounted = Vue.onUnmounted;
+var nextTick = Vue.nextTick;
 
-const app = createApp({
+var app = createApp({
     setup: function () {
-        const store = window.store;
+        var store = window.store;
 
-        const time = ref('');
-        const date = ref('');
-        const weekday = ref('');
+        var time = ref('');
+        var date = ref('');
+        var weekday = ref('');
 
-        const updateTime = function () {
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
+        var updateTime = function () {
+            var now = new Date();
+            var hours = String(now.getHours()).padStart(2, '0');
+            var minutes = String(now.getMinutes()).padStart(2, '0');
             time.value = hours + ':' + minutes;
 
-            const month = now.getMonth() + 1;
-            const day = now.getDate();
+            var month = now.getMonth() + 1;
+            var day = now.getDate();
             date.value = month + '月' + day + '日';
 
-            const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            var days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
             weekday.value = days[now.getDay()];
         };
 
-        let timeInterval = null;
-        let batteryInterval = null;
+        var timeInterval = null;
+        var batteryInterval = null;
 
-        const battery = ref(100);
-        const updateBattery = function () {
+        var battery = ref(100);
+        var updateBattery = function () {
             if (battery.value > 1) {
                 battery.value -= 1;
             }
         };
 
-        const temperature = ref('26°C');
-        const weatherDesc = ref('晴转多云');
+        var temperature = ref('26°C');
+        var weatherDesc = ref('晴转多云');
 
-        const openApp = function (id, e) { 
+        var openApp = function (id, e) {
             if (e && e.currentTarget) {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = rect.left + rect.width / 2;
-                const y = rect.top + rect.height / 2;
+                var rect = e.currentTarget.getBoundingClientRect();
+                var x = rect.left + rect.width / 2;
+                var y = rect.top + rect.height / 2;
                 window.document.documentElement.style.setProperty('--app-origin-x', x + 'px');
                 window.document.documentElement.style.setProperty('--app-origin-y', y + 'px');
             } else {
                 window.document.documentElement.style.setProperty('--app-origin-x', '50%');
                 window.document.documentElement.style.setProperty('--app-origin-y', '50%');
             }
-            store.currentApp = id; 
-        };
-        
-        const closeApp = function () { 
-            store.currentApp = null; 
+            store.currentApp = id;
         };
 
-        let homeStartY = 0;
-        const homeTouchStart = function (e) {
+        var closeApp = function () {
+            store.currentApp = null;
+        };
+
+        var homeStartY = 0;
+        var homeTouchStart = function (e) {
             if (e.touches && e.touches.length > 0) homeStartY = e.touches[0].clientY;
         };
-        const homeTouchMove = function (e) { 
-            e.preventDefault(); 
+        var homeTouchMove = function (e) {
+            e.preventDefault();
         };
-        const homeTouchEnd = function (e) {
+        var homeTouchEnd = function (e) {
             if (e.changedTouches && e.changedTouches.length > 0) {
-                const endY = e.changedTouches[0].clientY;
+                var endY = e.changedTouches[0].clientY;
                 if (homeStartY - endY > 30) closeApp();
             }
         };
 
-        const initSortable = function () {
-            const grid = window.document.getElementById('desktop-grid');
+        var initSortable = function () {
+            var grid = window.document.getElementById('desktop-grid');
             if (!grid) return;
 
             window.Sortable.create(grid, {
                 animation: 250,
                 ghostClass: 'sortable-ghost',
-                delay: 300,             
+                delay: 300,
                 delayOnTouchOnly: true,
-                swap: true,             
-                swapClass: 'sortable-swap-highlight', 
+                swap: true,
+                swapClass: 'sortable-swap-highlight',
                 onEnd: function (evt) {
-                    const oldIdx = evt.oldIndex;
-                    const newIdx = evt.newIndex;
+                    var oldIdx = evt.oldIndex;
+                    var newIdx = evt.newIndex;
                     if (oldIdx === newIdx) return;
                     
-                    const items = store.desktopItems.slice();
-                    const temp = items[oldIdx];
+                    var items = store.desktopItems.slice();
+                    var temp = items[oldIdx];
                     items[oldIdx] = items[newIdx];
                     items[newIdx] = temp;
                     
                     store.desktopItems = items;
                 }
             });
+        };
+
+        // 处理原来HTML中复杂的类名判断
+        var getItemClass = function (item) {
+            if (item.type === 'app') return 'app-icon';
+            if (item.widgetType === 'dialog_2x2') return 'transparent-widget';
+            return 'widget-box';
+        };
+
+        // 处理原来HTML中复杂的行列计算逻辑
+        var getWidgetStyle = function (item) {
+            if (item.type !== 'widget' || !item.span) return {};
+            var parts = String(item.span).split('/');
+            if (parts.length < 2) return {};
+            return {
+                gridColumn: 'span ' + parts[0].trim(),
+                gridRow: 'span ' + parts[1].trim()
+            };
+        };
+
+        // 处理图标点击事件
+        var handleItemClick = function (item, e) {
+            if (item.type === 'app') {
+                openApp(item.id, e);
+            }
         };
 
         onMounted(function () {
@@ -106,8 +134,8 @@ const app = createApp({
             battery.value = 100;
             batteryInterval = window.setInterval(updateBattery, 60000);
 
-            nextTick(function () { 
-                initSortable(); 
+            nextTick(function () {
+                initSortable();
             });
         });
 
@@ -117,18 +145,21 @@ const app = createApp({
         });
 
         return {
-            store: store, 
-            time: time, 
-            date: date, 
-            weekday: weekday, 
-            battery: battery, 
-            temperature: temperature, 
+            store: store,
+            time: time,
+            date: date,
+            weekday: weekday,
+            battery: battery,
+            temperature: temperature,
             weatherDesc: weatherDesc,
-            openApp: openApp, 
-            closeApp: closeApp, 
-            homeTouchStart: homeTouchStart, 
-            homeTouchMove: homeTouchMove, 
-            homeTouchEnd: homeTouchEnd
+            openApp: openApp,
+            closeApp: closeApp,
+            homeTouchStart: homeTouchStart,
+            homeTouchMove: homeTouchMove,
+            homeTouchEnd: homeTouchEnd,
+            getItemClass: getItemClass,
+            getWidgetStyle: getWidgetStyle,
+            handleItemClick: handleItemClick
         };
     }
 });
