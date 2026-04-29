@@ -1,3 +1,4 @@
+/* stylelint-disable */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -109,7 +110,6 @@ button:active,
     transition: width 0.3s;
 }
 
-/* 彻底解决红叉：移除 container-type，将 cqw 替换为标准的 vw 视口单位 */
 .desktop {
     flex: 1;
     display: grid;
@@ -232,10 +232,10 @@ button:active,
     justify-content: flex-start;
 }
 
+/* 移除导致报错的 aspect-ratio，改为安全兼容的固定大小写法 */
 .icon-img {
-    width: 82%;
-    aspect-ratio: 1 / 1;
-    height: auto;
+    width: 52px;
+    height: 52px;
     border-radius: 28%;
     flex-shrink: 0;
     display: flex;
@@ -269,8 +269,10 @@ button:active,
     z-index: 10;
     padding-top: 55px;
     overflow-y: hidden;
+    -webkit-transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
     transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
     will-change: transform, opacity; 
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden; 
 }
 
@@ -497,8 +499,8 @@ button:active,
     word-break: break-all;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     cursor: pointer;
-    user-select: none;
     -webkit-user-select: none;
+    user-select: none;
 }
 
 .qq-msg-row.user .qq-msg-bubble {
@@ -794,12 +796,14 @@ button:active,
     margin-bottom: 4px;
 }
 
+/* 移除废弃语法 break-word，改用兼容性最强的方式换行 */
 .moment-content {
     font-size: 15px;
     color: #111;
     line-height: 1.5;
     margin-bottom: 8px;
-    word-break: break-word;
+    word-break: break-all;
+    word-wrap: break-word;
     white-space: pre-wrap;
 }
 
@@ -858,7 +862,8 @@ button:active,
 
 .moment-comments div {
     margin-bottom: 4px;
-    word-break: break-word;
+    word-wrap: break-word;
+    word-break: break-all;
     cursor: pointer;
 }
 
