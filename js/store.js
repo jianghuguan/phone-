@@ -1,10 +1,8 @@
-// @ts-nocheck
 /* eslint-disable */
-/* jshint esversion: 11 */
-/* global Vue, window, console, Promise, document */
+/* jshint ignore:start */
 'use strict';
 
-const defaultDesktopItems = [
+var defaultDesktopItems = [
     { type: 'widget', widgetType: 'time', id: 'timeWidget_1', name: '时钟天气', span: '4 / 2', bgImage: null },
     { type: 'widget', widgetType: 'photo', id: 'photoWidget_1', name: '照片墙', span: '2 / 2', bgImage: null },
     { type: 'app', id: 'qq', name: 'QQ', textIcon: 'Q', color: '#ffffff', iconImage: null },
@@ -17,9 +15,9 @@ const defaultDesktopItems = [
     { type: 'app', id: 'widgetApp', name: '小组件', textIcon: '组', color: '#ffffff', iconImage: null }
 ];
 
-let initialState = {
+var initialState = {
     currentApp: null,
-    desktopItems: defaultDesktopItems,
+    desktopPages: [],
     desktopBgImage: null,
     apiSettings: {
         main: { url: 'https://api.openai.com', key: '', model: 'gpt-3.5-turbo' },
@@ -33,137 +31,103 @@ let initialState = {
         userCards: [
             { id: 'uc_default', name: '默认用户', persona: '一个普通的记录生活者，回复风格口语化。', avatar: null }
         ],
-        wallet: {
-            balance: 1000,
-            history: [{ desc: '初始零钱红包', amount: '+1000.00', time: Date.now() }]
-        }
+        wallet: { balance: 1000, history: [{ desc: '初始红包', amount: '+1000.00', time: Date.now() }] }
     }
 };
 
-window.store = Vue.reactive(initialState);
-let isStoreLoaded = false;
+window.store = window.Vue.reactive(initialState);
+var isStoreLoaded = false;
 
-const initDB = function () {
+var initDB = function () {
     return new Promise(function (resolve, reject) {
-        if (!window.indexedDB) {
-            return reject('Browser does not support IndexedDB');
-        }
-        const request = window.indexedDB.open('MyPhoneDB', 1);
+        if (!window.indexedDB) return reject('No IndexedDB');
+        var request = window.indexedDB.open('MyPhoneDB', 1);
         request.onerror = function () { reject(request.error); };
         request.onsuccess = function () { resolve(request.result); };
         request.onupgradeneeded = function (e) {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains('store')) {
-                db.createObjectStore('store');
-            }
+            var db = e.target.result;
+            if (!db.objectStoreNames.contains('store')) db.createObjectStore('store');
         };
     });
 };
 
-const fallbackLocalLoad = function () {
-    try {
-        const localStr = window.localStorage.getItem('myPhoneData');
-        if (localStr) {
-            Object.assign(window.store, JSON.parse(localStr));
-        }
-    } catch (e) {}
+var createEmpty = function () {
+    return { type: 'empty', id: 'empty_' + Math.random().toString(36).substr(2, 9), span: '1 / 1' };
 };
 
-const loadData = function () {
-    initDB()
-        .then(function (db) {
-            const tx = db.transaction('store', 'readonly');
-            const storeObj = tx.objectStore('store');
-            const request = storeObj.get('myPhoneData');
-            
-            request.onsuccess = function () {
-                let savedData = request.result;
-                
-                if (!savedData) {
-                    try {
-                        const localStr = window.localStorage.getItem('myPhoneData');
-                        if (localStr) {
-                            savedData = JSON.parse(localStr);
-                            console.log('成功从旧版 localStorage 迁移数据至大容量数据库');
-                        }
-                    } catch (e) {}
-                }
+var calcArea = function (item) {
+    if (!item.span) return 1;
+    var parts = item.span.split('/');
+    if (parts.length === 2) return parseInt(parts[0]) * parseInt(parts[1]);
+    return 1;
+};
 
-                if (savedData) {
-                    Object.assign(window.store, savedData);
-                    
-                    if (!window.store.desktopItems || window.store.desktopItems.length === 0) {
-                        window.store.desktopItems = defaultDesktopItems;
-                    }
-                    if (!window.store.apiSettings) {
-                        window.store.apiSettings = { main: {url: '', key: '', model: ''}, sub: {url: '', key: '', model: ''}, draw: {url: '', key: '', model: ''} };
-                    } else if (!window.store.apiSettings.draw) {
-                        window.store.apiSettings.draw = { url: '', key: '', model: '' };
-                    }
-                }
-                
-                isStoreLoaded = true;
-                if (savedData) {
-                    saveData(window.store);
-                }
-            };
-            
-            request.onerror = function () {
-                fallbackLocalLoad();
-                isStoreLoaded = true;
-            };
-        })
-        .catch(function (err) {
-            console.warn('大容量数据库初始化失败，将降级使用旧版存储', err);
-            fallbackLocalLoad();
-            isStoreLoaded = true;
+var processDataCompatible = function (savedData) {
+    if (savedData) {
+        Object.assign(window.store, savedData);
+    }
+    if (!window.store.desktopPages || window.store.desktopPages.length < 2) {
+        var p0 = [], p1 = [];
+        var area0 = 0, area1 = 0;
+        var items = savedData ? (savedData.desktopItems || defaultDesktopItems) : defaultDesktopItems;
+        items = items.filter(function(i) { return i.type !== 'empty'; });
+
+        items.forEach(function(item) {
+            var a = calcArea(item);
+            if (area0 + a <= 24) { p0.push(item); area0 += a; }
+            else if (area1 + a <= 24) { p1.push(item); area1 += a; }
         });
-};
-
-let saveTimeout = null;
-const saveData = function (data) {
-    if (!isStoreLoaded) return;
-    
-    if (saveTimeout) {
-        window.clearTimeout(saveTimeout);
-    }
-    
-    try {
-        const rawData = JSON.parse(JSON.stringify(data));
         
-        saveTimeout = window.setTimeout(function () {
-            initDB()
-                .then(function (db) {
-                    const tx = db.transaction('store', 'readwrite');
-                    const storeObj = tx.objectStore('store');
-                    storeObj.put(rawData, 'myPhoneData');
-                    
-                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) {}
-                })
-                .catch(function () {
-                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) {}
-                });
-        }, 400); 
-    } catch (err) {
-        console.warn('数据转换出错，无法保存', err);
+        while(area0 < 24) { p0.push(createEmpty()); area0++; }
+        while(area1 < 24) { p1.push(createEmpty()); area1++; }
+        window.store.desktopPages = [p0, p1];
+    } else {
+        while(window.store.desktopPages.length < 2) {
+            var arr = [];
+            for(var i=0; i<24; i++) arr.push(createEmpty());
+            window.store.desktopPages.push(arr);
+        }
     }
 };
 
-window.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'hidden' && isStoreLoaded) {
-        try {
-            const rawData = JSON.parse(JSON.stringify(window.store));
-            window.localStorage.setItem('myPhoneData', JSON.stringify(rawData));
-        } catch(e) {}
-    }
-});
+var loadData = function () {
+    initDB().then(function (db) {
+        var tx = db.transaction('store', 'readonly');
+        var req = tx.objectStore('store').get('myPhoneData');
+        req.onsuccess = function () {
+            var data = req.result;
+            if (!data) {
+                try { var local = window.localStorage.getItem('myPhoneData'); if (local) data = JSON.parse(local); } catch(e){}
+            }
+            processDataCompatible(data);
+            isStoreLoaded = true;
+        };
+        req.onerror = function () { processDataCompatible(null); isStoreLoaded = true; };
+    }).catch(function () {
+        var data = null;
+        try { var local = window.localStorage.getItem('myPhoneData'); if (local) data = JSON.parse(local); } catch(e){}
+        processDataCompatible(data);
+        isStoreLoaded = true;
+    });
+};
+
+var saveTimeout = null;
+var saveData = function (data) {
+    if (!isStoreLoaded) return;
+    if (saveTimeout) window.clearTimeout(saveTimeout);
+    try {
+        var rawData = JSON.parse(JSON.stringify(data));
+        saveTimeout = window.setTimeout(function () {
+            initDB().then(function (db) {
+                var tx = db.transaction('store', 'readwrite');
+                tx.objectStore('store').put(rawData, 'myPhoneData');
+                try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch(e){}
+            }).catch(function () {
+                try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch(e){}
+            });
+        }, 500); 
+    } catch (err) {}
+};
 
 loadData();
-
-Vue.watch(
-    window.store,
-    function (newState) {
-        saveData(newState);
-    },
-    { deep: true }
-);
+window.Vue.watch(window.store, function (newState) { saveData(newState); }, { deep: true });
