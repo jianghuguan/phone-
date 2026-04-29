@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>小手机自适应版</title>
-    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/style.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
@@ -21,9 +21,9 @@
             </div>
         </div>
 
-        <!-- 彻底修复GitHub红叉：取消所有HTML属性内部的 && 符号，全部更换为三元表达式 -->
+        <!-- 彻底修复红叉：所有的逻辑判断都被转移到了 main.js 的函数中，这里只调用函数 -->
         <div id="desktop-grid" class="desktop" :class="{ 'desktop-opened': store.currentApp }" :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' }">
-            <div v-for="item in store.desktopItems" :key="item.id" :class="{ 'widget-box': (item.type === 'widget' ? item.widgetType !== 'dialog_2x2' : false), 'app-icon': item.type === 'app', 'transparent-widget': item.widgetType === 'dialog_2x2' }" :style="item.type === 'widget' ? { gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() } : {}" @click="item.type === 'app' ? openApp(item.id, $event) : null">
+            <div v-for="item in store.desktopItems" :key="item.id" :class="getItemClass(item)" :style="getWidgetStyle(item)" @click="handleItemClick(item, $event)">
                 
                 <div v-if="item.widgetType === 'time'" class="widget-time" :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
                     <div class="time-header">
@@ -44,7 +44,11 @@
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:10px;">设置</span>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo_1x2' || item.widgetType === 'photo_2x1'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div v-else-if="item.widgetType === 'photo_1x2'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                    <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
+                </div>
+
+                <div v-else-if="item.widgetType === 'photo_2x1'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
                 </div>
 
@@ -63,6 +67,7 @@
                     </div>
                     <span class="icon-name">{{ item.name }}</span>
                 </div>
+
             </div>
         </div>
 
