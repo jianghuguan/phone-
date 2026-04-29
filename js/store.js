@@ -4,16 +4,16 @@
 'use strict';
 
 const defaultDesktopItems = [
-    { type: 'widget', widgetType: 'time', id: 'timeWidget_1', name: '时钟天气', span: '4 / 2', bgImage: null },
-    { type: 'widget', widgetType: 'photo', id: 'photoWidget_1', name: '照片墙', span: '2 / 2', bgImage: null },
-    { type: 'app', id: 'qq', name: 'QQ', textIcon: 'Q', color: '#ffffff', iconImage: null },
-    { type: 'app', id: 'sms', name: '短信', textIcon: '信', color: '#ffffff', iconImage: null },
-    { type: 'app', id: 'weibo', name: '微博', textIcon: '微', color: '#ffffff', iconImage: null },
-    { type: 'app', id: 'forum', name: '论坛', textIcon: '论', color: '#ffffff', iconImage: null },
-    { type: 'app', id: 'music', name: '音乐', textIcon: '音', color: '#ffffff', iconImage: null },
-    { type: 'app', id: 'theme', name: '美化', textIcon: '美', color: '#ffffff', iconImage: null },
-    { type: 'app', id: 'settings', name: '设置', textIcon: '设', color: '#ffffff', iconImage: null },
-    { type: 'app', id: 'widgetApp', name: '小组件', textIcon: '组', color: '#ffffff', iconImage: null }
+    { type: 'widget', widgetType: 'time', id: 'timeWidget_1', name: '时钟天气', w: 4, h: 2, x: 0, y: 0, bgImage: null },
+    { type: 'widget', widgetType: 'photo', id: 'photoWidget_1', name: '照片墙', w: 2, h: 2, x: 0, y: 2, bgImage: null },
+    { type: 'app', id: 'qq', name: 'QQ', textIcon: 'Q', color: '#ffffff', iconImage: null, w: 1, h: 1, x: 0, y: 4 },
+    { type: 'app', id: 'sms', name: '短信', textIcon: '信', color: '#ffffff', iconImage: null, w: 1, h: 1, x: 1, y: 4 },
+    { type: 'app', id: 'weibo', name: '微博', textIcon: '微', color: '#ffffff', iconImage: null, w: 1, h: 1, x: 2, y: 4 },
+    { type: 'app', id: 'forum', name: '论坛', textIcon: '论', color: '#ffffff', iconImage: null, w: 1, h: 1, x: 3, y: 4 },
+    { type: 'app', id: 'music', name: '音乐', textIcon: '音', color: '#ffffff', iconImage: null, w: 1, h: 1, x: 0, y: 5 },
+    { type: 'app', id: 'theme', name: '美化', textIcon: '美', color: '#ffffff', iconImage: null, w: 1, h: 1, x: 1, y: 5 },
+    { type: 'app', id: 'settings', name: '设置', textIcon: '设', color: '#ffffff', iconImage: null, w: 1, h: 1, x: 2, y: 5 },
+    { type: 'app', id: 'widgetApp', name: '小组件', textIcon: '组', color: '#ffffff', iconImage: null, w: 1, h: 1, x: 3, y: 5 }
 ];
 
 let initialState = {
@@ -42,35 +42,67 @@ let initialState = {
 window.store = Vue.reactive(initialState);
 let isStoreLoaded = false;
 
-// 封装 IndexedDB
+// 兼容旧版，将 span 转为绝对排布的 x,y,w,h
+const migrateGridItems = function(items) {
+    if (!items) return;
+    let gridOccupied = Array(100).fill(0).map(()=>Array(4).fill(0));
+    items.forEach(function(item) {
+        if (item.w === undefined) {
+            let s = (item.span || '1 / 1').split('/');
+            item.w = parseInt(s[0].trim());
+            item.h = parseInt(s[1].trim());
+        }
+        if (item.x === undefined || item.y === undefined) {
+            let found = false;
+            for(let r=0; r<100 && !found; r++){
+                for(let c=0; c<=4-item.w && !found; c++){
+                    let fit = true;
+                    for(let i=0; i<item.h; i++){
+                        for(let j=0; j<item.w; j++){
+                            if(gridOccupied[r+i][c+j]) fit = false;
+                        }
+                    }
+                    if(fit){
+                        item.x = c; item.y = r;
+                        found = true;
+                        for(let i=0; i<item.h; i++){
+                            for(let j=0; j<item.w; j++){ gridOccupied[r+i][c+j] = 1; }
+                        }
+                    }
+                }
+            }
+        } else {
+            for(let i=0; i<item.h; i++){
+                for(let j=0; j<item.w; j++){ if (gridOccupied[item.y+i]) gridOccupied[item.y+i][item.x+j] = 1; }
+            }
+        }
+    });
+};
+
 const initDB = function () {
     return new Promise(function (resolve, reject) {
-        if (!window.indexedDB) {
-            return reject('Browser does not support IndexedDB');
-        }
+        if (!window.indexedDB) return reject('Browser does not support IndexedDB');
         const request = window.indexedDB.open('MyPhoneDB', 1);
         request.onerror = function () { reject(request.error); };
         request.onsuccess = function () { resolve(request.result); };
         request.onupgradeneeded = function (e) {
             const db = e.target.result;
-            if (!db.objectStoreNames.contains('store')) {
-                db.createObjectStore('store');
-            }
+            if (!db.objectStoreNames.contains('store')) db.createObjectStore('store');
         };
     });
 };
 
-// 紧急备用：从旧版 localStorage 读取数据
 const fallbackLocalLoad = function () {
     try {
         const localStr = window.localStorage.getItem('myPhoneData');
         if (localStr) {
-            Object.assign(window.store, JSON.parse(localStr));
+            const parsed = JSON.parse(localStr);
+            Object.assign(window.store, parsed);
+            migrateGridItems(window.store.desktopItems);
         }
     } catch (e) {}
 };
 
-// 读取数据逻辑
 const loadData = function () {
     initDB()
         .then(function (db) {
@@ -80,87 +112,53 @@ const loadData = function () {
             
             request.onsuccess = function () {
                 let savedData = request.result;
-                
-                // 【核心修复】：如果大数据库是空的，说明是第一次升级，自动去 localStorage 抢救以前的旧数据！
                 if (!savedData) {
                     try {
                         const localStr = window.localStorage.getItem('myPhoneData');
-                        if (localStr) {
-                            savedData = JSON.parse(localStr);
-                            console.log('成功从旧版 localStorage 迁移数据至大容量数据库');
-                        }
+                        if (localStr) savedData = JSON.parse(localStr);
                     } catch (e) {}
                 }
 
                 if (savedData) {
                     Object.assign(window.store, savedData);
-                    
-                    // 补齐可能缺失的基础结构，防止报错
                     if (!window.store.desktopItems || window.store.desktopItems.length === 0) {
                         window.store.desktopItems = defaultDesktopItems;
                     }
-                    if (!window.store.apiSettings) {
-                        window.store.apiSettings = { main: {url: '', key: '', model: ''}, sub: {url: '', key: '', model: ''}, draw: {url: '', key: '', model: ''} };
-                    } else if (!window.store.apiSettings.draw) {
-                        window.store.apiSettings.draw = { url: '', key: '', model: '' };
-                    }
+                    migrateGridItems(window.store.desktopItems);
+                    if (!window.store.apiSettings) window.store.apiSettings = { main: {url: '', key: '', model: ''}, sub: {url: '', key: '', model: ''}, draw: {url: '', key: '', model: ''} };
+                    else if (!window.store.apiSettings.draw) window.store.apiSettings.draw = { url: '', key: '', model: '' };
                 }
                 
                 isStoreLoaded = true;
-                // 迁移完成后，立刻保存一份到新数据库中
-                if (savedData) {
-                    saveData(window.store);
-                }
+                if (savedData) saveData(window.store);
             };
             
-            request.onerror = function () {
-                fallbackLocalLoad();
-                isStoreLoaded = true;
-            };
+            request.onerror = function () { fallbackLocalLoad(); isStoreLoaded = true; };
         })
-        .catch(function (err) {
-            console.warn('大容量数据库初始化失败，将降级使用旧版存储', err);
-            fallbackLocalLoad();
-            isStoreLoaded = true;
-        });
+        .catch(function () { fallbackLocalLoad(); isStoreLoaded = true; });
 };
 
-// 保存数据逻辑（增加防抖和双重备份）
 let saveTimeout = null;
 const saveData = function (data) {
     if (!isStoreLoaded) return;
-    
-    // 防抖：清除上一次还没执行的保存操作，防止频繁保存把数据库卡死
-    if (saveTimeout) {
-        window.clearTimeout(saveTimeout);
-    }
+    if (saveTimeout) window.clearTimeout(saveTimeout);
     
     try {
-        // 先同步克隆一份当前的数据快照
         const rawData = JSON.parse(JSON.stringify(data));
-        
-        // 延迟 400 毫秒后统一执行真实写入
         saveTimeout = window.setTimeout(function () {
             initDB()
                 .then(function (db) {
                     const tx = db.transaction('store', 'readwrite');
-                    const storeObj = tx.objectStore('store');
-                    storeObj.put(rawData, 'myPhoneData');
-                    
-                    // 顺便尝试在旧版 localStorage 也备份一份（如果没超限的话），增加安全性
+                    tx.objectStore('store').put(rawData, 'myPhoneData');
                     try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) {}
                 })
                 .catch(function () {
-                    // 如果大数据库彻底罢工，强制降级保存
                     try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) {}
                 });
         }, 400); 
-    } catch (err) {
-        console.warn('数据转换出错，无法保存', err);
-    }
+    } catch (err) {}
 };
 
-// 页面隐藏/关闭前，做最后一次挣扎同步保存
 window.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'hidden' && isStoreLoaded) {
         try {
@@ -170,13 +168,10 @@ window.addEventListener('visibilitychange', function() {
     }
 });
 
-// 立即触发读取
 loadData();
 
 Vue.watch(
     window.store,
-    function (newState) {
-        saveData(newState);
-    },
+    function (newState) { saveData(newState); },
     { deep: true }
 );
