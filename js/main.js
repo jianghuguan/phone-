@@ -52,7 +52,11 @@ const app = createApp({
                 window.document.documentElement.style.setProperty('--app-origin-x', '50%');
                 window.document.documentElement.style.setProperty('--app-origin-y', '50%');
             }
-            store.currentApp = id; 
+            
+            // 【核心丝滑优化】：延迟 30ms 挂载重型组件，先让主线程处理点击反馈与底层图层，防止动画掉帧卡顿
+            window.setTimeout(function() {
+                store.currentApp = id; 
+            }, 30);
         };
         
         const closeApp = function () { 
@@ -95,6 +99,32 @@ const app = createApp({
         };
 
         onMounted(function () {
+            // 【核心防闪优化】：用 JS 动态注入高权重 CSS 修复动画底层机制
+            const style = window.document.createElement('style');
+            style.innerHTML = `
+                /* 死死固定顶栏，悬浮在最外层图层，彻底解决被底部动画遮挡/挤压导致的闪烁 */
+                .status-bar {
+                    position: absolute !important;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    z-index: 9999 !important;
+                    -webkit-transform: translateZ(0); 
+                    transform: translateZ(0); /* 开启硬件独立图层，隔绝任何重绘干扰 */
+                }
+                /* 为 App 弹出视图强制开启 GPU 3D 加速，让原有的滑动动画极致丝滑 */
+                .app-view {
+                    will-change: transform, opacity;
+                    -webkit-backface-visibility: hidden;
+                    backface-visibility: hidden;
+                    -webkit-perspective: 1000;
+                    perspective: 1000;
+                    transform: translate3d(0, 0, 0);
+                    -webkit-transform: translate3d(0, 0, 0);
+                }
+            `;
+            window.document.head.appendChild(style);
+
             updateTime();
             timeInterval = window.setInterval(updateTime, 1000);
             
