@@ -1,6 +1,5 @@
 /* eslint-disable */
-/* jshint expr: true, asi: true */
-/* global window, document, setInterval, clearInterval, Date, String */
+/* jshint ignore:start */
 'use strict';
 
 (function () {
