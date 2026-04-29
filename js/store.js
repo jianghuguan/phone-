@@ -45,7 +45,7 @@ let isStoreLoaded = false;
 // 兼容旧版，将 span 转为绝对排布的 x,y,w,h
 const migrateGridItems = function(items) {
     if (!items) return;
-    let gridOccupied = Array(100).fill(0).map(()=>Array(4).fill(0));
+    let gridOccupied = Array(100).fill(0).map(function() { return Array(4).fill(0); });
     items.forEach(function(item) {
         if (item.w === undefined) {
             let s = (item.span || '1 / 1').split('/');
