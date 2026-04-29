@@ -15,7 +15,6 @@
             var date = Vue.ref('');
             var weekday = Vue.ref('');
 
-            // 使用最基础的兼容语法生成时间，避开 padStart 引起的语法报错
             var updateTime = function () {
                 var now = new Date();
                 var h = now.getHours();
@@ -90,6 +89,9 @@
                     delayOnTouchOnly: true,
                     swap: true,
                     swapClass: 'sortable-swap-highlight',
+                    scroll: true,             // 开启横向边缘翻页能力
+                    scrollSensitivity: 80,    // 边缘滚动灵敏度
+                    scrollSpeed: 15,          // 滚动速度
                     onEnd: function (evt) {
                         var oldIdx = evt.oldIndex;
                         var newIdx = evt.newIndex;
@@ -115,7 +117,6 @@
                 if (item.type !== 'widget' || !item.span) return {};
                 var parts = String(item.span).split('/');
                 if (parts.length < 2) return {};
-                // 使用正则替换替代 trim() 以达到最极端的向后兼容
                 return {
                     gridColumn: 'span ' + parts[0].replace(/^\s+|\s+$/g, ''),
                     gridRow: 'span ' + parts[1].replace(/^\s+|\s+$/g, '')
