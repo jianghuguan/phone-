@@ -1,6 +1,6 @@
 /* eslint-disable */
-/* eslint-env browser, es2021 */
-/* global Vue */
+/* jshint esversion: 8 */
+/* global Vue, window, console, Promise */
 'use strict';
 
 const defaultDesktopItems = [
@@ -43,12 +43,12 @@ window.store = Vue.reactive(initialState);
 let isStoreLoaded = false;
 
 // 封装 IndexedDB
-const initDB = function() {
-    return new Promise((resolve, reject) => {
+const initDB = function () {
+    return new Promise(function (resolve, reject) {
         const request = window.indexedDB.open('MyPhoneDB', 1);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result);
-        request.onupgradeneeded = (e) => {
+        request.onerror = function () { reject(request.error); };
+        request.onsuccess = function () { resolve(request.result); };
+        request.onupgradeneeded = function (e) {
             const db = e.target.result;
             if (!db.objectStoreNames.contains('store')) {
                 db.createObjectStore('store');
@@ -57,17 +57,16 @@ const initDB = function() {
     });
 };
 
-const loadData = async function() {
+const loadData = async function () {
     try {
         const db = await initDB();
         const tx = db.transaction('store', 'readonly');
         const storeObj = tx.objectStore('store');
         const request = storeObj.get('myPhoneData');
         
-        request.onsuccess = () => {
+        request.onsuccess = function () {
             const savedData = request.result;
             if (savedData) {
-                // 读取到数据后覆盖进 store
                 Object.assign(window.store, savedData);
                 
                 // 补齐可能缺失的基础结构
@@ -78,10 +77,9 @@ const loadData = async function() {
                     window.store.apiSettings.draw = { url: '', key: '', model: '' };
                 }
             }
-            // 等待一次合并完成后，允许监听器保存新的状态
             isStoreLoaded = true;
         };
-        request.onerror = () => {
+        request.onerror = function () {
             isStoreLoaded = true;
         };
     } catch (err) {
@@ -90,10 +88,9 @@ const loadData = async function() {
     }
 };
 
-const saveData = async function(data) {
+const saveData = async function (data) {
     if (!isStoreLoaded) return;
     try {
-        // 脱离 Proxy
         const rawData = JSON.parse(JSON.stringify(data));
         const db = await initDB();
         const tx = db.transaction('store', 'readwrite');
@@ -109,7 +106,7 @@ loadData();
 
 Vue.watch(
     window.store,
-    (newState) => {
+    function (newState) {
         saveData(newState);
     },
     { deep: true }
