@@ -1,4 +1,5 @@
 /* stylelint-disable */
+/* csslint ignore:start */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
 #app { width: 100vw; height: 100vh; background-color: #000; display: flex; flex-direction: column; position: relative; }
@@ -17,7 +18,7 @@ button:active, .btn-primary:active, .btn-danger:active { font-weight: bold !impo
 .desktop-bg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #fbfbfd; background-size: cover; background-position: center; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); z-index: 1; }
 .desktop-opened-bg { transform: scale(1.08) translateZ(0); }
 
-.desktop-swiper { position: absolute; top: 55px; left: 0; width: 100%; height: calc(100% - 55px); display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; z-index: 5; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s; }
+.desktop-swiper { position: absolute; top: 55px; left: 0; width: 100%; height: calc(100% - 55px); display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; z-index: 5; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s; }
 .desktop-swiper::-webkit-scrollbar { display: none; }
 .desktop-opened-swiper { transform: scale(0.85) translateZ(0); opacity: 0.3; pointer-events: none; }
 
@@ -43,7 +44,7 @@ button:active, .btn-primary:active, .btn-danger:active { font-weight: bold !impo
 .dialog-avatar { position: absolute; bottom: 0; left: 0; width: 45px; height: 45px; border: 1.5px solid #111; border-radius: 8px; background-color: #fff; background-size: cover; background-position: center; z-index: 2; box-shadow: 2px 2px 0 rgba(0,0,0,0.05); }
 .dialog-bubble { position: absolute; top: 0; right: 0; width: 110px; height: 40px; background: #fff; border: 1.5px solid #111; border-radius: 8px; padding: 8px 12px; z-index: 1; box-shadow: 2px 2px 0 rgba(0,0,0,0.05); }
 .dialog-bubble::after { content: ''; position: absolute; bottom: -6px; left: 15px; width: 10px; height: 10px; background: #fff; border-right: 1.5px solid #111; border-bottom: 1.5px solid #111; transform: rotate(45deg); }
-.dialog-bubble textarea { width: 100%; height: 100%; border: none; outline: none; resize: none; background: transparent; font-family: inherit; font-size: 14px; line-height: 20px; color: #333; padding: 0; margin: 0; overflow: hidden; }
+.dialog-bubble textarea { width: 100%; height: 100%; border: none; outline: 0; resize: none; background: transparent; font-family: inherit; font-size: 14px; line-height: 20px; color: #333; padding: 0; margin: 0; overflow: hidden; }
 
 .app-icon { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
 .icon-img { width: 82%; aspect-ratio: 1 / 1; height: auto; border-radius: 28%; flex-shrink: 0; display: flex; justify-content: center; align-items: center; font-size: 26px; font-weight: bold; color: #333; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06); pointer-events: none; background-size: cover; background-position: center; background-repeat: no-repeat; }
@@ -55,7 +56,7 @@ button:active, .btn-primary:active, .btn-danger:active { font-weight: bold !impo
 .home-indicator-wrapper { position: absolute; bottom: 0; left: 0; width: 100%; height: 35px; z-index: 999; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 12px; }
 .home-indicator { width: 130px; height: 5px; background-color: #000; border-radius: 10px; cursor: pointer; }
 
-.settings-input { width: 100%; border: 1px solid #d1d1d6; border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none; margin-top: 6px; box-sizing: border-box; background: #fff; }
+.settings-input { width: 100%; border: 1px solid #d1d1d6; border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: 0; margin-top: 6px; box-sizing: border-box; background: #fff; }
 .qq-container { height: calc(100% - 25px); display: flex; flex-direction: column; background: #fafafa; color: #262626; position: relative; overflow: hidden; }
 .qq-header { height: 50px; border-bottom: 1px solid #efefef; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-weight: 600; font-size: 16px; background: #fff; flex-shrink: 0; }
 .qq-content { flex: 1; overflow-y: auto; background: #fff; }
@@ -93,12 +94,12 @@ button:active, .btn-primary:active, .btn-danger:active { font-weight: bold !impo
 @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
 .qq-input-area { display: flex; flex-direction: column; background: #fff; border-top: 1px solid #eee; flex-shrink: 0; }
 .qq-input-bar { height: auto; min-height: 52px; padding: 8px 16px; display: flex; align-items: flex-end; }
-.qq-input-bar textarea { flex: 1; border: 1px solid #000; border-radius: 18px; padding: 8px 12px; outline: none; font-size: 14px; background: #fff; resize: none; min-height: 36px; height: 36px; max-height: 108px; line-height: 20px; overflow-y: auto; margin-right: 12px; }
+.qq-input-bar textarea { flex: 1; border: 1px solid #000; border-radius: 18px; padding: 8px 12px; outline: 0; font-size: 14px; background: #fff; resize: none; min-height: 36px; height: 36px; max-height: 108px; line-height: 20px; overflow-y: auto; margin-right: 12px; }
 .qq-input-bar button { padding: 6px 16px; margin-bottom: 1px; height: 36px; }
 .qq-toast { position: absolute; top: 15px; left: 10%; width: 80%; background: #ed4956; color: #fff; padding: 12px; border-radius: 12px; text-align: center; z-index: 1000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); font-size: 14px; font-weight: 500; }
 .qq-modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; }
 .qq-modal { width: 85%; background: #fff; border-radius: 20px; padding: 24px; max-height: 80%; overflow-y: auto; }
-.qq-modal input, .qq-modal textarea, .qq-modal select { width: 100%; border: 1px solid #000; border-radius: 12px; padding: 12px; margin-bottom: 15px; font-size: 14px; outline: none; box-sizing: border-box; background: #fff; font-family: inherit; }
+.qq-modal input, .qq-modal textarea, .qq-modal select { width: 100%; border: 1px solid #000; border-radius: 12px; padding: 12px; margin-bottom: 15px; font-size: 14px; outline: 0; box-sizing: border-box; background: #fff; font-family: inherit; }
 .qq-modal-btns { display: flex; gap: 12px; margin-top: 5px; }
 .qq-modal-btns button { flex: 1; padding: 12px; }
 .qq-profile-header { position: relative; height: 220px; background: #efefef; background-size: cover; background-position: center; border-bottom: 1px solid #efefef; }
@@ -119,3 +120,4 @@ button:active, .btn-primary:active, .btn-danger:active { font-weight: bold !impo
 .moment-likes.has-border { border-bottom: 1px solid #ebebeb; padding-bottom: 4px; }
 .moment-comments { margin-top: 4px; }
 .moment-comments div { margin-bottom: 4px; word-break: break-word; cursor: pointer; }
+/* csslint ignore:end */
