@@ -40,7 +40,6 @@ button:active,
     font-weight: bold !important;
 }
 
-/* 核心修复：将状态栏完全脱离文档流独立，GPU加速，防止被连累重排闪烁 */
 .status-bar {
     position: absolute;
     top: 0;
@@ -55,7 +54,7 @@ button:active,
     z-index: 9999;
     transition: color 0.3s;
     transform: translateZ(0); 
-    pointer-events: none; /* 防止悬浮层阻挡下方应用的点击事件 */
+    pointer-events: none; 
 }
 
 .dark-text {
@@ -130,23 +129,20 @@ button:active,
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    
-    /* 桌面平滑放大的动画过渡 */
     transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-    will-change: transform; /* 开启渲染前置优化 */
+    will-change: transform;
 }
 
-/* App打开时桌面的形态表现 */
 .desktop-opened {
-    transform: scale(1.08) translateZ(0); /* 桌面背景放大并开启 GPU 加速 */
+    transform: scale(1.08) translateZ(0);
 }
 .desktop > div {
     transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s;
     will-change: transform, opacity;
 }
 .desktop-opened > div {
-    transform: scale(0.85) translateZ(0); /* 其它所有图标整体缩小并开启 GPU 加速 */
-    opacity: 0.3; /* 半透明以降低视觉干扰 */
+    transform: scale(0.85) translateZ(0); 
+    opacity: 0.3; 
 }
 
 .sortable-ghost {
@@ -263,8 +259,8 @@ button:active,
     padding-top: 55px;
     overflow-y: hidden;
     transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
-    will-change: transform, opacity; /* 提前分配 GPU 内存 */
-    backface-visibility: hidden; /* 防止边缘锯齿与卡顿 */
+    will-change: transform, opacity; 
+    backface-visibility: hidden; 
 }
 
 .app-slide-enter-active,
@@ -274,13 +270,13 @@ button:active,
 
 .app-slide-enter-from,
 .app-slide-leave-to {
-    transform: scale(0.15) translateZ(0); /* 开启 3D 渲染通道 */
+    transform: scale(0.15) translateZ(0); 
     opacity: 0;
 }
 
 .app-slide-enter-to,
 .app-slide-leave-from {
-    transform: scale(1) translateZ(0); /* 开启 3D 渲染通道 */
+    transform: scale(1) translateZ(0); 
     opacity: 1;
 }
 
@@ -596,15 +592,9 @@ button:active,
 }
 
 @keyframes pulse {
-    0% {
-        opacity: 0.4;
-    }
-    50% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0.4;
-    }
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
 }
 
 .qq-input-area {
@@ -741,7 +731,6 @@ button:active,
     margin-bottom: 10px;
 }
 
-/* ====== 朋友圈样式 ====== */
 .moments-menu {
     position: absolute;
     top: 40px;
@@ -867,16 +856,10 @@ button:active,
     margin-bottom: 0;
 }
 
-/* ========================================= */
-/* 新增：扩展照片墙与对话气泡小组件的专属样式 */
-/* ========================================= */
-
-/* 圆形照片强制裁剪 */
 .photo-circle {
     border-radius: 50% !important;
 }
 
-/* 2x2 像素风气泡的透明父容器 */
 .transparent-widget {
     position: relative;
     width: 100%;
@@ -884,7 +867,6 @@ button:active,
     border-radius: 22px;
 }
 
-/* 左下方头像框 */
 .dialog-avatar {
     position: absolute;
     bottom: 5px;
@@ -900,7 +882,6 @@ button:active,
     box-shadow: 2px 2px 0 rgba(0,0,0,0.05);
 }
 
-/* 右上方对话框（紧贴头像框） */
 .dialog-bubble {
     position: absolute;
     bottom: 45px;
@@ -915,7 +896,6 @@ button:active,
     box-shadow: 2px 2px 0 rgba(0,0,0,0.05);
 }
 
-/* 像素风细线小尾巴，指向左下角的头像 */
 .dialog-bubble::after {
     content: '';
     position: absolute;
@@ -929,7 +909,6 @@ button:active,
     transform: rotate(45deg);
 }
 
-/* 对话框内无边框透明输入域 */
 .dialog-bubble textarea {
     width: 100%;
     height: 100%;
@@ -943,9 +922,6 @@ button:active,
     color: #333;
 }
 
-/* ========================================= */
-/* 拖拽交互样式：交换模式 (Swap) 高亮指示 */
-/* ========================================= */
 .sortable-swap-highlight {
     outline: 2px dashed #000;
     opacity: 0.8;
