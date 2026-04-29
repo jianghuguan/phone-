@@ -10,26 +10,26 @@
 </head>
 <body>
     <div id="app">
-        <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
+        <div class="status-bar" v-bind:class="{ 'dark-text': !store.currentApp }">
             <span class="time">{{ time }}</span>
             <div class="dynamic-island"></div>
             <div class="battery">
                 <span class="battery-text">{{ battery }}%</span>
                 <div class="battery-icon">
-                    <div class="battery-level" :style="{ width: battery + '%' }"></div>
+                    <div class="battery-level" v-bind:style="{ width: battery + '%' }"></div>
                 </div>
             </div>
         </div>
 
-        <div class="desktop-bg-layer" :class="{ 'desktop-opened-bg': store.currentApp }" :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' }"></div>
+        <div class="desktop-bg-layer" v-bind:class="{ 'desktop-opened-bg': store.currentApp }" v-bind:style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' }"></div>
 
-        <div id="desktop-swiper" class="desktop-swiper" :class="{ 'desktop-opened-swiper': store.currentApp }">
-            <div v-for="(pageItems, pageIdx) in store.desktopPages" :key="pageIdx" :id="'desktop-page-' + pageIdx" class="desktop-page">
-                <div v-for="item in pageItems" :key="item.id" :class="getItemClass(item)" :style="getWidgetStyle(item)" @click="handleItemClick(item, $event)" :data-id="item.id">
+        <div id="desktop-swiper" class="desktop-swiper" v-bind:class="{ 'desktop-opened-swiper': store.currentApp }">
+            <div v-for="(pageItems, pageIdx) in store.desktopPages" v-bind:key="pageIdx" v-bind:id="'desktop-page-' + pageIdx" class="desktop-page">
+                <div v-for="item in pageItems" v-bind:key="item.id" v-bind:class="getItemClass(item)" v-bind:style="getWidgetStyle(item)" v-on:click="handleItemClick(item, $event)" v-bind:data-id="item.id">
                     
                     <div v-if="item.type === 'empty'" class="empty-slot"></div>
 
-                    <div v-else-if="item.widgetType === 'time'" class="widget-time" :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
+                    <div v-else-if="item.widgetType === 'time'" class="widget-time" v-bind:style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
                         <div class="time-header">
                             <h1>{{ time }}</h1>
                             <div class="weather-info">
@@ -37,30 +37,30 @@
                                 <span class="desc">{{ weatherDesc }}</span>
                             </div>
                         </div>
-                        <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
+                        <p class="date-text" v-bind:style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
                     </div>
 
-                    <div v-else-if="item.widgetType === 'photo' || item.widgetType === 'photo_1x2' || item.widgetType === 'photo_2x1'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                    <div v-else-if="item.widgetType === 'photo' || item.widgetType === 'photo_1x2' || item.widgetType === 'photo_2x1'" class="widget-photo" v-bind:style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
                         <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
                     </div>
 
-                    <div v-else-if="item.widgetType === 'photo_1x1_circle'" class="widget-photo photo-circle" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                    <div v-else-if="item.widgetType === 'photo_1x1_circle'" class="widget-photo photo-circle" v-bind:style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
                         <span v-if="!item.bgImage" style="color:#aaa; font-size:10px;">设置</span>
                     </div>
 
                     <div v-else-if="item.widgetType === 'dialog_2x2'" class="transparent-widget">
                         <div class="dialog-inner">
-                            <div class="dialog-avatar" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                            <div class="dialog-avatar" v-bind:style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
                                 <span v-if="!item.bgImage" style="font-size:10px; color:#999; display:flex; height:100%; align-items:center; justify-content:center;">头像</span>
                             </div>
-                            <div class="dialog-bubble" @mousedown.stop @touchstart.stop>
+                            <div class="dialog-bubble" v-on:mousedown.stop v-on:touchstart.stop>
                                 <textarea v-model="item.text" placeholder="输入文字..."></textarea>
                             </div>
                         </div>
                     </div>
 
                     <div v-else-if="item.type === 'app'" style="display: contents;">
-                        <div class="icon-img" :style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
+                        <div class="icon-img" v-bind:style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
                             <span v-if="!item.iconImage" style="display:contents;">{{ item.textIcon }}</span>
                         </div>
                         <span class="icon-name">{{ item.name }}</span>
@@ -72,8 +72,8 @@
 
         <transition name="app-slide">
             <div v-show="store.currentApp" class="app-view">
-                <component :is="store.currentApp" v-if="store.currentApp"></component>
-                <div class="home-indicator-wrapper" @touchstart="homeTouchStart" @touchmove="homeTouchMove" @touchend="homeTouchEnd">
+                <component v-bind:is="store.currentApp" v-if="store.currentApp"></component>
+                <div class="home-indicator-wrapper" v-on:touchstart="homeTouchStart" v-on:touchmove="homeTouchMove" v-on:touchend="homeTouchEnd">
                     <div class="home-indicator"></div>
                 </div>
             </div>
