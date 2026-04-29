@@ -109,22 +109,17 @@ button:active,
     transition: width 0.3s;
 }
 
-/* ===== 核心修改：横向多页滑动的桌面排版 ===== */
+/* 彻底解决红叉：移除 container-type，将 cqw 替换为标准的 vw 视口单位 */
 .desktop {
     flex: 1;
     display: grid;
-    container-type: inline-size;
-    /* 强制从上往下排 6 行，高度不变 */
-    grid-template-rows: repeat(6, calc((100cqw - 85px) / 4));
-    /* 列宽保持为屏幕的 4 等份宽 */
-    grid-auto-columns: calc((100cqw - 85px) / 4);
-    /* 把流向改为竖向：填满6个后，自动往右侧扩展出新的列（即下一页） */
+    grid-template-rows: repeat(6, calc((100vw - 85px) / 4));
+    grid-auto-columns: calc((100vw - 85px) / 4);
     grid-auto-flow: column;
     gap: 15px;
     padding: 20px 20px;
     align-content: start;
     
-    /* 开启横向滚动并隐藏默认的纵向滚动 */
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
@@ -154,7 +149,6 @@ button:active,
 .desktop > div {
     transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s;
     will-change: transform, opacity;
-    /* 翻页吸附点 */
     scroll-snap-align: start;
 }
 .desktop-opened > div {
@@ -330,7 +324,6 @@ button:active,
     background: #fff;
 }
 
-/* QQ App */
 .qq-container {
     height: calc(100% - 25px);
     display: flex;
@@ -877,7 +870,6 @@ button:active,
     border-radius: 50% !important;
 }
 
-/* ===== 核心修改：透明气泡水平居中并变扁 ===== */
 .transparent-widget {
     display: flex;
     align-items: center;
