@@ -49,17 +49,6 @@ button:active,
     font-weight: 600;
     z-index: 100;
     transition: color 0.3s;
-    
-    /* 修复：绝对固定顶栏位置，彻底解决打开 App 时的层级闪烁问题 */
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    pointer-events: none; /* 让点击穿透，避免遮挡页面点击 */
-}
-
-.status-bar > * {
-    pointer-events: auto; /* 保证顶栏内元素(如灵动岛)未来可响应点击 */
 }
 
 .dark-text {
@@ -134,11 +123,6 @@ button:active,
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    
-    /* 修复：开启桌面背景 GPU 加速，避免弹窗时背景重绘卡顿 */
-    will-change: transform;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
 }
 
 .sortable-ghost {
@@ -254,23 +238,16 @@ button:active,
     z-index: 10;
     padding-top: 55px;
     overflow-y: hidden;
-    
-    /* 修复：开启 App 视图 GPU 加速，提升滑出丝滑度 */
-    will-change: transform;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
 }
 
 .app-slide-enter-active,
 .app-slide-leave-active {
     transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-    will-change: transform;
 }
 
 .app-slide-enter-from,
 .app-slide-leave-to {
-    /* 修复：将 Y 轴移动改为 3D 转换，强制激活手机硬件级图形加速引擎 */
-    transform: translate3d(0, 100%, 0);
+    transform: translateY(100%);
 }
 
 .home-indicator-wrapper {
