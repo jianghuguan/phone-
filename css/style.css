@@ -1,10 +1,107 @@
-/* 将其他的 CSS 原样保留，仅修改 .desktop 类 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+}
+
+#app {
+    width: 100vw;
+    height: 100vh;
+    background-color: #fbfbfd;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* 全局按钮与输入框（去除冗余样式，统一风格） */
+button, .btn-primary, .btn-danger, .qq-input-bar button, .qq-modal-btns button {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+    border-radius: 20px !important;
+    font-weight: normal !important;
+    transition: all 0.1s !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    padding: 8px 16px;
+}
+
+button:active, .btn-primary:active, .btn-danger:active {
+    font-weight: bold !important;
+}
+
+.settings-input {
+    width: 100%;
+    border: 1px solid #d1d1d6;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    outline: none;
+    margin-top: 6px;
+    box-sizing: border-box;
+    background: #fff;
+}
+
+/* 顶部状态栏及灵动岛 */
+.status-bar {
+    position: absolute;
+    top: 0; left: 0; width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 24px 10px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 9999;
+    transition: color 0.3s;
+    transform: translateZ(0); 
+    pointer-events: none; 
+}
+
+.dark-text { color: #111; }
+.status-bar:not(.dark-text) { color: #333; }
+
+.dynamic-island {
+    width: 110px; height: 30px;
+    background-color: #000;
+    border-radius: 20px;
+    position: absolute;
+    left: 50%; top: 12px;
+    transform: translateX(-50%);
+}
+
+/* 电池图标 */
+.battery { display: flex; align-items: center; gap: 4px; }
+.battery-icon {
+    width: 22px; height: 11px;
+    border: 1px solid currentColor;
+    border-radius: 4px; padding: 1px;
+    position: relative;
+}
+.battery-icon::after {
+    content: '';
+    position: absolute; right: -3px; top: 2px;
+    width: 2px; height: 5px;
+    background: currentColor;
+    border-radius: 0 2px 2px 0;
+}
+.battery-level {
+    height: 100%;
+    background-color: currentColor;
+    border-radius: 2px; transition: width 0.3s;
+}
+
+/* 桌面网格区域 (完美兼容无红叉版本) */
 .desktop {
     flex: 1;
     display: grid;
-    /* 去除了会报错的 container-type: inline-size; */
     grid-template-columns: repeat(4, 1fr);
-    /* 将 cqw 替换为了完全等效的 vw */
     grid-auto-rows: calc((100vw - 85px) / 4);
     gap: 15px;
     padding: 20px 20px;
@@ -17,4 +114,156 @@
     background-size: cover; background-position: center;
     transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
     will-change: transform;
+}
+
+.desktop-opened {
+    transform: scale(1.08) translateZ(0); 
+}
+.desktop > div {
+    transition: opacity 0.4s;
+    will-change: transform, opacity;
+}
+.desktop-opened > div {
+    transform: scale(0.85) translateZ(0); 
+    opacity: 0.3; 
+}
+
+/* 图标拖放系统动画 */
+.desktop-item {
+    transition: opacity 0.2s; /* 拖拽时透明度平滑过渡 */
+}
+.desktop-item.is-dragging {
+    opacity: 0 !important; /* 原位元素隐藏 */
+}
+/* 拖拽悬浮的克隆体 */
+.drag-clone {
+    position: fixed;
+    z-index: 99999;
+    pointer-events: none;
+    transform: scale(1.05);
+    opacity: 0.95;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+}
+/* 拖放落脚点的半透明虚线框 */
+.drag-ghost {
+    background-color: rgba(0, 0, 0, 0.15);
+    border: 2px dashed rgba(0, 0, 0, 0.3);
+    border-radius: 22px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* 桌面上普通App图标样式 */
+.app-icon { 
+    display: flex; flex-direction: column; 
+    align-items: center; justify-content: flex-start; 
+}
+.icon-img {
+    width: 82%; aspect-ratio: 1 / 1; height: auto;
+    border-radius: 28%; flex-shrink: 0; display: flex;
+    justify-content: center; align-items: center;
+    font-size: 26px; font-weight: bold; color: #333;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    pointer-events: none; background-size: cover; background-position: center;
+}
+.icon-name { 
+    font-size: 12px; color: #555; 
+    margin-top: 6px; font-weight: 500; pointer-events: none; 
+}
+
+/* 小组件通用容器 */
+.widget-box {
+    border-radius: 22px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    overflow: hidden; position: relative;
+}
+
+/* 时钟天气小组件 */
+.widget-time {
+    display: flex; flex-direction: column; justify-content: center;
+    height: 100%; padding: 15px 20px;
+    background-size: cover; background-position: center;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+.time-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.time-header h1 { font-size: 40px; font-weight: 300; margin: 0; line-height: 1; }
+.weather-info { text-align: right; }
+.weather-info .temp { display: block; font-size: 20px; font-weight: 600; }
+.weather-info .desc { font-size: 13px; opacity: 0.9; }
+.date-text { font-size: 13px; margin-top: 8px; font-weight: 500; }
+
+/* 照片墙小组件 */
+.widget-photo {
+    width: 100%; height: 100%;
+    background-color: #eee;
+    background-size: cover; background-position: center;
+    display: flex; justify-content: center; align-items: center;
+}
+.widget-photo.round { border-radius: 50%; }
+
+/* --- 像素气泡对话小组件专属样式 --- */
+.widget-pixel {
+    position: relative; width: 100%; height: 100%;
+    background-color: transparent !important;
+    box-shadow: none !important; border-radius: 0 !important;
+}
+.pixel-avatar-frame {
+    position: absolute; bottom: 5px; left: 5px;
+    width: 60px; height: 60px;
+    border: 3px solid #000; background-color: #fff;
+    border-radius: 8px; background-size: cover; background-position: center;
+    z-index: 2;
+}
+.pixel-bubble {
+    position: absolute; top: 5px; right: 5px; left: 45px;
+    min-height: 40px; background: #fff; border: 3px solid #000;
+    border-radius: 12px; padding: 8px 10px;
+    font-family: 'Courier New', monospace; font-weight: bold;
+    font-size: 13px; color: #000; z-index: 1;
+    word-break: break-all; display: flex; align-items: center;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+}
+.pixel-bubble::after {
+    content: ''; position: absolute;
+    bottom: -8px; left: 15px;
+    border-width: 8px 8px 0 0; border-style: solid;
+    border-color: #000 transparent transparent transparent;
+}
+
+/* App应用窗口及过渡动画 */
+.app-view {
+    width: 100%; height: 100%; position: absolute;
+    top: 0; left: 0; background: #fff; z-index: 10;
+    padding-top: 55px; overflow-y: hidden;
+    transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
+    will-change: transform, opacity; backface-visibility: hidden; 
+}
+
+.app-slide-enter-active, .app-slide-leave-active {
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.app-slide-enter-from, .app-slide-leave-to { 
+    transform: scale(0.15) translateZ(0); opacity: 0; 
+}
+.app-slide-enter-to, .app-slide-leave-from { 
+    transform: scale(1) translateZ(0); opacity: 1; 
+}
+
+/* 底部 Home 横条 */
+.home-indicator-wrapper {
+    position: absolute; bottom: 0; left: 0;
+    width: 100%; height: 35px; z-index: 999;
+    display: flex; justify-content: center; align-items: flex-end; padding-bottom: 12px;
+}
+.home-indicator { 
+    width: 130px; height: 5px; 
+    background-color: #000; 
+    border-radius: 10px; cursor: pointer; 
+}
+
+/* ====== 以下为预留给内部 App（如 QQ、朋友圈等）的附加样式，若你的原本代码中还有其他自定义类，会一并兼容生效 ====== */
+.app-content {
+    height: calc(100% - 35px);
+    overflow-y: auto;
+    position: relative;
 }
