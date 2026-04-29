@@ -57,47 +57,53 @@ const initDB = function () {
     });
 };
 
-const loadData = async function () {
-    try {
-        const db = await initDB();
-        const tx = db.transaction('store', 'readonly');
-        const storeObj = tx.objectStore('store');
-        const request = storeObj.get('myPhoneData');
-        
-        request.onsuccess = function () {
-            const savedData = request.result;
-            if (savedData) {
-                Object.assign(window.store, savedData);
-                
-                // 补齐可能缺失的基础结构
-                if (!window.store.desktopItems || window.store.desktopItems.length === 0) {
-                    window.store.desktopItems = defaultDesktopItems;
+const loadData = function () {
+    initDB()
+        .then(function (db) {
+            const tx = db.transaction('store', 'readonly');
+            const storeObj = tx.objectStore('store');
+            const request = storeObj.get('myPhoneData');
+            
+            request.onsuccess = function () {
+                const savedData = request.result;
+                if (savedData) {
+                    Object.assign(window.store, savedData);
+                    
+                    // 补齐可能缺失的基础结构
+                    if (!window.store.desktopItems || window.store.desktopItems.length === 0) {
+                        window.store.desktopItems = defaultDesktopItems;
+                    }
+                    if (!window.store.apiSettings.draw) {
+                        window.store.apiSettings.draw = { url: '', key: '', model: '' };
+                    }
                 }
-                if (!window.store.apiSettings.draw) {
-                    window.store.apiSettings.draw = { url: '', key: '', model: '' };
-                }
-            }
+                isStoreLoaded = true;
+            };
+            request.onerror = function () {
+                isStoreLoaded = true;
+            };
+        })
+        .catch(function (err) {
+            console.warn('Failed to read DB, using default state.', err);
             isStoreLoaded = true;
-        };
-        request.onerror = function () {
-            isStoreLoaded = true;
-        };
-    } catch (err) {
-        console.warn('Failed to read DB, using default state.', err);
-        isStoreLoaded = true;
-    }
+        });
 };
 
-const saveData = async function (data) {
+const saveData = function (data) {
     if (!isStoreLoaded) return;
     try {
         const rawData = JSON.parse(JSON.stringify(data));
-        const db = await initDB();
-        const tx = db.transaction('store', 'readwrite');
-        const storeObj = tx.objectStore('store');
-        storeObj.put(rawData, 'myPhoneData');
+        initDB()
+            .then(function (db) {
+                const tx = db.transaction('store', 'readwrite');
+                const storeObj = tx.objectStore('store');
+                storeObj.put(rawData, 'myPhoneData');
+            })
+            .catch(function (err) {
+                console.warn('Failed to save DB', err);
+            });
     } catch (err) {
-        console.warn('Failed to save DB', err);
+        console.warn('Failed to stringify DB data', err);
     }
 };
 
