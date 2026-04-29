@@ -1,160 +1,212 @@
-/* eslint-disable */
 * {
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
-
-html,
-body {
     margin: 0;
     padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
-    background: #000;
-    color: #111;
-    touch-action: manipulation;
 }
 
 body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    background-color: #000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
 }
 
 #app {
-    width: 100%;
-    max-width: 430px;
-    height: 100dvh;
-    position: relative;
-    overflow: hidden;
-    background: #fbfbfd;
-}
-
-/* ===== 顶部状态栏 ===== */
-.status-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 55px;
-    padding: env(safe-area-inset-top, 0) 16px 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #fbfbfd;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    z-index: 50;
-    color: #fff;
-    pointer-events: none;
+    flex-direction: column;
+    position: relative;
 }
 
-.status-bar.dark-text {
+button,
+.btn-primary,
+.btn-danger,
+.qq-input-bar button,
+.qq-modal-btns button {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+    border-radius: 20px !important;
+    font-weight: normal !important;
+    transition: all 0.1s !important;
+    box-shadow: none !important;
+    cursor: pointer;
+}
+
+button:active,
+.btn-primary:active,
+.btn-danger:active {
+    font-weight: bold !important;
+}
+
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 24px 10px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 100;
+    transition: color 0.3s;
+}
+
+.dark-text {
     color: #111;
 }
 
-.status-bar .time {
-    font-size: 14px;
-    font-weight: 600;
-    min-width: 48px;
+.status-bar:not(.dark-text) {
+    color: #333;
 }
 
 .dynamic-island {
-    width: 96px;
-    height: 28px;
-    border-radius: 18px;
-    background: #000;
-    opacity: 0.92;
+    width: 110px;
+    height: 30px;
+    background-color: #000;
+    border-radius: 20px;
+    position: absolute;
+    left: 50%;
+    top: 12px;
+    transform: translateX(-50%);
 }
 
 .battery {
     display: flex;
     align-items: center;
-    gap: 6px;
-    min-width: 60px;
-    justify-content: flex-end;
-}
-
-.battery-text {
-    font-size: 12px;
-    font-weight: 600;
+    gap: 4px;
 }
 
 .battery-icon {
-    width: 24px;
-    height: 12px;
-    border: 1.5px solid currentColor;
-    border-radius: 3px;
-    position: relative;
+    width: 22px;
+    height: 11px;
+    border: 1px solid currentColor;
+    border-radius: 4px;
     padding: 1px;
+    position: relative;
 }
 
 .battery-icon::after {
-    content: "";
+    content: '';
     position: absolute;
     right: -3px;
-    top: 3px;
+    top: 2px;
     width: 2px;
-    height: 4px;
+    height: 5px;
     background: currentColor;
-    border-radius: 0 1px 1px 0;
+    border-radius: 0 2px 2px 0;
 }
 
 .battery-level {
-    width: 100%;
     height: 100%;
-    background: currentColor;
+    background-color: currentColor;
     border-radius: 2px;
-    transition: width 0.25s ease;
+    transition: width 0.3s;
 }
 
-/* ===== 桌面 ===== */
 .desktop {
     flex: 1;
-    position: absolute;
-    top: 55px;
-    left: 0;
-    width: 100%;
-    height: calc(100% - 55px);
-    overflow: hidden;
-    background-color: #fbfbfd;
-}
-
-.desktop-bg-layer {
-    position: absolute;
-    inset: 0;
-    background-color: #fbfbfd;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    transform: scale(1);
-    transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: transform;
-}
-
-.desktop-content-layer {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    height: 100%;
     display: grid;
     container-type: inline-size;
     grid-template-columns: repeat(4, 1fr);
     grid-auto-rows: calc((100cqw - 85px) / 4);
     grid-auto-flow: row;
     gap: 15px;
-    padding: 20px 20px 30px;
+    padding: 20px 20px;
     align-content: start;
     overflow-y: auto;
-    overscroll-behavior: contain;
+    position: absolute;
+    top: 55px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 55px);
+    background-color: #fbfbfd;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    
+    /* 桌面平滑放大的动画过渡 */
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.desktop-app-active .desktop-bg-layer {
-    transform: scale(1.08);
+/* App打开时桌面的形态表现 */
+.desktop-opened {
+    transform: scale(1.08); /* 桌面背景放大 */
+}
+.desktop > div {
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s;
+}
+.desktop-opened > div {
+    transform: scale(0.85); /* 其它所有图标整体缩小 */
+    opacity: 0.3; /* 半透明以降低视觉干扰 */
 }
 
-.widget-box,
-.app-icon {
-    user-select: none;
+.sortable-ghost {
+    opacity: 0.3;
+    transform: scale(0.9);
+    transition: transform 0.2s;
+}
+
+.widget-box {
+    border-radius: 22px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    position: relative;
+}
+
+.widget-time {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    padding: 15px 20px;
+    background-size: cover;
+    background-position: center;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.time-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.time-header h1 {
+    font-size: 40px;
+    font-weight: 300;
+    margin: 0;
+    line-height: 1;
+}
+
+.weather-info {
+    text-align: right;
+}
+
+.weather-info .temp {
+    display: block;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.weather-info .desc {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.date-text {
+    font-size: 13px;
+    margin-top: 8px;
+    font-weight: 500;
+}
+
+.widget-photo {
+    width: 100%;
+    height: 100%;
+    background-color: #eee;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .app-icon {
@@ -162,17 +214,6 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.36s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: transform, opacity;
-}
-
-.desktop-app-active .app-icon {
-    transform: scale(0.92);
-    opacity: 0.92;
-}
-
-.app-launcher {
-    cursor: pointer;
 }
 
 .icon-img {
@@ -192,7 +233,6 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .icon-name {
@@ -201,84 +241,8 @@ body {
     margin-top: 6px;
     font-weight: 500;
     pointer-events: none;
-    text-align: center;
-    line-height: 1.2;
 }
 
-.sortable-ghost {
-    opacity: 0.35;
-    transform: scale(0.96);
-}
-
-/* ===== 小组件 ===== */
-.widget-time,
-.widget-photo {
-    width: 100%;
-    height: 100%;
-    border-radius: 24px;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-}
-
-.widget-time {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.time-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-}
-
-.time-header h1 {
-    margin: 0;
-    font-size: 34px;
-    line-height: 1;
-    font-weight: 700;
-}
-
-.weather-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    margin-top: 2px;
-}
-
-.weather-info .temp {
-    font-size: 15px;
-    font-weight: 600;
-}
-
-.weather-info .desc {
-    font-size: 12px;
-    opacity: 0.8;
-}
-
-.date-text {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 500;
-}
-
-.widget-photo {
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* ===== App 页面容器 ===== */
 .app-view {
     width: 100%;
     height: 100%;
@@ -288,10 +252,27 @@ body {
     background: #fff;
     z-index: 10;
     padding-top: 55px;
-    overflow: hidden;
-    will-change: transform, opacity, border-radius;
-    transform: translate3d(0, 0, 0);
-    backface-visibility: hidden;
+    overflow-y: hidden;
+    /* 核心修改点：接收JS捕获的鼠标点击动态原点坐标 */
+    transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
+}
+
+.app-slide-enter-active,
+.app-slide-leave-active {
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.app-slide-enter-from,
+.app-slide-leave-to {
+    /* 缩小进应用图标的效果 */
+    transform: scale(0.15); 
+    opacity: 0;
+}
+
+.app-slide-enter-to,
+.app-slide-leave-from {
+    transform: scale(1);
+    opacity: 1;
 }
 
 .home-indicator-wrapper {
@@ -305,7 +286,6 @@ body {
     justify-content: center;
     align-items: flex-end;
     padding-bottom: 12px;
-    background: linear-gradient(to top, rgba(255,255,255,0.92), rgba(255,255,255,0));
 }
 
 .home-indicator {
@@ -316,122 +296,69 @@ body {
     cursor: pointer;
 }
 
-/* ===== 通用页面 ===== */
-.settings-input,
-input,
-textarea,
-select,
-button {
-    font-family: inherit;
-}
-
-input,
-textarea,
-select {
+.settings-input {
     width: 100%;
-    border: 1px solid #dcdcdc;
-    border-radius: 14px;
-    padding: 11px 13px;
+    border: 1px solid #d1d1d6;
+    border-radius: 10px;
+    padding: 10px 12px;
     font-size: 14px;
-    background: #fff;
     outline: none;
-    appearance: none;
-    color: #111;
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-    border-color: #000;
-}
-
-textarea {
-    resize: none;
-    line-height: 1.5;
-}
-
-button {
-    border: 1px solid #000;
+    margin-top: 6px;
+    box-sizing: border-box;
     background: #fff;
-    color: #000;
-    border-radius: 999px;
-    padding: 9px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
 }
 
-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-.btn-primary {
-    background: #000 !important;
-    color: #fff !important;
-    border: 1px solid #000 !important;
-}
-
-.btn-danger {
-    background: #fff !important;
-    color: #000 !important;
-    border: 1px solid #000 !important;
-}
-
-/* ===== QQ 通用 ===== */
+/* QQ App */
 .qq-container {
-    width: 100%;
-    height: 100%;
+    height: calc(100% - 25px);
+    display: flex;
+    flex-direction: column;
+    background: #fafafa;
+    color: #262626;
     position: relative;
-    background: #fff;
     overflow: hidden;
 }
 
 .qq-header {
-    height: 52px;
-    min-height: 52px;
+    height: 50px;
+    border-bottom: 1px solid #efefef;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 0 16px;
-    border-bottom: 1px solid #f0f0f0;
-    background: rgba(255,255,255,0.94);
-    backdrop-filter: blur(12px);
-    flex-shrink: 0;
-    font-size: 16px;
     font-weight: 600;
-    position: relative;
-    z-index: 2;
+    font-size: 16px;
+    background: #fff;
+    flex-shrink: 0;
 }
 
 .qq-content {
     flex: 1;
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
     background: #fff;
 }
 
 .qq-bottom-bar {
-    height: 58px;
-    min-height: 58px;
+    height: 55px;
     border-top: 1px solid #efefef;
     display: flex;
-    background: rgba(255,255,255,0.96);
-    backdrop-filter: blur(10px);
+    background: #fff;
     flex-shrink: 0;
 }
 
-.qq-bottom-bar > div {
+.qq-bottom-bar div {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #888;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
+    color: #000;
     cursor: pointer;
+    transition: 0.2s;
 }
 
-.qq-bottom-bar > div.active {
+.qq-bottom-bar div.active {
     color: #000;
     font-weight: 700;
 }
@@ -440,50 +367,46 @@ button:disabled {
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid #f7f7f7;
-    background: #fff;
+    border-bottom: 1px solid #fafafa;
     cursor: pointer;
 }
 
-.qq-contact-avatar,
-.qq-msg-avatar,
-.moment-avatar,
-.qq-profile-avatar {
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+.qq-contact-item:active {
+    background: #f0f0f0;
 }
 
 .qq-contact-avatar {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: #f1f1f1;
-    border: 1px solid #111;
+    background: #efefef;
+    background-size: cover;
+    background-position: center;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    color: #333;
-    flex-shrink: 0;
+    font-size: 18px;
+    color: #fff;
+    font-weight: bold;
+    margin-right: 12px;
+    border: 1px solid #eee;
 }
 
 .qq-contact-info {
-    margin-left: 12px;
-    min-width: 0;
     flex: 1;
+    overflow: hidden;
 }
 
 .qq-contact-name {
     font-size: 15px;
     font-weight: 600;
-    color: #111;
+    color: #262626;
     margin-bottom: 4px;
 }
 
 .qq-contact-preview {
     font-size: 13px;
-    color: #777;
+    color: #8e8e8e;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -491,9 +414,41 @@ button:disabled {
 
 .qq-msg-row {
     display: flex;
+    margin-bottom: 16px;
+    align-items: flex-end;
+    padding: 0 16px;
+    position: relative;
+}
+
+.qq-msg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #ccc;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #fff;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid #eee;
+}
+
+.qq-msg-row.ai .qq-msg-avatar {
+    margin-right: 10px;
+}
+
+.qq-msg-row.user .qq-msg-avatar {
+    margin-left: 10px;
+}
+
+.msg-bubble-container {
+    display: flex;
     align-items: flex-end;
     gap: 8px;
-    padding: 6px 12px;
+    max-width: 90% !important;
 }
 
 .qq-msg-row.user {
@@ -504,133 +459,78 @@ button:disabled {
     justify-content: flex-start;
 }
 
-.qq-msg-avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: #f1f1f1;
-    border: 1px solid #111;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #333;
-    font-size: 14px;
-    font-weight: 700;
-    flex-shrink: 0;
-}
-
-.msg-bubble-container {
-    display: flex;
-    flex-direction: column;
-    max-width: calc(100% - 64px);
-}
-
 .qq-msg-row.user .msg-bubble-container {
-    align-items: flex-end;
+    flex-direction: row-reverse;
 }
 
 .qq-msg-row.ai .msg-bubble-container {
-    align-items: flex-start;
-}
-
-.qq-msg-bubble {
-    max-width: 100%;
-    padding: 10px 14px;
-    border-radius: 16px;
-    word-break: break-word;
-    white-space: pre-wrap;
-    font-size: 14px;
-    line-height: 1.5;
-    background: #f5f5f5;
-    color: #111;
-    position: relative;
-}
-
-.qq-msg-row.user .qq-msg-bubble {
-    background: #000;
-    color: #fff;
-    border-bottom-right-radius: 6px;
-}
-
-.qq-msg-row.ai .qq-msg-bubble {
-    background: #f3f3f3;
-    color: #111;
-    border-bottom-left-radius: 6px;
+    flex-direction: row;
 }
 
 .bubble-time {
     font-size: 11px;
     color: #999;
-    margin-top: 4px;
-    padding: 0 4px;
-}
-
-.qq-timestamp {
-    text-align: center;
-    margin: 10px 0 4px;
-    font-size: 11px;
-    color: #999;
-}
-
-.typing-anim {
-    animation: typingPulse 1.2s infinite ease-in-out;
-}
-
-@keyframes typingPulse {
-    0% { opacity: 0.45; }
-    50% { opacity: 1; }
-    100% { opacity: 0.45; }
-}
-
-.qq-input-area {
-    border-top: 1px solid #efefef;
-    background: rgba(255,255,255,0.98);
-    backdrop-filter: blur(10px);
     flex-shrink: 0;
+    margin-bottom: 2px;
 }
 
-.qq-input-bar {
-    display: flex;
-    align-items: flex-end;
-    padding: 10px 12px;
-    gap: 0;
-}
-
-.qq-input-bar textarea {
-    flex: 1;
-    min-height: 36px;
-    max-height: 108px;
+.qq-msg-bubble {
+    padding: 10px 14px;
     border-radius: 18px;
-    border: 1px solid #dcdcdc;
-    background: #fff;
-    padding: 8px 12px;
-    font-size: 14px;
-    line-height: 20px;
-    overflow-y: auto;
-    margin: 0;
+    font-size: 15px;
+    line-height: 1.4;
+    word-break: break-all;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-.qq-input-bar button:last-child {
-    margin-left: 10px;
-    min-width: 54px;
-    height: 36px;
-    padding: 0 14px;
-    border-radius: 18px;
-    background: #000;
+.qq-msg-row.user .qq-msg-bubble {
+    background: #0095f6;
     color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+.qq-msg-row.ai .qq-msg-bubble {
+    background: #efefef;
+    color: #262626;
+    border-bottom-left-radius: 4px;
+}
+
+.msg-menu {
+    position: absolute;
+    top: -38px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
     border: 1px solid #000;
-    flex-shrink: 0;
+    border-radius: 20px;
+    display: flex;
+    gap: 14px;
+    padding: 6px 14px;
+    z-index: 100;
+    white-space: nowrap;
+    align-items: center;
+}
+
+.msg-menu span {
+    font-size: 13px;
+    cursor: pointer;
+    color: #000;
+    line-height: 1;
 }
 
 .qq-select-toolbar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 14px;
-    background: #fafafa;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: #fff;
     border-bottom: 1px solid #efefef;
     font-size: 14px;
-    color: #333;
+    color: #262626;
+    flex-shrink: 0;
 }
 
 .qq-select-actions {
@@ -638,213 +538,261 @@ button:disabled {
     gap: 8px;
 }
 
-.quote-box {
+.qq-select-actions button {
+    padding: 6px 12px;
     font-size: 12px;
-    line-height: 1.4;
-    opacity: 0.8;
-    margin-bottom: 6px;
-    padding: 6px 8px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.14);
 }
 
-.qq-msg-row.ai .quote-box {
-    background: rgba(0,0,0,0.06);
+.selected-msg {
+    outline: 2px solid #000;
+    outline-offset: 1px;
+    background: #f3f3f3 !important;
+}
+
+.quote-box {
+    font-size: 12px;
+    color: #333;
+    background: rgba(255, 255, 255, 0.4);
+    padding: 6px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    border-left: 2px solid #000;
+    word-break: break-all;
 }
 
 .quote-preview {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin: 8px 12px 0;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: #f5f5f5;
-    color: #555;
-    font-size: 12px;
-}
-
-.selected-msg {
-    outline: 2px solid rgba(0,0,0,0.15);
-    outline-offset: 2px;
-}
-
-.msg-menu {
-    position: absolute;
-    top: -42px;
-    right: 0;
-    z-index: 30;
-    display: flex;
-    align-items: center;
-    gap: 0;
-    background: rgba(25,25,25,0.96);
-    color: #fff;
-    border-radius: 12px;
-    overflow: hidden;
-    white-space: nowrap;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
-}
-
-.msg-menu span {
-    padding: 10px 14px;
+    padding: 8px 16px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
     font-size: 13px;
-    cursor: pointer;
+    color: #666;
 }
 
-.msg-menu span + span {
-    border-left: 1px solid rgba(255,255,255,0.12);
+.qq-timestamp {
+    text-align: center;
+    font-size: 11px;
+    color: #999;
+    margin: 12px 0 8px;
 }
 
-/* ===== 弹窗 ===== */
+.qq-msg-bubble.typing-anim {
+    animation: pulse 1.5s infinite;
+    color: #888;
+    background: transparent;
+    box-shadow: none;
+    padding: 10px 0;
+    font-size: 13px;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.4;
+    }
+}
+
+.qq-input-area {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-top: 1px solid #eee;
+    flex-shrink: 0;
+}
+
+.qq-input-bar {
+    height: auto;
+    min-height: 52px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: flex-end;
+}
+
+.qq-input-bar textarea {
+    flex: 1;
+    border: 1px solid #000;
+    border-radius: 18px;
+    padding: 8px 12px;
+    outline: none;
+    font-size: 14px;
+    background: #fff;
+    resize: none;
+    min-height: 36px;
+    height: 36px;
+    max-height: 108px;
+    line-height: 20px;
+    overflow-y: auto;
+    margin-right: 12px;
+}
+
+.qq-input-bar button {
+    padding: 6px 16px;
+    margin-bottom: 1px;
+    height: 36px;
+}
+
+.qq-toast {
+    position: absolute;
+    top: 15px;
+    left: 10%;
+    width: 80%;
+    background: #ed4956;
+    color: #fff;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+    font-weight: 500;
+}
+
 .qq-modal-overlay {
     position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.28);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
     display: flex;
-    justify-content: center;
     align-items: center;
-    padding: 20px;
+    justify-content: center;
 }
 
 .qq-modal {
-    width: 100%;
-    max-width: 360px;
+    width: 85%;
     background: #fff;
-    border-radius: 22px;
-    padding: 18px;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.16);
-}
-
-.qq-modal h3 {
-    margin-top: 0;
-    color: #111;
+    border-radius: 20px;
+    padding: 24px;
+    max-height: 80%;
+    overflow-y: auto;
 }
 
 .qq-modal input,
 .qq-modal textarea,
 .qq-modal select {
-    margin-bottom: 12px;
+    width: 100%;
+    border: 1px solid #000;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    background: #fff;
+    font-family: inherit;
 }
 
 .qq-modal-btns {
     display: flex;
-    gap: 10px;
+    gap: 12px;
+    margin-top: 5px;
 }
 
 .qq-modal-btns button {
     flex: 1;
+    padding: 12px;
 }
 
-/* ===== 提示 toast ===== */
-.qq-toast {
-    position: absolute;
-    top: 65px;
-    left: 50%;
-    transform: translateX(-50%);
-    min-width: 120px;
-    max-width: 76%;
-    padding: 10px 14px;
-    border-radius: 14px;
-    background: rgba(20,20,20,0.92);
-    color: #fff;
-    font-size: 13px;
-    line-height: 1.4;
-    text-align: center;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.16);
-}
-
-/* ===== QQ 个人主页 ===== */
 .qq-profile-header {
-    width: 100%;
-    height: 220px;
     position: relative;
-    background: #f2f2f2;
+    height: 220px;
+    background: #efefef;
     background-size: cover;
     background-position: center;
-    background-repeat: no-repeat;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #efefef;
 }
 
 .qq-profile-avatar {
     position: absolute;
-    left: 20px;
-    bottom: -35px;
-    width: 82px;
-    height: 82px;
+    bottom: -40px;
+    left: 24px;
+    width: 85px;
+    height: 85px;
     border-radius: 50%;
-    border: 3px solid #fff;
-    background-color: #efefef;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    border: 4px solid #fff;
+    background: #ccc;
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .user-card {
-    background: #fff;
-    border-radius: 16px;
+    background: #fafafa;
+    border: 1px solid #efefef;
+    border-radius: 12px;
     padding: 12px;
     margin-bottom: 10px;
-    border: 1px solid #efefef;
 }
 
-/* ===== 朋友圈 ===== */
+/* ====== 朋友圈样式 ====== */
 .moments-menu {
     position: absolute;
-    top: 34px;
-    right: 0;
-    min-width: 128px;
-    background: rgba(25,25,25,0.96);
+    top: 40px;
+    right: 16px;
+    background: #4c4c4c;
     color: #fff;
-    border-radius: 12px;
+    border-radius: 6px;
+    width: 120px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     overflow: hidden;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.16);
-    z-index: 20;
 }
 
 .moments-menu div {
-    padding: 12px 14px;
+    padding: 12px 16px;
     font-size: 14px;
-    cursor: pointer;
+    border-bottom: 1px solid #5c5c5c;
+    text-align: center;
 }
 
-.moments-menu div + div {
-    border-top: 1px solid rgba(255,255,255,0.12);
+.moments-menu div:last-child {
+    border-bottom: none;
 }
 
 .moment-item {
     display: flex;
-    gap: 12px;
-    padding: 14px 16px;
-    background: #fff;
-    border-bottom: 1px solid #f5f5f5;
+    padding: 16px;
+    border-bottom: 1px solid #eee;
 }
 
 .moment-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #efefef;
-    border: 1px solid #111;
+    width: 42px;
+    height: 42px;
+    border-radius: 6px;
+    background: #efefef;
+    background-size: cover;
+    background-position: center;
+    margin-right: 12px;
     flex-shrink: 0;
 }
 
 .moment-main {
     flex: 1;
-    min-width: 0;
+    overflow: hidden;
 }
 
 .moment-name {
+    color: #576b95;
+    font-weight: 600;
     font-size: 15px;
-    font-weight: 700;
-    color: #111;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .moment-content {
-    font-size: 14px;
-    color: #222;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-break: break-word;
+    font-size: 15px;
+    color: #111;
+    line-height: 1.5;
     margin-bottom: 8px;
+    word-break: break-word;
+    white-space: pre-wrap;
 }
 
 .moment-time {
@@ -852,77 +800,60 @@ button:disabled {
     color: #999;
 }
 
+.moment-action-menu {
+    position: absolute;
+    right: 35px;
+    top: -10px;
+    background: #4c4c4c;
+    color: #fff;
+    border-radius: 6px;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 100;
+}
+
+.moment-action-menu span {
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-right: 1px solid #5c5c5c;
+    white-space: nowrap;
+}
+
+.moment-action-menu span:last-child {
+    border-right: none;
+}
+
 .moment-interactions {
-    margin-top: 8px;
     background: #f7f7f7;
-    border-radius: 12px;
-    padding: 8px 10px;
+    border-radius: 4px;
+    padding: 8px;
     font-size: 13px;
     color: #333;
 }
 
 .moment-likes {
-    line-height: 1.5;
+    color: #576b95;
+    font-weight: 600;
+    margin-bottom: 4px;
 }
 
 .moment-likes.has-border {
-    padding-bottom: 6px;
-    margin-bottom: 6px;
-    border-bottom: 1px solid #ececec;
+    border-bottom: 1px solid #ebebeb;
+    padding-bottom: 4px;
 }
 
-.moment-comments > div {
-    line-height: 1.6;
+.moment-comments {
+    margin-top: 4px;
+}
+
+.moment-comments div {
+    margin-bottom: 4px;
     word-break: break-word;
-}
-
-.moment-action-menu {
-    position: absolute;
-    right: 36px;
-    top: -6px;
-    background: rgba(25,25,25,0.96);
-    color: #fff;
-    border-radius: 12px;
-    overflow: hidden;
-    display: flex;
-    z-index: 12;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.16);
-}
-
-.moment-action-menu span {
-    padding: 10px 14px;
-    font-size: 13px;
     cursor: pointer;
-    white-space: nowrap;
 }
 
-.moment-action-menu span + span {
-    border-left: 1px solid rgba(255,255,255,0.12);
-}
-
-/* ===== 通用卡片页面 ===== */
-.page-card {
-    background: #fff;
-    padding: 16px;
-    border-radius: 18px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-    margin-bottom: 14px;
-}
-
-/* ===== 滚动条弱化 ===== */
-::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-}
-
-/* ===== 安全区 ===== */
-@supports (padding: max(0px)) {
-    #app {
-        padding-bottom: env(safe-area-inset-bottom, 0);
-    }
-
-    .home-indicator-wrapper {
-        padding-bottom: max(12px, env(safe-area-inset-bottom, 0));
-        height: calc(35px + env(safe-area-inset-bottom, 0));
-    }
+.moment-comments div:last-child {
+    margin-bottom: 0;
 }
