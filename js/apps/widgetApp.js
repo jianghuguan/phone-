@@ -31,7 +31,7 @@ window.widgetApp = {
                     <button @click="triggerClick('upload_' + widget.id)" class="btn-primary" style="font-size: 12px; padding: 6px 12px;">
                         {{ widget.bgImage ? (widget.widgetType === 'dialog_2x2' ? '更换头像' : '更换背景') : (widget.widgetType === 'dialog_2x2' ? '设置头像' : '设置背景图') }}
                     </button>
-                    <button v-if="widget.bgImage" @click="widget.bgImage = null" class="btn-danger" style="font-size: 12px; padding: 6px 12px;">移除图片</button>
+                    <button v-if="widget.bgImage" @click="removeImage(widget.id)" class="btn-danger" style="font-size: 12px; padding: 6px 12px;">移除图片</button>
                 </div>
             </div>
         </div>
@@ -64,6 +64,14 @@ window.widgetApp = {
             if (el) el.click();
         };
 
+        const removeImage = (id) => {
+            const targetWidget = store.desktopItems.find(item => item.id === id);
+            if (targetWidget) {
+                targetWidget.bgImage = null;
+                store.desktopItems = [...store.desktopItems]; // 强制触发更新
+            }
+        };
+
         const handleImageUpload = (event, id) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -88,12 +96,15 @@ window.widgetApp = {
                     
                     const targetWidget = store.desktopItems.find(item => item.id === id);
                     if (targetWidget) {
-                        targetWidget.bgImage = canvas.toDataURL('image/png');
+                        // 【核心修复】改为 jpeg 格式并附加 0.7 压缩率，极大减小文件体积，防止 IndexedDB 容量爆炸导致刷新丢失
+                        targetWidget.bgImage = canvas.toDataURL('image/jpeg', 0.7);
+                        // 强制触发整个数组深拷贝更新，确保 Vue 完美侦听变动并写入大数据库
+                        store.desktopItems = [...store.desktopItems];
                     }
                 };
             };
         };
 
-        return { store, widgets, addWidget, removeWidget, triggerClick, handleImageUpload };
+        return { store, widgets, addWidget, removeWidget, triggerClick, removeImage, handleImageUpload };
     }
 };
