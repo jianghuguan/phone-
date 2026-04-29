@@ -1,6 +1,6 @@
 /* eslint-disable */
-/* jshint ignore:start */
-/* global window, Promise, Math, Date, JSON, Object */
+/* jshint esversion: 5, -W097 */
+/* global window, Math, Date, JSON, Object */
 'use strict';
 
 var defaultDesktopItems = [
@@ -39,17 +39,15 @@ var initialState = {
 window.store = window.Vue.reactive(initialState);
 var isStoreLoaded = false;
 
-var initDB = function () {
-    return new Promise(function (resolve, reject) {
-        if (!window.indexedDB) { return reject('No IndexedDB'); }
-        var request = window.indexedDB.open('MyPhoneDB', 1);
-        request.onerror = function () { reject(request.error); };
-        request.onsuccess = function () { resolve(request.result); };
-        request.onupgradeneeded = function (e) {
-            var db = e.target.result;
-            if (!db.objectStoreNames.contains('store')) { db.createObjectStore('store'); }
-        };
-    });
+var initDB = function (callback) {
+    if (!window.indexedDB) { return callback('No IndexedDB', null); }
+    var request = window.indexedDB.open('MyPhoneDB', 1);
+    request.onerror = function () { callback(request.error, null); };
+    request.onsuccess = function () { callback(null, request.result); };
+    request.onupgradeneeded = function (e) {
+        var db = e.target.result;
+        if (!db.objectStoreNames.contains('store')) { db.createObjectStore('store'); }
+    };
 };
 
 var createEmpty = function () {
@@ -66,45 +64,74 @@ var calcArea = function (item) {
 };
 
 var processDataCompatible = function (savedData) {
-    if (savedData) {
-        Object.assign(window.store, savedData);
-    }
-    if (!window.store.desktopPages || window.store.desktopPages.length < 2) {
-        var p0 = [];
-        var p1 = [];
-        var area0 = 0;
-        var area1 = 0;
-        var items = savedData ? (savedData.desktopItems || defaultDesktopItems) : defaultDesktopItems;
-        
-        items = items.filter(function(i) { return i.type !== 'empty'; });
+    var i, j, k, a, item, arr;
+    var p0 = [];
+    var p1 = [];
+    var area0 = 0;
+    var area1 = 0;
+    var items = savedData ? (savedData.desktopItems || defaultDesktopItems) : defaultDesktopItems;
+    var validItems = [];
+    var key;
 
-        items.forEach(function(item) {
-            var a = calcArea(item);
-            if (area0 + a <= 24) { p0.push(item); area0 += a; }
-            else if (area1 + a <= 24) { p1.push(item); area1 += a; }
-        });
+    if (savedData) {
+        for (key in savedData) {
+            if (Object.prototype.hasOwnProperty.call(savedData, key)) {
+                window.store[key] = savedData[key];
+            }
+        }
+    }
+
+    if (!window.store.desktopPages || window.store.desktopPages.length < 2) {
+        for (i = 0; i < items.length; i++) {
+            if (items[i].type !== 'empty') {
+                validItems.push(items[i]);
+            }
+        }
+
+        for (j = 0; j < validItems.length; j++) {
+            item = validItems[j];
+            a = calcArea(item);
+            if (area0 + a <= 24) { 
+                p0.push(item); 
+                area0 += a; 
+            } else if (area1 + a <= 24) { 
+                p1.push(item); 
+                area1 += a; 
+            }
+        }
         
         while(area0 < 24) { p0.push(createEmpty()); area0++; }
         while(area1 < 24) { p1.push(createEmpty()); area1++; }
         window.store.desktopPages = [p0, p1];
     } else {
         while(window.store.desktopPages.length < 2) {
-            var arr = [];
-            for(var i = 0; i < 24; i++) { arr.push(createEmpty()); }
+            arr = [];
+            for(k = 0; k < 24; k++) { arr.push(createEmpty()); }
             window.store.desktopPages.push(arr);
         }
     }
 };
 
 var loadData = function () {
-    initDB().then(function (db) {
+    initDB(function (err, db) {
+        var data = null;
+        var local = null;
+        if (err || !db) {
+            try { 
+                local = window.localStorage.getItem('myPhoneData'); 
+                if (local) { data = JSON.parse(local); }
+            } catch(e) { window.console.warn(e); }
+            processDataCompatible(data);
+            isStoreLoaded = true;
+            return;
+        }
         var tx = db.transaction('store', 'readonly');
         var req = tx.objectStore('store').get('myPhoneData');
         req.onsuccess = function () {
-            var data = req.result;
+            data = req.result;
             if (!data) {
                 try { 
-                    var local = window.localStorage.getItem('myPhoneData'); 
+                    local = window.localStorage.getItem('myPhoneData'); 
                     if (local) { data = JSON.parse(local); }
                 } catch(e) { window.console.warn(e); }
             }
@@ -115,14 +142,6 @@ var loadData = function () {
             processDataCompatible(null); 
             isStoreLoaded = true; 
         };
-    }).catch(function () {
-        var data = null;
-        try { 
-            var local = window.localStorage.getItem('myPhoneData'); 
-            if (local) { data = JSON.parse(local); }
-        } catch(e) { window.console.warn(e); }
-        processDataCompatible(data);
-        isStoreLoaded = true;
     });
 };
 
@@ -133,17 +152,15 @@ var saveData = function (data) {
     try {
         var rawData = JSON.parse(JSON.stringify(data));
         saveTimeout = window.setTimeout(function () {
-            initDB().then(function (db) {
-                var tx = db.transaction('store', 'readwrite');
-                tx.objectStore('store').put(rawData, 'myPhoneData');
-                try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch(e) { window.console.warn(e); }
-            }).catch(function () {
+            initDB(function (err, db) {
+                if (!err && db) {
+                    var tx = db.transaction('store', 'readwrite');
+                    tx.objectStore('store').put(rawData, 'myPhoneData');
+                }
                 try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch(e) { window.console.warn(e); }
             });
         }, 500); 
-    } catch (err) {
-        window.console.warn(err);
-    }
+    } catch (err) { window.console.warn(err); }
 };
 
 loadData();
