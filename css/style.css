@@ -40,15 +40,22 @@ button:active,
     font-weight: bold !important;
 }
 
+/* 核心修复 1：将状态栏完全脱离文档流独立，GPU加速，防止被连累重排闪烁 */
 .status-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 15px 24px 10px;
     font-size: 14px;
     font-weight: 600;
-    z-index: 100;
+    z-index: 9999;
     transition: color 0.3s;
+    transform: translateZ(0); 
+    pointer-events: none; /* 防止悬浮层阻挡下方应用的点击事件 */
 }
 
 .dark-text {
@@ -126,17 +133,19 @@ button:active,
     
     /* 桌面平滑放大的动画过渡 */
     transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform; /* 开启渲染前置优化 */
 }
 
 /* App打开时桌面的形态表现 */
 .desktop-opened {
-    transform: scale(1.08); /* 桌面背景放大 */
+    transform: scale(1.08) translateZ(0); /* 桌面背景放大并开启 GPU 加速 */
 }
 .desktop > div {
     transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s;
+    will-change: transform, opacity;
 }
 .desktop-opened > div {
-    transform: scale(0.85); /* 其它所有图标整体缩小 */
+    transform: scale(0.85) translateZ(0); /* 其它所有图标整体缩小并开启 GPU 加速 */
     opacity: 0.3; /* 半透明以降低视觉干扰 */
 }
 
@@ -253,8 +262,9 @@ button:active,
     z-index: 10;
     padding-top: 55px;
     overflow-y: hidden;
-    /* 核心修改点：接收JS捕获的鼠标点击动态原点坐标 */
     transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
+    will-change: transform, opacity; /* 提前分配 GPU 内存 */
+    backface-visibility: hidden; /* 防止边缘锯齿与卡顿 */
 }
 
 .app-slide-enter-active,
@@ -265,13 +275,13 @@ button:active,
 .app-slide-enter-from,
 .app-slide-leave-to {
     /* 缩小进应用图标的效果 */
-    transform: scale(0.15); 
+    transform: scale(0.15) translateZ(0); /* 开启 3D 渲染通道 */
     opacity: 0;
 }
 
 .app-slide-enter-to,
 .app-slide-leave-from {
-    transform: scale(1);
+    transform: scale(1) translateZ(0); /* 开启 3D 渲染通道 */
     opacity: 1;
 }
 
