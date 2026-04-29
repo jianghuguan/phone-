@@ -131,8 +131,8 @@ button:active,
     background-position: center;
     background-repeat: no-repeat;
     
-    /* 桌面平滑放大的动画过渡 */
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    /* 调整曲线：更柔和的起步，略微延长动画时间至 0.5s，消除首帧卡顿感 */
+    transition: transform 0.5s cubic-bezier(0.33, 1, 0.68, 1);
     will-change: transform; /* 开启渲染前置优化 */
 }
 
@@ -141,7 +141,8 @@ button:active,
     transform: scale(1.08) translateZ(0); /* 桌面背景放大并开启 GPU 加速 */
 }
 .desktop > div {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s;
+    /* 动画时间与主桌面背景保持同步 */
+    transition: transform 0.5s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.5s cubic-bezier(0.33, 1, 0.68, 1);
     will-change: transform, opacity;
 }
 .desktop-opened > div {
@@ -267,9 +268,10 @@ button:active,
     backface-visibility: hidden; /* 防止边缘锯齿与卡顿 */
 }
 
+/* App弹出进入的动画，同样改成平滑的 0.5s */
 .app-slide-enter-active,
 .app-slide-leave-active {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform 0.5s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.5s cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 .app-slide-enter-from,
