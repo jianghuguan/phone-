@@ -10,9 +10,6 @@
 </head>
 <body>
     <div id="app">
-        <!-- 静态壁纸层 -->
-        <div class="desktop-bg-layer" :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' }"></div>
-
         <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
             <span class="time">{{ time }}</span>
             <div class="dynamic-island"></div>
@@ -24,69 +21,52 @@
             </div>
         </div>
 
-        <!-- 全新多页滑动层 -->
-        <div id="desktop-app-container" :class="{ 'desktop-opened': store.currentApp }">
-            <div class="desktop-slider" id="desktop-slider" @scroll="onSliderScroll">
-                
-                <!-- 动态循环每一页，每页6行4列 -->
-                <div 
-                    v-for="(page, pageIndex) in store.desktopPages" 
-                    :key="'page_' + pageIndex"
-                    class="desktop-page" 
-                    :data-page-index="pageIndex"
-                >
-                    <div 
-                        v-for="item in page" 
-                        :key="item.id" 
-                        :class="getItemClass(item)" 
-                        :style="getWidgetStyle(item)" 
-                        @click="handleItemClick(item, $event)"
-                    >
-                        
-                        <!-- 各种小组件和应用的渲染 -->
-                        <div v-if="item.widgetType === 'time'" class="widget-time" :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
-                            <div class="time-header">
-                                <h1>{{ time }}</h1>
-                                <div class="weather-info"><span class="temp">{{ temperature }}</span><span class="desc">{{ weatherDesc }}</span></div>
+        <div class="desktop-bg-layer" :class="{ 'desktop-opened-bg': store.currentApp }" :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' }"></div>
+
+        <div id="desktop-swiper" class="desktop-swiper" :class="{ 'desktop-opened-swiper': store.currentApp }">
+            <div v-for="(pageItems, pageIdx) in store.desktopPages" :key="pageIdx" :id="'desktop-page-' + pageIdx" class="desktop-page">
+                <div v-for="item in pageItems" :key="item.id" :class="getItemClass(item)" :style="getWidgetStyle(item)" @click="handleItemClick(item, $event)" :data-id="item.id">
+                    
+                    <div v-if="item.type === 'empty'" class="empty-slot"></div>
+
+                    <div v-else-if="item.widgetType === 'time'" class="widget-time" :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
+                        <div class="time-header">
+                            <h1>{{ time }}</h1>
+                            <div class="weather-info">
+                                <span class="temp">{{ temperature }}</span>
+                                <span class="desc">{{ weatherDesc }}</span>
                             </div>
-                            <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
                         </div>
+                        <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
+                    </div>
 
-                        <div v-else-if="['photo', 'photo_1x2', 'photo_2x1'].includes(item.widgetType)" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
-                            <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
-                        </div>
+                    <div v-else-if="item.widgetType === 'photo' || item.widgetType === 'photo_1x2' || item.widgetType === 'photo_2x1'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                        <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
+                    </div>
 
-                        <div v-else-if="item.widgetType === 'photo_1x1_circle'" class="widget-photo photo-circle" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
-                            <span v-if="!item.bgImage" style="color:#aaa; font-size:10px;">设置</span>
-                        </div>
+                    <div v-else-if="item.widgetType === 'photo_1x1_circle'" class="widget-photo photo-circle" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                        <span v-if="!item.bgImage" style="color:#aaa; font-size:10px;">设置</span>
+                    </div>
 
-                        <!-- 居中变扁的透明气泡组件 -->
-                        <div v-else-if="item.widgetType === 'dialog_2x2'" class="dialog-wrapper">
+                    <div v-else-if="item.widgetType === 'dialog_2x2'" class="transparent-widget">
+                        <div class="dialog-inner">
                             <div class="dialog-avatar" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
-                                <span v-if="!item.bgImage" style="font-size:10px; color:#999;">头像</span>
+                                <span v-if="!item.bgImage" style="font-size:10px; color:#999; display:flex; height:100%; align-items:center; justify-content:center;">头像</span>
                             </div>
                             <div class="dialog-bubble" @mousedown.stop @touchstart.stop>
                                 <textarea v-model="item.text" placeholder="输入文字..."></textarea>
                             </div>
                         </div>
-
-                        <!-- 隐形占位符 (用于实现任意留白) -->
-                        <div v-else-if="item.widgetType === 'empty_slot'" style="width:100%; height:100%; pointer-events:none;"></div>
-
-                        <div v-else-if="item.type === 'app'" style="display: contents;">
-                            <div class="icon-img" :style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
-                                <span v-if="!item.iconImage" style="display:contents;">{{ item.textIcon }}</span>
-                            </div>
-                            <span class="icon-name">{{ item.name }}</span>
-                        </div>
-
                     </div>
-                </div>
-            </div>
 
-            <!-- 页面圆点指示器 -->
-            <div class="page-indicators" v-show="store.desktopPages && store.desktopPages.length > 1">
-                <div v-for="(_, idx) in store.desktopPages" :key="'dot_'+idx" class="page-dot" :class="{ active: currentVisiblePage === idx }"></div>
+                    <div v-else-if="item.type === 'app'" style="display: contents;">
+                        <div class="icon-img" :style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
+                            <span v-if="!item.iconImage" style="display:contents;">{{ item.textIcon }}</span>
+                        </div>
+                        <span class="icon-name">{{ item.name }}</span>
+                    </div>
+
+                </div>
             </div>
         </div>
 
