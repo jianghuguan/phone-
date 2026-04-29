@@ -13,7 +13,7 @@ body {
 #app {
     width: 100vw;
     height: 100vh;
-    background-color: #000; /* 改为纯黑，配合缩放动画露出黑边 */
+    background-color: #fbfbfd;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -40,22 +40,26 @@ button:active,
     font-weight: bold !important;
 }
 
-/* 核心修复 1：绝对固定顶栏，防盖住防闪烁 */
 .status-bar {
-    position: absolute; 
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 55px; 
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 15px 24px 10px;
     font-size: 14px;
     font-weight: 600;
-    z-index: 1000; /* 极高层级，永远浮在上方 */
+    z-index: 100;
     transition: color 0.3s;
-    pointer-events: none; /* 让点击穿透，不阻挡下方操作 */
+    
+    /* 修复：绝对固定顶栏位置，彻底解决打开 App 时的层级闪烁问题 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    pointer-events: none; /* 让点击穿透，避免遮挡页面点击 */
+}
+
+.status-bar > * {
+    pointer-events: auto; /* 保证顶栏内元素(如灵动岛)未来可响应点击 */
 }
 
 .dark-text {
@@ -130,17 +134,11 @@ button:active,
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    /* 新增：桌面联动 iOS 缩放动画过渡 */
-    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), filter 0.4s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.4s;
-    will-change: transform, filter;
-    transform-origin: center center;
-}
-
-/* 当 app 开启时桌面稍微缩放变暗（iOS风格沉浸感） */
-.desktop.desktop-opened {
-    transform: scale(0.93);
-    filter: brightness(0.6);
-    border-radius: 24px;
+    
+    /* 修复：开启桌面背景 GPU 加速，避免弹窗时背景重绘卡顿 */
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 .sortable-ghost {
@@ -246,7 +244,6 @@ button:active,
     pointer-events: none;
 }
 
-/* 核心修复 2：App 弹窗开启 GPU 硬件加速 */
 .app-view {
     width: 100%;
     height: 100%;
@@ -257,22 +254,23 @@ button:active,
     z-index: 10;
     padding-top: 55px;
     overflow-y: hidden;
-    /* 强制独立图层渲染，告别背景大图滑动卡顿 */
+    
+    /* 修复：开启 App 视图 GPU 加速，提升滑出丝滑度 */
     will-change: transform;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    transform: translateZ(0); 
 }
 
-/* 调整了更顺滑的阻尼曲线 */
 .app-slide-enter-active,
 .app-slide-leave-active {
-    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform;
 }
 
 .app-slide-enter-from,
 .app-slide-leave-to {
-    transform: translateY(100%);
+    /* 修复：将 Y 轴移动改为 3D 转换，强制激活手机硬件级图形加速引擎 */
+    transform: translate3d(0, 100%, 0);
 }
 
 .home-indicator-wrapper {
@@ -800,6 +798,7 @@ button:active,
     color: #999;
 }
 
+/* 朋友圈右下角操作菜单 */
 .moment-action-menu {
     position: absolute;
     right: 35px;
