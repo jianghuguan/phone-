@@ -109,17 +109,22 @@ button:active,
     transition: width 0.3s;
 }
 
+/* 核心修改点：多列横向无限延展桌面 */
 .desktop {
     flex: 1;
     display: grid;
     container-type: inline-size;
-    grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: calc((100cqw - 85px) / 4);
-    grid-auto-flow: row;
-    gap: 15px;
+    /* 假定10行为满屏，每格宽/高 = (100vw宽度 - 左20右20间距 - 5个10px间隔) / 6列 */
+    grid-template-rows: repeat(10, calc((100cqw - 90px) / 6));
+    grid-auto-columns: calc((100cqw - 90px) / 6);
+    /* 从上往下排列，满10行自动排到右边新一列 */
+    grid-auto-flow: column dense;
+    gap: 10px;
     padding: 20px 20px;
     align-content: start;
-    overflow-y: auto;
+    overflow-y: hidden;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory; /* 开启左右滑动的段落翻页感 */
     position: absolute;
     top: 55px;
     left: 0;
@@ -133,13 +138,21 @@ button:active,
     will-change: transform;
 }
 
+/* 隐藏桌面横向滚动条 */
+.desktop::-webkit-scrollbar {
+    display: none;
+}
+
 .desktop-opened {
     transform: scale(1.08) translateZ(0);
 }
+
 .desktop > div {
+    scroll-snap-align: start; /* 保证翻页时每个图标卡位对齐 */
     transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s;
     will-change: transform, opacity;
 }
+
 .desktop-opened > div {
     transform: scale(0.85) translateZ(0); 
     opacity: 0.3; 
@@ -152,7 +165,7 @@ button:active,
 }
 
 .widget-box {
-    border-radius: 22px;
+    border-radius: 18px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     position: relative;
@@ -163,7 +176,7 @@ button:active,
     flex-direction: column;
     justify-content: center;
     height: 100%;
-    padding: 15px 20px;
+    padding: 10px 15px;
     background-size: cover;
     background-position: center;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
@@ -176,7 +189,7 @@ button:active,
 }
 
 .time-header h1 {
-    font-size: 40px;
+    font-size: 32px;
     font-weight: 300;
     margin: 0;
     line-height: 1;
@@ -188,18 +201,18 @@ button:active,
 
 .weather-info .temp {
     display: block;
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
 }
 
 .weather-info .desc {
-    font-size: 13px;
+    font-size: 11px;
     opacity: 0.9;
 }
 
 .date-text {
-    font-size: 13px;
-    margin-top: 8px;
+    font-size: 11px;
+    margin-top: 6px;
     font-weight: 500;
 }
 
@@ -241,11 +254,12 @@ button:active,
 }
 
 .icon-name {
-    font-size: 12px;
+    font-size: 11px;
     color: #555;
-    margin-top: 6px;
+    margin-top: 4px;
     font-weight: 500;
     pointer-events: none;
+    white-space: nowrap;
 }
 
 .app-view {
@@ -860,19 +874,33 @@ button:active,
     border-radius: 50% !important;
 }
 
+/* 核心修复点：将 HTML 内联样式覆盖重写为 Flex 居中横向排布布局 */
 .transparent-widget {
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 22px;
+    border-radius: 12px;
+}
+
+/* 强制把透明气泡组件内层包裹器变为 Flex 容器 */
+.transparent-widget > div[style*="width"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 .dialog-avatar {
-    position: absolute;
-    bottom: 5px;
-    left: 5px;
-    width: 50px;
-    height: 50px;
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: 38px !important;
+    height: 38px !important;
+    flex-shrink: 0;
     border: 1.5px solid #111;
     border-radius: 8px;
     background-color: #fff;
@@ -883,43 +911,51 @@ button:active,
 }
 
 .dialog-bubble {
-    position: absolute;
-    bottom: 45px;
-    left: 45px;
-    width: calc(100% - 50px);
-    height: calc(100% - 60px);
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    flex: 1 !important;
+    height: 38px !important;
+    width: auto !important;
     background: #fff;
     border: 1.5px solid #111;
     border-radius: 8px;
-    padding: 8px;
+    padding: 0 10px;
+    margin-left: 10px;
     z-index: 1;
     box-shadow: 2px 2px 0 rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
 }
 
 .dialog-bubble::after {
     content: '';
     position: absolute;
-    bottom: -6px;
-    left: 15px;
+    top: 50%;
+    left: -6px;
+    bottom: auto !important;
     width: 10px;
     height: 10px;
     background: #fff;
-    border-right: 1.5px solid #111;
+    border-left: 1.5px solid #111;
     border-bottom: 1.5px solid #111;
-    transform: rotate(45deg);
+    border-right: none !important;
+    transform: translateY(-50%) rotate(45deg);
 }
 
 .dialog-bubble textarea {
     width: 100%;
-    height: 100%;
+    height: 20px !important; 
     border: none;
     outline: none;
     resize: none;
     background: transparent;
     font-family: inherit;
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 20px !important;
     color: #333;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .sortable-swap-highlight {
