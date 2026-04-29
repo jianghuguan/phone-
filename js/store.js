@@ -1,6 +1,6 @@
 /* eslint-disable */
 /* eslint-env browser, es2021 */
-/* global Vue, indexedDB */
+/* global Vue */
 'use strict';
 
 const defaultDesktopItems = [
@@ -16,189 +16,101 @@ const defaultDesktopItems = [
     { type: 'app', id: 'widgetApp', name: '小组件', textIcon: '组', color: '#ffffff', iconImage: null }
 ];
 
-const STORAGE_KEY = 'myPhoneData';
-const DB_NAME = 'myPhoneDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'kv';
-
-const clone = function (obj) {
-    return JSON.parse(JSON.stringify(obj));
-};
-
-const createDefaultState = function () {
-    return {
-        currentApp: null,
-        desktopItems: clone(defaultDesktopItems),
-        desktopBgImage: null,
-        apiSettings: {
-            main: { url: 'https://api.openai.com', key: '', model: 'gpt-3.5-turbo' },
-            sub: { url: '', key: '', model: '' },
-            draw: { url: '', key: '', model: '' }
-        },
-        apiPresets: [],
-        fetchedModels: [],
-        qqData: {
-            profile: { avatar: null, bgImage: null, nickname: '我', signature: '记录生活的美好' },
-            contacts: [],
-            messages: {},
-            moments: [],
-            theme: { msgListBg: null, chatBg: null, bubbleCss: '' },
-            userCards: [
-                { id: 'uc_default', name: '默认用户', persona: '一个普通的记录生活者，回复风格口语化。', avatar: null }
-            ],
-            wallet: {
-                balance: 1000,
-                history: [{ desc: '初始零钱红包', amount: '+1000.00', time: Date.now() }]
-            }
-        }
-    };
-};
-
-const normalizeState = function (raw) {
-    const base = createDefaultState();
-    const data = raw && typeof raw === 'object' ? raw : {};
-    const qqRaw = data.qqData && typeof data.qqData === 'object' ? data.qqData : {};
-
-    return {
-        currentApp: data.currentApp || null,
-        desktopItems: Array.isArray(data.desktopItems) && data.desktopItems.length ? data.desktopItems : clone(base.desktopItems),
-        desktopBgImage: data.desktopBgImage || null,
-        apiSettings: Object.assign({}, base.apiSettings, data.apiSettings || {}),
-        apiPresets: Array.isArray(data.apiPresets) ? data.apiPresets : [],
-        fetchedModels: Array.isArray(data.fetchedModels) ? data.fetchedModels : [],
-        qqData: {
-            profile: Object.assign({}, base.qqData.profile, qqRaw.profile || {}),
-            contacts: Array.isArray(qqRaw.contacts) ? qqRaw.contacts : [],
-            messages: qqRaw.messages && typeof qqRaw.messages === 'object' ? qqRaw.messages : {},
-            moments: Array.isArray(qqRaw.moments) ? qqRaw.moments : [],
-            theme: Object.assign({}, base.qqData.theme, qqRaw.theme || {}),
-            userCards: Array.isArray(qqRaw.userCards) && qqRaw.userCards.length ? qqRaw.userCards : clone(base.qqData.userCards),
-            wallet: {
-                balance: typeof (qqRaw.wallet && qqRaw.wallet.balance) === 'number' ? qqRaw.wallet.balance : base.qqData.wallet.balance,
-                history: Array.isArray(qqRaw.wallet && qqRaw.wallet.history) && qqRaw.wallet.history.length
-                    ? qqRaw.wallet.history
-                    : clone(base.qqData.wallet.history)
-            }
-        }
-    };
-};
-
-const openDB = function () {
-    return new Promise(function (resolve, reject) {
-        const request = window.indexedDB.open(DB_NAME, DB_VERSION);
-
-        request.onupgradeneeded = function (event) {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME);
-            }
-        };
-
-        request.onsuccess = function () {
-            resolve(request.result);
-        };
-
-        request.onerror = function () {
-            reject(request.error);
-        };
-    });
-};
-
-const idbGet = async function (key) {
-    const db = await openDB();
-    return new Promise(function (resolve, reject) {
-        const tx = db.transaction(STORE_NAME, 'readonly');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.get(key);
-
-        req.onsuccess = function () {
-            resolve(req.result || null);
-        };
-        req.onerror = function () {
-            reject(req.error);
-        };
-    });
-};
-
-const idbSet = async function (key, value) {
-    const db = await openDB();
-    return new Promise(function (resolve, reject) {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.put(value, key);
-
-        req.onsuccess = function () {
-            resolve(true);
-        };
-        req.onerror = function () {
-            reject(req.error);
-        };
-    });
-};
-
-window.store = Vue.reactive(createDefaultState());
-
-let isHydrating = true;
-let saveTimer = null;
-
-window.storeReady = (async function () {
-    let loaded = null;
-
-    try {
-        loaded = await idbGet(STORAGE_KEY);
-    } catch (err) {
-        if (err) {
-            loaded = null;
+let initialState = {
+    currentApp: null,
+    desktopItems: defaultDesktopItems,
+    desktopBgImage: null,
+    apiSettings: {
+        main: { url: 'https://api.openai.com', key: '', model: 'gpt-3.5-turbo' },
+        sub: { url: '', key: '', model: '' },
+        draw: { url: '', key: '', model: '' }
+    },
+    qqData: {
+        profile: { avatar: null, bgImage: null, nickname: '我', signature: '记录生活的美好' },
+        contacts: [],
+        messages: {},
+        userCards: [
+            { id: 'uc_default', name: '默认用户', persona: '一个普通的记录生活者，回复风格口语化。', avatar: null }
+        ],
+        wallet: {
+            balance: 1000,
+            history: [{ desc: '初始零钱红包', amount: '+1000.00', time: Date.now() }]
         }
     }
+};
 
-    if (!loaded) {
-        try {
-            const oldLocal = window.localStorage.getItem(STORAGE_KEY);
-            if (oldLocal) {
-                loaded = JSON.parse(oldLocal);
-                try {
-                    await idbSet(STORAGE_KEY, loaded);
-                } catch (e) {
-                    if (e) {}
+window.store = Vue.reactive(initialState);
+let isStoreLoaded = false;
+
+// 封装 IndexedDB
+const initDB = function() {
+    return new Promise((resolve, reject) => {
+        const request = window.indexedDB.open('MyPhoneDB', 1);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('store')) {
+                db.createObjectStore('store');
+            }
+        };
+    });
+};
+
+const loadData = async function() {
+    try {
+        const db = await initDB();
+        const tx = db.transaction('store', 'readonly');
+        const storeObj = tx.objectStore('store');
+        const request = storeObj.get('myPhoneData');
+        
+        request.onsuccess = () => {
+            const savedData = request.result;
+            if (savedData) {
+                // 读取到数据后覆盖进 store
+                Object.assign(window.store, savedData);
+                
+                // 补齐可能缺失的基础结构
+                if (!window.store.desktopItems || window.store.desktopItems.length === 0) {
+                    window.store.desktopItems = defaultDesktopItems;
+                }
+                if (!window.store.apiSettings.draw) {
+                    window.store.apiSettings.draw = { url: '', key: '', model: '' };
                 }
             }
-        } catch (err2) {
-            if (err2) {
-                loaded = null;
-            }
-        }
+            // 等待一次合并完成后，允许监听器保存新的状态
+            isStoreLoaded = true;
+        };
+        request.onerror = () => {
+            isStoreLoaded = true;
+        };
+    } catch (err) {
+        console.warn('Failed to read DB, using default state.', err);
+        isStoreLoaded = true;
     }
+};
 
-    const normalized = normalizeState(loaded);
-    Object.assign(window.store, normalized);
-    isHydrating = false;
-})();
+const saveData = async function(data) {
+    if (!isStoreLoaded) return;
+    try {
+        // 脱离 Proxy
+        const rawData = JSON.parse(JSON.stringify(data));
+        const db = await initDB();
+        const tx = db.transaction('store', 'readwrite');
+        const storeObj = tx.objectStore('store');
+        storeObj.put(rawData, 'myPhoneData');
+    } catch (err) {
+        console.warn('Failed to save DB', err);
+    }
+};
+
+// 立即触发读取
+loadData();
 
 Vue.watch(
     window.store,
-    function (newState) {
-        if (isHydrating) {
-            return;
-        }
-
-        if (saveTimer) {
-            window.clearTimeout(saveTimer);
-        }
-
-        saveTimer = window.setTimeout(async function () {
-            try {
-                const plain = JSON.parse(JSON.stringify(newState));
-                await idbSet(STORAGE_KEY, plain);
-                try {
-                    window.localStorage.setItem(STORAGE_KEY + '_lastSaveTime', String(Date.now()));
-                } catch (e) {
-                    if (e) {}
-                }
-            } catch (err) {
-                window.console.warn('IndexedDB save failed');
-            }
-        }, 300);
+    (newState) => {
+        saveData(newState);
     },
     { deep: true }
 );
