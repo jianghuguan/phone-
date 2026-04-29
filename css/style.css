@@ -41,14 +41,20 @@ button:active,
 }
 
 .status-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 55px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 15px 24px 10px;
     font-size: 14px;
     font-weight: 600;
-    z-index: 100;
+    z-index: 9999;
     transition: color 0.3s;
+    pointer-events: none; /* 防止顶栏空隙阻挡手势穿透 */
 }
 
 .dark-text {
@@ -123,21 +129,6 @@ button:active,
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    
-    /* 桌面平滑放大的动画过渡 */
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-/* App打开时桌面的形态表现 */
-.desktop-opened {
-    transform: scale(1.08); /* 桌面背景放大 */
-}
-.desktop > div {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s;
-}
-.desktop-opened > div {
-    transform: scale(0.85); /* 其它所有图标整体缩小 */
-    opacity: 0.3; /* 半透明以降低视觉干扰 */
 }
 
 .sortable-ghost {
@@ -253,26 +244,19 @@ button:active,
     z-index: 10;
     padding-top: 55px;
     overflow-y: hidden;
-    /* 核心修改点：接收JS捕获的鼠标点击动态原点坐标 */
-    transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
+    will-change: transform;
+    backface-visibility: hidden;
+    transform: translateZ(0); /* 开启 GPU 3D 硬件加速，大幅提升丝滑度 */
 }
 
 .app-slide-enter-active,
 .app-slide-leave-active {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform 0.35s cubic-bezier(0.25, 1, 0.32, 1);
 }
 
 .app-slide-enter-from,
 .app-slide-leave-to {
-    /* 缩小进应用图标的效果 */
-    transform: scale(0.15); 
-    opacity: 0;
-}
-
-.app-slide-enter-to,
-.app-slide-leave-from {
-    transform: scale(1);
-    opacity: 1;
+    transform: translateY(100%) translateZ(0);
 }
 
 .home-indicator-wrapper {
@@ -286,6 +270,7 @@ button:active,
     justify-content: center;
     align-items: flex-end;
     padding-bottom: 12px;
+    pointer-events: auto;
 }
 
 .home-indicator {
@@ -448,7 +433,7 @@ button:active,
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    max-width: 90% !important;
+    max-width: 90% !important; /* 气泡变宽 */
 }
 
 .qq-msg-row.user {
@@ -800,6 +785,7 @@ button:active,
     color: #999;
 }
 
+/* 朋友圈右下角操作菜单 */
 .moment-action-menu {
     position: absolute;
     right: 35px;
