@@ -1,25 +1,21 @@
-/* eslint-disable */
-/* jshint ignore:start */
 /* global Vue, window, document, FileReader, Image */
 'use strict';
 
 window.widgetApp = {
     template: `
         <div style="padding: 20px; height: calc(100% - 60px); overflow-y:auto; background:#fff;">
-            <h2 style="font-weight: 600; margin-bottom: 20px;">小组件与排版管理</h2>
+            <h2 style="font-weight: 600; margin-bottom: 20px;">小组件管理</h2>
             
             <div style="background: #f5f5f7; padding: 15px; border-radius: 16px; margin-bottom: 20px;">
                 <h3 style="margin-bottom:12px; font-size:16px;">添加新组件</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <button @click="addWidget('time')" class="btn-primary" style="padding: 10px 5px; font-size:13px;">时钟天气(4x2)</button>
-                    <button @click="addWidget('dialog_2x2')" class="btn-primary" style="padding: 10px 5px; font-size:13px; background:#000 !important; color:#fff !important;">气泡日记(2x2)</button>
+                    <button @click="addWidget('dialog_2x2')" class="btn-primary" style="padding: 10px 5px; font-size:13px; background:#000 !important; color:#fff !important;">透明气泡(2x2)</button>
                     <button @click="addWidget('photo')" class="btn-primary" style="padding: 10px 5px; font-size:13px;">照片墙(2x2)</button>
                     <button @click="addWidget('photo_1x1_circle')" class="btn-primary" style="padding: 10px 5px; font-size:13px;">圆形照片(1x1)</button>
                     <button @click="addWidget('photo_1x2')" class="btn-primary" style="padding: 10px 5px; font-size:13px;">竖版照片(1x2)</button>
                     <button @click="addWidget('photo_2x1')" class="btn-primary" style="padding: 10px 5px; font-size:13px;">横版照片(2x1)</button>
-                    <button @click="addWidget('empty_slot')" class="btn-primary" style="padding: 10px 5px; font-size:13px; grid-column: span 2; border: 1px dashed #000 !important; color: #555 !important;">➕ 插入透明留白格子(1x1)</button>
                 </div>
-                <p style="font-size:11px; color:#888; margin-top:8px;">*由于桌面支持多屏排版，如果一页满了会自动挤到下一页。你可以插入“透明留白格子”来强行挤压其他图标，以实现排版任意留白。</p>
             </div>
 
             <h3 style="margin-bottom:10px; padding-left:5px;">我的桌面</h3>
@@ -30,7 +26,7 @@ window.widgetApp = {
                     <span style="font-weight:bold;">{{ widget.name }}</span>
                     <button @click="removeWidget(widget.id)" class="btn-danger" style="padding: 5px 12px; font-size: 12px;">删除</button>
                 </div>
-                <div v-if="widget.widgetType !== 'empty_slot'">
+                <div>
                     <input type="file" accept="image/*" @change="handleImageUpload($event, widget.id)" :id="'upload_' + widget.id" style="display:none;">
                     <button @click="triggerClick('upload_' + widget.id)" class="btn-primary" style="font-size: 12px; padding: 6px 12px;">
                         {{ widget.bgImage ? (widget.widgetType === 'dialog_2x2' ? '更换头像' : '更换背景') : (widget.widgetType === 'dialog_2x2' ? '设置头像' : '设置背景图') }}
@@ -40,21 +36,25 @@ window.widgetApp = {
             </div>
         </div>
     `,
-    setup: function() {
+    setup() {
         const store = window.store;
 
-        // 获取所有分布在各页面的小组件
-        const widgets = Vue.computed(function() {
-            let allWidgets = [];
-            if (store.desktopPages) {
-                store.desktopPages.forEach(function(page) {
-                    allWidgets = allWidgets.concat(page.filter(function(item) { return item.type === 'widget'; }));
-                });
-            }
-            return allWidgets;
+        const widgets = Vue.computed(() => {
+            let all = store.desktopPages[0].concat(store.desktopPages[1]);
+            return all.filter(item => item.type === 'widget');
         });
 
-        const addWidget = function(type) {
+        const calcArea = (item) => {
+            if (!item.span) return 1;
+            const parts = item.span.split('/');
+            return parts.length === 2 ? parseInt(parts[0]) * parseInt(parts[1]) : 1;
+        };
+
+        const createEmpty = () => {
+            return { type: 'empty', id: 'empty_' + Math.random().toString(36).substr(2, 9), span: '1 / 1' };
+        };
+
+        const addWidget = (type) => {
             const id = type + '_' + Date.now();
             let newWidget;
             switch(type) {
@@ -64,81 +64,85 @@ window.widgetApp = {
                 case 'photo_1x2': newWidget = { type: 'widget', widgetType: 'photo_1x2', id: id, name: '竖版照片(1x2)', span: '1 / 2', bgImage: null }; break;
                 case 'photo_2x1': newWidget = { type: 'widget', widgetType: 'photo_2x1', id: id, name: '横版照片(2x1)', span: '2 / 1', bgImage: null }; break;
                 case 'dialog_2x2': newWidget = { type: 'widget', widgetType: 'dialog_2x2', id: id, name: '气泡日记(2x2)', span: '2 / 2', bgImage: null, text: '' }; break;
-                case 'empty_slot': newWidget = { type: 'widget', widgetType: 'empty_slot', id: id, name: '隐形留白(1x1)', span: '1 / 1', bgImage: null }; break;
             }
-            
-            // 默认添加逻辑：找一个大概率没满的页，如果第一页组件小于 10 个就塞第一页，否则新开一页或丢后面
-            let targetPage = store.desktopPages[0];
-            if (targetPage.length >= 16 && store.desktopPages.length > 1) {
-                targetPage = store.desktopPages[1];
-            }
-            
-            // 如果是隐形留白格子，默认放在最后面，这样用户才好慢慢往前拖以推挤其他图标
-            if (type === 'empty_slot') {
-                targetPage.push(newWidget);
-            } else {
-                targetPage.unshift(newWidget);
-            }
-        };
 
-        const removeWidget = function(id) {
-            store.desktopPages.forEach(function(page) {
-                var idx = page.findIndex(function(item) { return item.id === id; });
-                if (idx !== -1) {
-                    page.splice(idx, 1);
+            let needArea = calcArea(newWidget);
+            let pageIdx = -1;
+            let empty0 = store.desktopPages[0].filter(i => i.type === 'empty').length;
+            let empty1 = store.desktopPages[1].filter(i => i.type === 'empty').length;
+
+            if (empty0 >= needArea) pageIdx = 0;
+            else if (empty1 >= needArea) pageIdx = 1;
+
+            if (pageIdx === -1) {
+                window.alert('桌面两页空间都已满，无法添加新小组件！请先腾出空间。');
+                return;
+            }
+
+            let removed = 0;
+            store.desktopPages[pageIdx] = store.desktopPages[pageIdx].filter(i => {
+                if (i.type === 'empty' && removed < needArea) {
+                    removed++;
+                    return false;
                 }
+                return true;
             });
+
+            store.desktopPages[pageIdx].unshift(newWidget);
+            window.alert('已成功添加到桌面！');
         };
 
-        const triggerClick = function(id) {
+        const removeWidget = (id) => {
+            for (let p = 0; p < 2; p++) {
+                let idx = store.desktopPages[p].findIndex(i => i.id === id);
+                if (idx !== -1) {
+                    let item = store.desktopPages[p][idx];
+                    let area = calcArea(item);
+                    store.desktopPages[p].splice(idx, 1);
+                    for (let i = 0; i < area; i++) {
+                        store.desktopPages[p].push(createEmpty());
+                    }
+                    break;
+                }
+            }
+        };
+
+        const triggerClick = (id) => {
             const el = document.getElementById(id);
             if (el) el.click();
         };
 
-        const handleImageUpload = function(event, id) {
+        const handleImageUpload = (event, id) => {
             const file = event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = function(e) {
+            reader.onload = (e) => {
                 const img = new Image();
                 img.src = e.target.result;
-                img.onload = function() {
+                img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     let width = img.width;
                     let height = img.height;
                     
-                    // 彻底解决大图无法保存的核心：控制画幅大小，并转换为高压缩率的 JPEG
-                    if (width > 800) {
-                        height = Math.round((height * 800) / width);
-                        width = 800;
+                    if (width > 400) {
+                        height = Math.round((height * 400) / width);
+                        width = 400;
                     }
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // 遍历所有页面寻找该组件并替换图片
-                    let found = false;
-                    for(let i = 0; i < store.desktopPages.length; i++) {
-                        let page = store.desktopPages[i];
-                        let targetWidget = page.find(function(item) { return item.id === id; });
-                        if (targetWidget) {
-                            // 注意：必须使用 'image/jpeg' 和 0.6 的质量压缩，抛弃体积巨大的 png
-                            targetWidget.bgImage = canvas.toDataURL('image/jpeg', 0.6);
-                            found = true;
-                            break;
-                        }
-                    }
-                    // 强制触发生层响应式更新
-                    if(found) {
-                        store.desktopPages = JSON.parse(JSON.stringify(store.desktopPages));
+                    let targetWidget = store.desktopPages[0].find(item => item.id === id) || store.desktopPages[1].find(item => item.id === id);
+                    if (targetWidget) {
+                        targetWidget.bgImage = canvas.toDataURL('image/jpeg', 0.6);
                     }
                 };
             };
         };
 
-        return { store: store, widgets: widgets, addWidget: addWidget, removeWidget: removeWidget, triggerClick: triggerClick, handleImageUpload: handleImageUpload };
+        return { store, widgets, addWidget, removeWidget, triggerClick, handleImageUpload };
     }
 };
