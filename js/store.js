@@ -1,6 +1,7 @@
+// @ts-nocheck
 /* eslint-disable */
-/* jshint esversion: 8 */
-/* global Vue, window, console, Promise */
+/* jshint esversion: 11 */
+/* global Vue, window, console, Promise, document */
 'use strict';
 
 const defaultDesktopItems = [
@@ -42,7 +43,6 @@ let initialState = {
 window.store = Vue.reactive(initialState);
 let isStoreLoaded = false;
 
-// 封装 IndexedDB
 const initDB = function () {
     return new Promise(function (resolve, reject) {
         if (!window.indexedDB) {
@@ -60,7 +60,6 @@ const initDB = function () {
     });
 };
 
-// 紧急备用：从旧版 localStorage 读取数据
 const fallbackLocalLoad = function () {
     try {
         const localStr = window.localStorage.getItem('myPhoneData');
@@ -70,7 +69,6 @@ const fallbackLocalLoad = function () {
     } catch (e) {}
 };
 
-// 读取数据逻辑
 const loadData = function () {
     initDB()
         .then(function (db) {
@@ -81,7 +79,6 @@ const loadData = function () {
             request.onsuccess = function () {
                 let savedData = request.result;
                 
-                // 【核心修复】：如果大数据库是空的，说明是第一次升级，自动去 localStorage 抢救以前的旧数据！
                 if (!savedData) {
                     try {
                         const localStr = window.localStorage.getItem('myPhoneData');
@@ -95,7 +92,6 @@ const loadData = function () {
                 if (savedData) {
                     Object.assign(window.store, savedData);
                     
-                    // 补齐可能缺失的基础结构，防止报错
                     if (!window.store.desktopItems || window.store.desktopItems.length === 0) {
                         window.store.desktopItems = defaultDesktopItems;
                     }
@@ -107,7 +103,6 @@ const loadData = function () {
                 }
                 
                 isStoreLoaded = true;
-                // 迁移完成后，立刻保存一份到新数据库中
                 if (savedData) {
                     saveData(window.store);
                 }
@@ -125,21 +120,17 @@ const loadData = function () {
         });
 };
 
-// 保存数据逻辑（增加防抖和双重备份）
 let saveTimeout = null;
 const saveData = function (data) {
     if (!isStoreLoaded) return;
     
-    // 防抖：清除上一次还没执行的保存操作，防止频繁保存把数据库卡死
     if (saveTimeout) {
         window.clearTimeout(saveTimeout);
     }
     
     try {
-        // 先同步克隆一份当前的数据快照
         const rawData = JSON.parse(JSON.stringify(data));
         
-        // 延迟 400 毫秒后统一执行真实写入
         saveTimeout = window.setTimeout(function () {
             initDB()
                 .then(function (db) {
@@ -147,11 +138,9 @@ const saveData = function (data) {
                     const storeObj = tx.objectStore('store');
                     storeObj.put(rawData, 'myPhoneData');
                     
-                    // 顺便尝试在旧版 localStorage 也备份一份（如果没超限的话），增加安全性
                     try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) {}
                 })
                 .catch(function () {
-                    // 如果大数据库彻底罢工，强制降级保存
                     try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) {}
                 });
         }, 400); 
@@ -160,7 +149,6 @@ const saveData = function (data) {
     }
 };
 
-// 页面隐藏/关闭前，做最后一次挣扎同步保存
 window.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'hidden' && isStoreLoaded) {
         try {
@@ -170,7 +158,6 @@ window.addEventListener('visibilitychange', function() {
     }
 });
 
-// 立即触发读取
 loadData();
 
 Vue.watch(
