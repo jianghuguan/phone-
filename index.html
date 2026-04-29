@@ -6,7 +6,6 @@
     <title>小手机自适应版</title>
     <link rel="stylesheet" href="./css/style.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -21,9 +20,12 @@
             </div>
         </div>
 
-        <!-- 增加动态类 desktop-opened -->
         <div id="desktop-grid" class="desktop" :class="{ 'desktop-opened': store.currentApp }" :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' }">
-            <div v-for="item in store.desktopItems" :key="item.id" :class="{ 'widget-box': item.type === 'widget', 'app-icon': item.type === 'app' }" :style="item.type === 'widget' ? { gridColumn: 'span ' + item.span.split('/')[0].trim(), gridRow: 'span ' + item.span.split('/')[1].trim() } : {}" @click="item.type === 'app' ? openApp(item.id, $event) : null">
+            
+            <!-- 拖拽占位阴影 -->
+            <div v-if="dragState" class="drag-ghost" :style="{ gridColumn: (ghostX + 1) + ' / span ' + dragState.item.w, gridRow: (ghostY + 1) + ' / span ' + dragState.item.h, borderRadius: dragState.item.widgetType === 'photo-1x1' ? '50%' : '22px' }"></div>
+
+            <div v-for="item in store.desktopItems" :key="item.id" class="desktop-item" :class="{ 'widget-box': item.type === 'widget', 'app-icon': item.type === 'app', 'is-dragging': dragState && dragState.item.id === item.id }" :style="{ gridColumn: (item.x + 1) + ' / span ' + item.w, gridRow: (item.y + 1) + ' / span ' + item.h }" @touchstart="onItemTouchStart(item, $event)" @touchend="onItemTouchEnd" @click="item.type === 'app' ? openApp(item.id, $event) : null">
                 
                 <div v-if="item.widgetType === 'time'" class="widget-time" :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
                     <div class="time-header">
@@ -36,8 +38,13 @@
                     <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div v-else-if="item.widgetType && item.widgetType.startsWith('photo')" class="widget-photo" :class="{ 'round': item.widgetType === 'photo-1x1' }" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">去小组件App设置</span>
+                </div>
+
+                <div v-else-if="item.widgetType === 'pixel-avatar'" class="widget-pixel">
+                    <div class="pixel-avatar-frame" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }"></div>
+                    <div class="pixel-bubble">{{ item.text || '点击去设置输入' }}</div>
                 </div>
 
                 <div v-else-if="item.type === 'app'" style="display: contents;">
