@@ -123,6 +123,21 @@ button:active,
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    
+    /* 桌面平滑放大的动画过渡 */
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* App打开时桌面的形态表现 */
+.desktop-opened {
+    transform: scale(1.08); /* 桌面背景放大 */
+}
+.desktop > div {
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s;
+}
+.desktop-opened > div {
+    transform: scale(0.85); /* 其它所有图标整体缩小 */
+    opacity: 0.3; /* 半透明以降低视觉干扰 */
 }
 
 .sortable-ghost {
@@ -238,16 +253,26 @@ button:active,
     z-index: 10;
     padding-top: 55px;
     overflow-y: hidden;
+    /* 核心修改点：接收JS捕获的鼠标点击动态原点坐标 */
+    transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
 }
 
 .app-slide-enter-active,
 .app-slide-leave-active {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .app-slide-enter-from,
 .app-slide-leave-to {
-    transform: translateY(100%);
+    /* 缩小进应用图标的效果 */
+    transform: scale(0.15); 
+    opacity: 0;
+}
+
+.app-slide-enter-to,
+.app-slide-leave-from {
+    transform: scale(1);
+    opacity: 1;
 }
 
 .home-indicator-wrapper {
@@ -423,7 +448,7 @@ button:active,
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    max-width: 90% !important; /* 气泡变宽 */
+    max-width: 90% !important;
 }
 
 .qq-msg-row.user {
@@ -775,7 +800,6 @@ button:active,
     color: #999;
 }
 
-/* 朋友圈右下角操作菜单 */
 .moment-action-menu {
     position: absolute;
     right: 35px;
