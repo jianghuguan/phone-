@@ -25,7 +25,7 @@
             <!-- 拖拽占位阴影 -->
             <div v-if="dragState" class="drag-ghost" :style="{ gridColumn: (ghostX + 1) + ' / span ' + dragState.item.w, gridRow: (ghostY + 1) + ' / span ' + dragState.item.h, borderRadius: dragState.item.widgetType === 'photo-1x1' ? '50%' : '22px' }"></div>
 
-            <div v-for="item in store.desktopItems" :key="item.id" class="desktop-item" :class="{ 'widget-box': item.type === 'widget', 'app-icon': item.type === 'app', 'is-dragging': dragState && dragState.item.id === item.id }" :style="{ gridColumn: (item.x + 1) + ' / span ' + item.w, gridRow: (item.y + 1) + ' / span ' + item.h }" @touchstart="onItemTouchStart(item, $event)" @touchend="onItemTouchEnd" @click="item.type === 'app' ? openApp(item.id, $event) : null">
+            <div v-for="item in store.desktopItems" :key="item.id" class="desktop-item" :class="{ 'widget-box': item.type === 'widget', 'app-icon': item.type === 'app', 'is-dragging': dragState ? dragState.item.id === item.id : false }" :style="{ gridColumn: (item.x + 1) + ' / span ' + item.w, gridRow: (item.y + 1) + ' / span ' + item.h }" @touchstart="onItemTouchStart(item, $event)" @touchend="onItemTouchEnd" @click="item.type === 'app' ? openApp(item.id, $event) : null">
                 
                 <div v-if="item.widgetType === 'time'" class="widget-time" :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
                     <div class="time-header">
@@ -38,7 +38,8 @@
                     <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
                 </div>
 
-                <div v-else-if="item.widgetType && item.widgetType.startsWith('photo')" class="widget-photo" :class="{ 'round': item.widgetType === 'photo-1x1' }" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <!-- 将 && 替换为三元表达式，避免 HTML 属性中出现非法字符 -->
+                <div v-else-if="item.widgetType ? item.widgetType.indexOf('photo') !== -1 : false" class="widget-photo" :class="{ 'round': item.widgetType === 'photo-1x1' }" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">去小组件App设置</span>
                 </div>
 
