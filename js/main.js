@@ -1,175 +1,169 @@
-/* eslint-disable */
-/* jshint expr: true, asi: true */
-/* global window, document, setInterval, clearInterval, Date, String */
 'use strict';
 
-(function () {
-    var Vue = window.Vue;
-    var Sortable = window.Sortable;
+const { createApp, ref, onMounted, onUnmounted, nextTick } = window.Vue;
+const Sortable = window.Sortable;
+const store = window.store;
 
-    var app = Vue.createApp({
-        setup: function () {
-            var store = window.store;
+const app = createApp({
+    setup() {
+        const time = ref('');
+        const date = ref('');
+        const weekday = ref('');
 
-            var time = Vue.ref('');
-            var date = Vue.ref('');
-            var weekday = Vue.ref('');
+        const updateTime = () => {
+            const now = new Date();
+            const h = now.getHours();
+            const m = now.getMinutes();
+            time.value = (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
 
-            var updateTime = function () {
-                var now = new Date();
-                var h = now.getHours();
-                var m = now.getMinutes();
-                time.value = (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            date.value = month + '月' + day + '日';
 
-                var month = now.getMonth() + 1;
-                var day = now.getDate();
-                date.value = month + '月' + day + '日';
+            const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            weekday.value = days[now.getDay()];
+        };
 
-                var days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-                weekday.value = days[now.getDay()];
-            };
+        let timeInterval = null;
+        let batteryInterval = null;
 
-            var timeInterval = null;
-            var batteryInterval = null;
+        const battery = ref(100);
+        const updateBattery = () => {
+            if (battery.value > 1) {
+                battery.value -= 1;
+            }
+        };
 
-            var battery = Vue.ref(100);
-            var updateBattery = function () {
-                if (battery.value > 1) {
-                    battery.value -= 1;
+        const temperature = ref('26°C');
+        const weatherDesc = ref('晴转多云');
+
+        const openApp = (id, e) => {
+            if (e && e.currentTarget) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = rect.left + (rect.width / 2);
+                const y = rect.top + (rect.height / 2);
+                document.documentElement.style.setProperty('--app-origin-x', x + 'px');
+                document.documentElement.style.setProperty('--app-origin-y', y + 'px');
+            } else {
+                document.documentElement.style.setProperty('--app-origin-x', '50%');
+                document.documentElement.style.setProperty('--app-origin-y', '50%');
+            }
+            store.currentApp = id;
+        };
+
+        const closeApp = () => {
+            store.currentApp = null;
+        };
+
+        let homeStartY = 0;
+        const homeTouchStart = (e) => {
+            if (e.touches && e.touches.length > 0) {
+                homeStartY = e.touches[0].clientY;
+            }
+        };
+        const homeTouchMove = (e) => {
+            e.preventDefault();
+        };
+        const homeTouchEnd = (e) => {
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                const endY = e.changedTouches[0].clientY;
+                if (homeStartY - endY > 30) {
+                    closeApp();
                 }
-            };
+            }
+        };
 
-            var temperature = Vue.ref('26°C');
-            var weatherDesc = Vue.ref('晴转多云');
+        const initSortable = () => {
+            const grid = document.getElementById('desktop-grid');
+            if (!grid || !Sortable) return;
 
-            var openApp = function (id, e) {
-                if (e && e.currentTarget) {
-                    var rect = e.currentTarget.getBoundingClientRect();
-                    var x = rect.left + (rect.width / 2);
-                    var y = rect.top + (rect.height / 2);
-                    document.documentElement.style.setProperty('--app-origin-x', x + 'px');
-                    document.documentElement.style.setProperty('--app-origin-y', y + 'px');
-                } else {
-                    document.documentElement.style.setProperty('--app-origin-x', '50%');
-                    document.documentElement.style.setProperty('--app-origin-y', '50%');
+            Sortable.create(grid, {
+                animation: 250,
+                ghostClass: 'sortable-ghost',
+                delay: 300,
+                delayOnTouchOnly: true,
+                swap: true,
+                swapClass: 'sortable-swap-highlight',
+                scroll: true,             
+                scrollSensitivity: 80,    
+                scrollSpeed: 15,          
+                onEnd: (evt) => {
+                    const oldIdx = evt.oldIndex;
+                    const newIdx = evt.newIndex;
+                    if (oldIdx === newIdx) return;
+
+                    const items = [...store.desktopItems];
+                    const temp = items[oldIdx];
+                    items[oldIdx] = items[newIdx];
+                    items[newIdx] = temp;
+
+                    store.desktopItems = items;
                 }
-                store.currentApp = id;
-            };
-
-            var closeApp = function () {
-                store.currentApp = null;
-            };
-
-            var homeStartY = 0;
-            var homeTouchStart = function (e) {
-                if (e.touches && e.touches.length > 0) {
-                    homeStartY = e.touches[0].clientY;
-                }
-            };
-            var homeTouchMove = function (e) {
-                e.preventDefault();
-            };
-            var homeTouchEnd = function (e) {
-                if (e.changedTouches && e.changedTouches.length > 0) {
-                    var endY = e.changedTouches[0].clientY;
-                    if (homeStartY - endY > 30) {
-                        closeApp();
-                    }
-                }
-            };
-
-            var initSortable = function () {
-                var grid = document.getElementById('desktop-grid');
-                if (!grid || !Sortable) return;
-
-                Sortable.create(grid, {
-                    animation: 250,
-                    ghostClass: 'sortable-ghost',
-                    delay: 300,
-                    delayOnTouchOnly: true,
-                    swap: true,
-                    swapClass: 'sortable-swap-highlight',
-                    scroll: true,             // 开启横向边缘翻页能力
-                    scrollSensitivity: 80,    // 边缘滚动灵敏度
-                    scrollSpeed: 15,          // 滚动速度
-                    onEnd: function (evt) {
-                        var oldIdx = evt.oldIndex;
-                        var newIdx = evt.newIndex;
-                        if (oldIdx === newIdx) return;
-
-                        var items = store.desktopItems.slice();
-                        var temp = items[oldIdx];
-                        items[oldIdx] = items[newIdx];
-                        items[newIdx] = temp;
-
-                        store.desktopItems = items;
-                    }
-                });
-            };
-
-            var getItemClass = function (item) {
-                if (item.type === 'app') return 'app-icon';
-                if (item.widgetType === 'dialog_2x2') return 'transparent-widget';
-                return 'widget-box';
-            };
-
-            var getWidgetStyle = function (item) {
-                if (item.type !== 'widget' || !item.span) return {};
-                var parts = String(item.span).split('/');
-                if (parts.length < 2) return {};
-                return {
-                    gridColumn: 'span ' + parts[0].replace(/^\s+|\s+$/g, ''),
-                    gridRow: 'span ' + parts[1].replace(/^\s+|\s+$/g, '')
-                };
-            };
-
-            var handleItemClick = function (item, e) {
-                if (item.type === 'app') {
-                    openApp(item.id, e);
-                }
-            };
-
-            Vue.onMounted(function () {
-                updateTime();
-                timeInterval = setInterval(updateTime, 1000);
-
-                battery.value = 100;
-                batteryInterval = setInterval(updateBattery, 60000);
-
-                Vue.nextTick(function () {
-                    initSortable();
-                });
             });
+        };
 
-            Vue.onUnmounted(function () {
-                if (timeInterval) clearInterval(timeInterval);
-                if (batteryInterval) clearInterval(batteryInterval);
-            });
+        const getItemClass = (item) => {
+            if (item.type === 'app') return 'app-icon';
+            if (item.widgetType === 'dialog_2x2') return 'transparent-widget';
+            return 'widget-box';
+        };
 
+        const getWidgetStyle = (item) => {
+            if (item.type !== 'widget' || !item.span) return {};
+            const parts = String(item.span).split('/');
+            if (parts.length < 2) return {};
             return {
-                store: store,
-                time: time,
-                date: date,
-                weekday: weekday,
-                battery: battery,
-                temperature: temperature,
-                weatherDesc: weatherDesc,
-                openApp: openApp,
-                closeApp: closeApp,
-                homeTouchStart: homeTouchStart,
-                homeTouchMove: homeTouchMove,
-                homeTouchEnd: homeTouchEnd,
-                getItemClass: getItemClass,
-                getWidgetStyle: getWidgetStyle,
-                handleItemClick: handleItemClick
+                gridColumn: 'span ' + parts[0].trim(),
+                gridRow: 'span ' + parts[1].trim()
             };
-        }
-    });
+        };
 
-    if (window.widgetApp) app.component('widgetApp', window.widgetApp);
-    if (window.themeApp) app.component('theme', window.themeApp);
-    if (window.settingsApp) app.component('settings', window.settingsApp);
-    if (window.qqApp) app.component('qq', window.qqApp);
+        const handleItemClick = (item, e) => {
+            if (item.type === 'app') {
+                openApp(item.id, e);
+            }
+        };
 
-    app.mount('#app');
-})();
+        onMounted(() => {
+            updateTime();
+            timeInterval = setInterval(updateTime, 1000);
+
+            battery.value = 100;
+            batteryInterval = setInterval(updateBattery, 60000);
+
+            nextTick(() => {
+                initSortable();
+            });
+        });
+
+        onUnmounted(() => {
+            if (timeInterval) clearInterval(timeInterval);
+            if (batteryInterval) clearInterval(batteryInterval);
+        });
+
+        return {
+            store,
+            time,
+            date,
+            weekday,
+            battery,
+            temperature,
+            weatherDesc,
+            openApp,
+            closeApp,
+            homeTouchStart,
+            homeTouchMove,
+            homeTouchEnd,
+            getItemClass,
+            getWidgetStyle,
+            handleItemClick
+        };
+    }
+});
+
+if (window.widgetApp) app.component('widgetApp', window.widgetApp);
+if (window.themeApp) app.component('theme', window.themeApp);
+if (window.settingsApp) app.component('settings', window.settingsApp);
+if (window.qqApp) app.component('qq', window.qqApp);
+
+app.mount('#app');
