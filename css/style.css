@@ -40,7 +40,6 @@ button:active,
     font-weight: bold !important;
 }
 
-/* 核心修复 1：将状态栏完全脱离文档流独立，GPU加速，防止被连累重排闪烁 */
 .status-bar {
     position: absolute;
     top: 0;
@@ -55,7 +54,7 @@ button:active,
     z-index: 9999;
     transition: color 0.3s;
     transform: translateZ(0); 
-    pointer-events: none; /* 防止悬浮层阻挡下方应用的点击事件 */
+    pointer-events: none; 
 }
 
 .dark-text {
@@ -131,23 +130,27 @@ button:active,
     background-position: center;
     background-repeat: no-repeat;
     
-    /* 调整曲线：更柔和的起步，略微延长动画时间至 0.5s，消除首帧卡顿感 */
-    transition: transform 0.5s cubic-bezier(0.33, 1, 0.68, 1);
-    will-change: transform; /* 开启渲染前置优化 */
+    /* 【核心修复】：常驻显卡图层，防止动画第1帧闪烁变大 */
+    transform: scale(1) translateZ(0); 
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform; 
 }
 
 /* App打开时桌面的形态表现 */
 .desktop-opened {
-    transform: scale(1.08) translateZ(0); /* 桌面背景放大并开启 GPU 加速 */
+    transform: scale(1.08) translateZ(0); 
 }
+
 .desktop > div {
-    /* 动画时间与主桌面背景保持同步 */
-    transition: transform 0.5s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.5s cubic-bezier(0.33, 1, 0.68, 1);
+    /* 【核心修复】：给每个图标也增加常驻显卡图层状态 */
+    transform: scale(1) translateZ(0); 
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s;
     will-change: transform, opacity;
 }
+
 .desktop-opened > div {
-    transform: scale(0.85) translateZ(0); /* 其它所有图标整体缩小并开启 GPU 加速 */
-    opacity: 0.3; /* 半透明以降低视觉干扰 */
+    transform: scale(0.85) translateZ(0); 
+    opacity: 0.3; 
 }
 
 .sortable-ghost {
@@ -264,26 +267,24 @@ button:active,
     padding-top: 55px;
     overflow-y: hidden;
     transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
-    will-change: transform, opacity; /* 提前分配 GPU 内存 */
-    backface-visibility: hidden; /* 防止边缘锯齿与卡顿 */
+    will-change: transform, opacity; 
+    backface-visibility: hidden; 
 }
 
-/* App弹出进入的动画，同样改成平滑的 0.5s */
 .app-slide-enter-active,
 .app-slide-leave-active {
-    transition: transform 0.5s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.5s cubic-bezier(0.33, 1, 0.68, 1);
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .app-slide-enter-from,
 .app-slide-leave-to {
-    /* 缩小进应用图标的效果 */
-    transform: scale(0.15) translateZ(0); /* 开启 3D 渲染通道 */
+    transform: scale(0.15) translateZ(0); 
     opacity: 0;
 }
 
 .app-slide-enter-to,
 .app-slide-leave-from {
-    transform: scale(1) translateZ(0); /* 开启 3D 渲染通道 */
+    transform: scale(1) translateZ(0); 
     opacity: 1;
 }
 
