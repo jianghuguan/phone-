@@ -1,6 +1,5 @@
 /* eslint-disable */
-/* jshint esversion: 5, -W097 */
-/* global window, Math, Date, JSON, Object */
+/* jshint ignore:start */
 'use strict';
 
 var defaultDesktopItems = [
@@ -18,12 +17,13 @@ var defaultDesktopItems = [
 
 var initialState = {
     currentApp: null,
-    desktopPages: [],
+    desktopItems: defaultDesktopItems,
     desktopBgImage: null,
     apiSettings: {
         main: { url: 'https://api.openai.com', key: '', model: 'gpt-3.5-turbo' },
         sub: { url: '', key: '', model: '' },
-        draw: { url: '', key: '', model: '' }
+        draw: { url: '', key: '', model: '' },
+        weather: { key: '', city: 'Beijing' }
     },
     qqData: {
         profile: { avatar: null, bgImage: null, nickname: '我', signature: '记录生活的美好' },
@@ -32,136 +32,133 @@ var initialState = {
         userCards: [
             { id: 'uc_default', name: '默认用户', persona: '一个普通的记录生活者，回复风格口语化。', avatar: null }
         ],
-        wallet: { balance: 1000, history: [{ desc: '初始红包', amount: '+1000.00', time: Date.now() }] }
+        wallet: {
+            balance: 1000,
+            history: [{ desc: '初始零钱红包', amount: '+1000.00', time: Date.now() }]
+        }
     }
 };
 
 window.store = window.Vue.reactive(initialState);
 var isStoreLoaded = false;
 
-var initDB = function (callback) {
-    if (!window.indexedDB) { return callback('No IndexedDB', null); }
-    var request = window.indexedDB.open('MyPhoneDB', 1);
-    request.onerror = function () { callback(request.error, null); };
-    request.onsuccess = function () { callback(null, request.result); };
-    request.onupgradeneeded = function (e) {
-        var db = e.target.result;
-        if (!db.objectStoreNames.contains('store')) { db.createObjectStore('store'); }
-    };
-};
-
-var createEmpty = function () {
-    return { type: 'empty', id: 'empty_' + Math.random().toString(36).substr(2, 9), span: '1 / 1' };
-};
-
-var calcArea = function (item) {
-    if (!item.span) { return 1; }
-    var parts = item.span.split('/');
-    if (parts.length === 2) {
-        return parseInt(parts[0], 10) * parseInt(parts[1], 10);
-    }
-    return 1;
-};
-
-var processDataCompatible = function (savedData) {
-    var i, j, k, a, item, arr;
-    var p0 = [];
-    var p1 = [];
-    var area0 = 0;
-    var area1 = 0;
-    var items = savedData ? (savedData.desktopItems || defaultDesktopItems) : defaultDesktopItems;
-    var validItems = [];
-    var key;
-
-    if (savedData) {
-        for (key in savedData) {
-            if (Object.prototype.hasOwnProperty.call(savedData, key)) {
-                window.store[key] = savedData[key];
+var initDB = function () {
+    return new Promise(function (resolve, reject) {
+        if (!window.indexedDB) {
+            return reject('Browser does not support IndexedDB');
+        }
+        var request = window.indexedDB.open('MyPhoneDB', 1);
+        request.onerror = function () { reject(request.error); };
+        request.onsuccess = function () { resolve(request.result); };
+        request.onupgradeneeded = function (e) {
+            var db = e.target.result;
+            if (!db.objectStoreNames.contains('store')) {
+                db.createObjectStore('store');
             }
-        }
-    }
-
-    if (!window.store.desktopPages || window.store.desktopPages.length < 2) {
-        for (i = 0; i < items.length; i++) {
-            if (items[i].type !== 'empty') {
-                validItems.push(items[i]);
-            }
-        }
-
-        for (j = 0; j < validItems.length; j++) {
-            item = validItems[j];
-            a = calcArea(item);
-            if (area0 + a <= 24) { 
-                p0.push(item); 
-                area0 += a; 
-            } else if (area1 + a <= 24) { 
-                p1.push(item); 
-                area1 += a; 
-            }
-        }
-        
-        while(area0 < 24) { p0.push(createEmpty()); area0++; }
-        while(area1 < 24) { p1.push(createEmpty()); area1++; }
-        window.store.desktopPages = [p0, p1];
-    } else {
-        while(window.store.desktopPages.length < 2) {
-            arr = [];
-            for(k = 0; k < 24; k++) { arr.push(createEmpty()); }
-            window.store.desktopPages.push(arr);
-        }
-    }
-};
-
-var loadData = function () {
-    initDB(function (err, db) {
-        var data = null;
-        var local = null;
-        if (err || !db) {
-            try { 
-                local = window.localStorage.getItem('myPhoneData'); 
-                if (local) { data = JSON.parse(local); }
-            } catch(e) { window.console.warn(e); }
-            processDataCompatible(data);
-            isStoreLoaded = true;
-            return;
-        }
-        var tx = db.transaction('store', 'readonly');
-        var req = tx.objectStore('store').get('myPhoneData');
-        req.onsuccess = function () {
-            data = req.result;
-            if (!data) {
-                try { 
-                    local = window.localStorage.getItem('myPhoneData'); 
-                    if (local) { data = JSON.parse(local); }
-                } catch(e) { window.console.warn(e); }
-            }
-            processDataCompatible(data);
-            isStoreLoaded = true;
-        };
-        req.onerror = function () { 
-            processDataCompatible(null); 
-            isStoreLoaded = true; 
         };
     });
 };
 
-var saveTimeout = null;
-var saveData = function (data) {
-    if (!isStoreLoaded) { return; }
-    if (saveTimeout) { window.clearTimeout(saveTimeout); }
+var fallbackLocalLoad = function () {
     try {
-        var rawData = JSON.parse(JSON.stringify(data));
-        saveTimeout = window.setTimeout(function () {
-            initDB(function (err, db) {
-                if (!err && db) {
-                    var tx = db.transaction('store', 'readwrite');
-                    tx.objectStore('store').put(rawData, 'myPhoneData');
-                }
-                try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch(e) { window.console.warn(e); }
-            });
-        }, 500); 
-    } catch (err) { window.console.warn(err); }
+        var localStr = window.localStorage.getItem('myPhoneData');
+        if (localStr) {
+            Object.assign(window.store, JSON.parse(localStr));
+        }
+    } catch (e) {}
 };
 
+var loadData = function () {
+    initDB()
+        .then(function (db) {
+            var tx = db.transaction('store', 'readonly');
+            var storeObj = tx.objectStore('store');
+            var request = storeObj.get('myPhoneData');
+            
+            request.onsuccess = function () {
+                var savedData = request.result;
+                
+                if (!savedData) {
+                    try {
+                        var localStr = window.localStorage.getItem('myPhoneData');
+                        if (localStr) {
+                            savedData = JSON.parse(localStr);
+                        }
+                    } catch (e) {}
+                }
+
+                if (savedData) {
+                    Object.assign(window.store, savedData);
+                    
+                    if (!window.store.desktopItems || window.store.desktopItems.length === 0) {
+                        window.store.desktopItems = defaultDesktopItems;
+                    }
+                    if (!window.store.apiSettings) {
+                        window.store.apiSettings = { main: {url: '', key: '', model: ''}, sub: {url: '', key: '', model: ''}, draw: {url: '', key: '', model: ''}, weather: {key: '', city: 'Beijing'} };
+                    } 
+                    if (!window.store.apiSettings.draw) window.store.apiSettings.draw = { url: '', key: '', model: '' };
+                    if (!window.store.apiSettings.weather) window.store.apiSettings.weather = { key: '', city: 'Beijing' };
+                }
+                
+                isStoreLoaded = true;
+                if (savedData) {
+                    saveData(window.store);
+                }
+            };
+            
+            request.onerror = function () {
+                fallbackLocalLoad();
+                isStoreLoaded = true;
+            };
+        })
+        .catch(function () {
+            fallbackLocalLoad();
+            isStoreLoaded = true;
+        });
+};
+
+var saveTimeout = null;
+var saveData = function (data) {
+    if (!isStoreLoaded) return;
+    
+    if (saveTimeout) {
+        window.clearTimeout(saveTimeout);
+    }
+    
+    try {
+        var rawData = JSON.parse(JSON.stringify(data));
+        
+        saveTimeout = window.setTimeout(function () {
+            initDB()
+                .then(function (db) {
+                    var tx = db.transaction('store', 'readwrite');
+                    var storeObj = tx.objectStore('store');
+                    storeObj.put(rawData, 'myPhoneData');
+                    
+                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) {}
+                })
+                .catch(function () {
+                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) {}
+                });
+        }, 400); 
+    } catch (err) {}
+};
+
+window.addEventListener('visibilitychange', function() {
+    if (window.document.visibilityState === 'hidden' && isStoreLoaded) {
+        try {
+            var rawData = JSON.parse(JSON.stringify(window.store));
+            window.localStorage.setItem('myPhoneData', JSON.stringify(rawData));
+        } catch(e) {}
+    }
+});
+
 loadData();
-window.Vue.watch(window.store, function (newState) { saveData(newState); }, { deep: true });
+
+window.Vue.watch(
+    window.store,
+    function (newState) {
+        saveData(newState);
+    },
+    { deep: true }
+);
