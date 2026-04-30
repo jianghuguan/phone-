@@ -1,5 +1,4 @@
 /* eslint-disable */
-/* eslint-env browser, es2021 */
 /* jshint ignore:start */
 'use strict';
 
@@ -24,7 +23,7 @@ var initialState = {
         main: { url: 'https://api.openai.com', key: '', model: 'gpt-3.5-turbo' },
         sub: { url: '', key: '', model: '' },
         draw: { url: '', key: '', model: '' },
-        weather: { key: '', city: 'Beijing' }
+        weather: { key: '', city: 'Beijing' } // 注入天气 API 初始状态
     },
     qqData: {
         profile: { avatar: null, bgImage: null, nickname: '我', signature: '记录生活的美好' },
