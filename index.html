@@ -21,10 +21,11 @@
             </div>
         </div>
 
-        <div id="desktop-grid" class="desktop" :class="{ 'desktop-opened': store.currentApp }" :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' }">
+        <!-- 将之前的内联判断转为纯函数调用如 getDesktopStyle，修复红叉 -->
+        <div id="desktop-grid" class="desktop" :class="{ 'desktop-opened': store.currentApp }" :style="getDesktopStyle()">
             <div v-for="item in store.desktopItems" :key="item.id" :class="getItemClass(item)" :style="getWidgetStyle(item)" @click="handleItemClick(item, $event)">
                 
-                <div v-if="item.widgetType === 'time'" class="widget-time" :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
+                <div v-if="item.widgetType === 'time'" class="widget-time" :style="getTimeWidgetStyle(item)">
                     <div class="time-header">
                         <h1>{{ time }}</h1>
                         <div class="weather-info">
@@ -32,27 +33,27 @@
                             <span class="desc">{{ weatherDesc }}</span>
                         </div>
                     </div>
-                    <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
+                    <p class="date-text" :style="getDateStyle(item)">{{ date }} {{ weekday }}</p>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div v-else-if="item.widgetType === 'photo'" class="widget-photo" :style="getWidgetBgStyle(item)">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo_1x1_circle'" class="widget-photo photo-circle" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div v-else-if="item.widgetType === 'photo_1x1_circle'" class="widget-photo photo-circle" :style="getWidgetBgStyle(item)">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:10px;">设置</span>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo_1x2'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div v-else-if="item.widgetType === 'photo_1x2'" class="widget-photo" :style="getWidgetBgStyle(item)">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo_2x1'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div v-else-if="item.widgetType === 'photo_2x1'" class="widget-photo" :style="getWidgetBgStyle(item)">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
                 </div>
 
                 <div v-else-if="item.type === 'app'" style="display: contents;">
-                    <div class="icon-img" :style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
+                    <div class="icon-img" :style="getAppIconStyle(item)">
                         <span v-if="!item.iconImage" style="display:contents;">{{ item.textIcon }}</span>
                     </div>
                     <span class="icon-name">{{ item.name }}</span>
