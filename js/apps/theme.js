@@ -96,37 +96,45 @@ window.themeApp = {
         }
 
         const apps = Vue.computed(function () {
-            let all = store.desktopPages[0].concat(store.desktopPages[1]);
-            return all.filter(function (item) {
+            return store.desktopItems.filter(function (item) {
                 return item.type === 'app';
             });
         });
 
         const triggerClick = function (id) {
             const el = document.getElementById(id);
-            if (el) el.click();
+            if (el) {
+                el.click();
+            }
         };
 
         const compressImage = function (file, callback) {
             const reader = new FileReader();
+
             reader.onload = function (event) {
                 const img = new Image();
+
                 img.onload = function () {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     let width = img.width;
                     let height = img.height;
-                    if (width > 800) {
-                        height = Math.round((height * 800) / width);
-                        width = 800;
+
+                    if (width > 1000) {
+                        height = Math.round((height * 1000) / width);
+                        width = 1000;
                     }
+
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-                    callback(canvas.toDataURL('image/jpeg', 0.8));
+
+                    callback(canvas.toDataURL('image/jpeg', 0.85));
                 };
+
                 img.src = event.target.result;
             };
+
             reader.readAsDataURL(file);
         };
 
@@ -135,9 +143,13 @@ window.themeApp = {
             if (!file) return;
 
             compressImage(file, function (base64) {
-                if (isQQ) store.qqData.theme[fieldName] = base64;
-                else store[fieldName] = base64;
+                if (isQQ) {
+                    store.qqData.theme[fieldName] = base64;
+                } else {
+                    store[fieldName] = base64;
+                }
             });
+
             event.target.value = '';
         };
 
@@ -156,7 +168,9 @@ window.themeApp = {
                     ctx.clearRect(0, 0, 160, 160);
                     ctx.drawImage(img, 0, 0, 160, 160);
 
-                    const targetApp = store.desktopPages[0].find(i => i.id === id) || store.desktopPages[1].find(i => i.id === id);
+                    const targetApp = store.desktopItems.find(function (item) {
+                        return item.id === id;
+                    });
                     if (targetApp) {
                         targetApp.iconImage = canvas.toDataURL('image/png');
                         targetApp.color = 'transparent';
@@ -173,6 +187,13 @@ window.themeApp = {
             app.color = '#ffffff';
         };
 
-        return { store: store, apps: apps, triggerClick: triggerClick, handleUpload: handleUpload, handleIconUpload: handleIconUpload, resetIcon: resetIcon };
+        return {
+            store: store,
+            apps: apps,
+            triggerClick: triggerClick,
+            handleUpload: handleUpload,
+            handleIconUpload: handleIconUpload,
+            resetIcon: resetIcon
+        };
     }
 };
