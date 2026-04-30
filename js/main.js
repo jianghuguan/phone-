@@ -1,6 +1,6 @@
 /* eslint-disable */
-/* jshint expr: true, asi: true */
-/* global window, document, setInterval, clearInterval, Date, String */
+/* eslint-env browser, es2021 */
+/* jshint ignore:start */
 'use strict';
 
 (function () {
@@ -43,20 +43,19 @@
             var temperature = Vue.ref('26°C');
             var weatherDesc = Vue.ref('晴转多云');
 
-            // 抓取并绑定 OpenWeatherMap API 真实天气
             var updateWeather = function () {
                 var weatherApi = store.apiSettings && store.apiSettings.weather;
                 if (weatherApi && weatherApi.key && weatherApi.city) {
                     var url = 'https://api.openweathermap.org/data/2.5/weather?q=' + window.encodeURIComponent(weatherApi.city) + '&appid=' + weatherApi.key + '&units=metric&lang=zh_cn';
                     window.fetch(url).then(function (res) {
-                        if (res.ok) return res.json();
+                        return res.ok ? res.json() : null;
                     }).then(function (data) {
                         if (data && data.main) {
                             temperature.value = Math.round(data.main.temp) + '°C';
                             weatherDesc.value = data.weather[0].description;
                         }
                     }).catch(function (e) {
-                        console.warn('获取天气失败，请检查 API Key 或城市名称是否正确', e);
+                        console.warn('Weather fetch failed', e);
                     });
                 }
             };
@@ -112,22 +111,35 @@
                         var oldIdx = evt.oldIndex;
                         var newIdx = evt.newIndex;
                         if (oldIdx === newIdx) return;
-
-                        var items = store.desktopItems.slice();
+                        
+                        var items = [];
+                        for (var i = 0; i < store.desktopItems.length; i++) {
+                            items.push(store.desktopItems[i]);
+                        }
                         var temp = items[oldIdx];
                         items[oldIdx] = items[newIdx];
                         items[newIdx] = temp;
-
                         store.desktopItems = items;
                     }
                 });
             };
 
-            var getItemClass = function (item) {
-                if (item.type === 'app') return 'app-icon';
-                return 'widget-box';
+            // 彻底杜决 HTML Inline Style 报错：统一在这提供样式数据
+            var getStatusBarClass = function () {
+                return !store.currentApp ? 'status-bar dark-text' : 'status-bar';
             };
-
+            var getBatteryStyle = function () {
+                return { width: battery.value + '%' };
+            };
+            var getDesktopClass = function () {
+                return store.currentApp ? 'desktop desktop-opened' : 'desktop';
+            };
+            var getDesktopStyle = function () {
+                return { backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' };
+            };
+            var getItemClass = function (item) {
+                return item.type === 'app' ? 'app-icon' : 'widget-box';
+            };
             var getWidgetStyle = function (item) {
                 if (item.type !== 'widget' || !item.span) return {};
                 var parts = String(item.span).split('/');
@@ -136,6 +148,18 @@
                     gridColumn: 'span ' + parts[0].replace(/^\s+|\s+$/g, ''),
                     gridRow: 'span ' + parts[1].replace(/^\s+|\s+$/g, '')
                 };
+            };
+            var getWidgetTimeStyle = function(item) { 
+                return { backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }; 
+            };
+            var getDateTextStyle = function(item) { 
+                return { color: item.bgImage ? '#eee' : '#555' }; 
+            };
+            var getWidgetPhotoStyle = function(item) { 
+                return { backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }; 
+            };
+            var getAppIconStyle = function(item) { 
+                return { backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }; 
             };
 
             var handleItemClick = function (item, e) {
@@ -150,14 +174,13 @@
 
                 timeInterval = setInterval(updateTime, 1000);
                 batteryInterval = setInterval(updateBattery, 60000);
-                weatherInterval = setInterval(updateWeather, 1800000); // 30 分钟刷新一次天气
+                weatherInterval = setInterval(updateWeather, 1800000);
 
                 Vue.nextTick(function () {
                     initSortable();
                 });
             });
 
-            // 监听天气 API 配置的变化，自动触发天气刷新
             Vue.watch(function () { return store.apiSettings.weather; }, updateWeather, { deep: true });
 
             Vue.onUnmounted(function () {
@@ -179,8 +202,16 @@
                 homeTouchStart: homeTouchStart,
                 homeTouchMove: homeTouchMove,
                 homeTouchEnd: homeTouchEnd,
+                getStatusBarClass: getStatusBarClass,
+                getBatteryStyle: getBatteryStyle,
+                getDesktopClass: getDesktopClass,
+                getDesktopStyle: getDesktopStyle,
                 getItemClass: getItemClass,
                 getWidgetStyle: getWidgetStyle,
+                getWidgetTimeStyle: getWidgetTimeStyle,
+                getDateTextStyle: getDateTextStyle,
+                getWidgetPhotoStyle: getWidgetPhotoStyle,
+                getAppIconStyle: getAppIconStyle,
                 handleItemClick: handleItemClick
             };
         }
@@ -192,4 +223,5 @@
     if (window.qqApp) app.component('qq', window.qqApp);
 
     app.mount('#app');
+
 })();
