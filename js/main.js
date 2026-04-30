@@ -1,6 +1,6 @@
 /* eslint-disable */
 /* jshint expr: true, asi: true */
-/* global window, document, setInterval, clearInterval, Date, String */
+/* global window, document, setInterval, clearInterval, Date, String, console */
 'use strict';
 
 (function () {
@@ -42,20 +42,22 @@
             var temperature = Vue.ref('26°C');
             var weatherDesc = Vue.ref('未知');
 
-            var updateWeather = async function () {
+            // 彻底去除 async/await 的 ES5 标准写法，让 JSHint 再也找不出红叉
+            var updateWeather = function () {
                 var wApi = store.apiSettings.weather;
                 if (wApi && wApi.key && wApi.city) {
-                    try {
-                        var url = 'https://api.openweathermap.org/data/2.5/weather?q=' + window.encodeURIComponent(wApi.city) + '&appid=' + wApi.key + '&units=metric&lang=zh_cn';
-                        var res = await window.fetch(url);
+                    var url = 'https://api.openweathermap.org/data/2.5/weather?q=' + window.encodeURIComponent(wApi.city) + '&appid=' + wApi.key + '&units=metric&lang=zh_cn';
+                    window.fetch(url).then(function(res) {
                         if (res.ok) {
-                            var data = await res.json();
-                            temperature.value = Math.round(data.main.temp) + '°C';
-                            weatherDesc.value = data.weather[0].description;
+                            return res.json();
                         }
-                    } catch (e) {
-                        console.warn('天气拉取失败', e);
-                    }
+                        throw new Error('API request failed');
+                    }).then(function(data) {
+                        temperature.value = Math.round(data.main.temp) + '°C';
+                        weatherDesc.value = data.weather[0].description;
+                    }).catch(function(e) {
+                        console.warn('天气拉取失败: ', e);
+                    });
                 }
             };
 
@@ -135,6 +137,23 @@
                     gridRow: 'span ' + parts[1].replace(/^\s+|\s+$/g, '')
                 };
             };
+            
+            // 抽象内联样式逻辑供给 HTML 使用
+            var getDesktopStyle = function () {
+                return { backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' };
+            };
+            var getTimeWidgetStyle = function (item) {
+                return { backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' };
+            };
+            var getDateStyle = function (item) {
+                return { color: item.bgImage ? '#eee' : '#555' };
+            };
+            var getWidgetBgStyle = function (item) {
+                return { backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' };
+            };
+            var getAppIconStyle = function (item) {
+                return { backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' };
+            };
 
             var handleItemClick = function (item, e) {
                 if (item.type === 'app') {
@@ -144,7 +163,7 @@
 
             Vue.onMounted(function () {
                 updateTime();
-                updateWeather(); // 初始化拉取一次天气
+                updateWeather(); 
                 
                 timeInterval = setInterval(updateTime, 1000);
                 batteryInterval = setInterval(updateBattery, 60000);
@@ -177,6 +196,11 @@
                 homeTouchEnd: homeTouchEnd,
                 getItemClass: getItemClass,
                 getWidgetStyle: getWidgetStyle,
+                getDesktopStyle: getDesktopStyle,
+                getTimeWidgetStyle: getTimeWidgetStyle,
+                getDateStyle: getDateStyle,
+                getWidgetBgStyle: getWidgetBgStyle,
+                getAppIconStyle: getAppIconStyle,
                 handleItemClick: handleItemClick
             };
         }
