@@ -1,6 +1,6 @@
 /* eslint-disable */
 /* jshint expr: true, asi: true */
-/* global window, document, setInterval, clearInterval, Date, String, fetch */
+/* global window, document, setInterval, clearInterval, Date, String */
 'use strict';
 
 (function () {
@@ -43,25 +43,22 @@
             var temperature = Vue.ref('26°C');
             var weatherDesc = Vue.ref('晴转多云');
 
-            // 抓取并绑定真实实时天气数据
-            var fetchWeather = function () {
-                if (!store || !store.apiSettings || !store.apiSettings.weather) return;
-                var wConfig = store.apiSettings.weather;
-                if (!wConfig.key || !wConfig.city) return;
-                
-                var url = 'https://api.openweathermap.org/data/2.5/weather?q=' + encodeURIComponent(wConfig.city) + '&appid=' + wConfig.key + '&units=metric&lang=zh_cn';
-                
-                fetch(url)
-                    .then(function (res) { return res.json(); })
-                    .then(function (data) {
-                        if (data && data.main && data.weather && data.weather[0]) {
+            // 抓取并绑定 OpenWeatherMap API 真实天气
+            var updateWeather = function () {
+                var weatherApi = store.apiSettings && store.apiSettings.weather;
+                if (weatherApi && weatherApi.key && weatherApi.city) {
+                    var url = 'https://api.openweathermap.org/data/2.5/weather?q=' + window.encodeURIComponent(weatherApi.city) + '&appid=' + weatherApi.key + '&units=metric&lang=zh_cn';
+                    window.fetch(url).then(function (res) {
+                        if (res.ok) return res.json();
+                    }).then(function (data) {
+                        if (data && data.main) {
                             temperature.value = Math.round(data.main.temp) + '°C';
                             weatherDesc.value = data.weather[0].description;
                         }
-                    })
-                    .catch(function (err) {
-                        console.warn('天气更新请求失败', err);
+                    }).catch(function (e) {
+                        console.warn('获取天气失败，请检查 API Key 或城市名称是否正确', e);
                     });
+                }
             };
 
             var openApp = function (id, e) {
@@ -126,7 +123,6 @@
                 });
             };
 
-            // 精简剔除了多余类名判断的遗毒
             var getItemClass = function (item) {
                 if (item.type === 'app') return 'app-icon';
                 return 'widget-box';
@@ -150,27 +146,24 @@
 
             Vue.onMounted(function () {
                 updateTime();
+                updateWeather();
+
                 timeInterval = setInterval(updateTime, 1000);
-
-                battery.value = 100;
                 batteryInterval = setInterval(updateBattery, 60000);
-
-                fetchWeather();
-                weatherInterval = setInterval(fetchWeather, 15 * 60 * 1000); // 15分钟刷新天气
-
-                // 监听设置组件里发出的自动刷新信号
-                window.addEventListener('reloadWeather', fetchWeather);
+                weatherInterval = setInterval(updateWeather, 1800000); // 30 分钟刷新一次天气
 
                 Vue.nextTick(function () {
                     initSortable();
                 });
             });
 
+            // 监听天气 API 配置的变化，自动触发天气刷新
+            Vue.watch(function () { return store.apiSettings.weather; }, updateWeather, { deep: true });
+
             Vue.onUnmounted(function () {
                 if (timeInterval) clearInterval(timeInterval);
                 if (batteryInterval) clearInterval(batteryInterval);
                 if (weatherInterval) clearInterval(weatherInterval);
-                window.removeEventListener('reloadWeather', fetchWeather);
             });
 
             return {
