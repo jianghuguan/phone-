@@ -1,5 +1,4 @@
 /* eslint-disable */
-/* eslint-env browser, es2021 */
 /* global Vue, window, document, FileReader, Image */
 'use strict';
 
@@ -29,10 +28,8 @@ window.widgetApp = {
                 </div>
                 <div>
                     <input type="file" accept="image/*" @change="handleImageUpload($event, widget.id)" :id="'upload_' + widget.id" style="display:none;">
-                    <button @click="triggerClick('upload_' + widget.id)" class="btn-primary" style="font-size: 12px; padding: 6px 12px;">
-                        {{ widget.bgImage ? '更换背景' : '设置背景图' }}
-                    </button>
-                    <button v-if="widget.bgImage" @click="removeBgImage(widget.id)" class="btn-danger" style="font-size: 12px; padding: 6px 12px;">移除图片</button>
+                    <button @click="triggerClick('upload_' + widget.id)" class="btn-primary" style="font-size: 12px; padding: 6px 12px;">设置背景图</button>
+                    <button v-if="widget.bgImage" @click="widget.bgImage = null; forceUpdate()" class="btn-danger" style="font-size: 12px; padding: 6px 12px;">移除图片</button>
                 </div>
             </div>
         </div>
@@ -52,7 +49,7 @@ window.widgetApp = {
                 case 'photo_1x2': newWidget = { type: 'widget', widgetType: 'photo_1x2', id: id, name: '竖版照片(1x2)', span: '1 / 2', bgImage: null }; break;
                 case 'photo_2x1': newWidget = { type: 'widget', widgetType: 'photo_2x1', id: id, name: '横版照片(2x1)', span: '2 / 1', bgImage: null }; break;
             }
-            store.desktopItems.unshift(newWidget);
+            if (newWidget) store.desktopItems.unshift(newWidget);
         };
 
         const removeWidget = (id) => {
@@ -64,13 +61,9 @@ window.widgetApp = {
             if (el) el.click();
         };
 
-        const removeBgImage = (id) => {
-            const targetWidget = store.desktopItems.find(item => item.id === id);
-            if (targetWidget) {
-                targetWidget.bgImage = null;
-                // 深度刷新数组引用，强制触发持久化存储拦截器
-                store.desktopItems = [...store.desktopItems];
-            }
+        // 强制触发 Vue 深层对象的响应并更新到数据库
+        const forceUpdate = () => {
+            store.desktopItems = [...store.desktopItems];
         };
 
         const handleImageUpload = (event, id) => {
@@ -87,27 +80,25 @@ window.widgetApp = {
                     const ctx = canvas.getContext('2d');
                     let width = img.width;
                     let height = img.height;
-                    if (width > 800) {
-                        height = Math.round((height * 800) / width);
-                        width = 800;
+                    
+                    // 【核心修复】：必须用 JPG 以压缩比例，否则 Base64 会使 IndexedDB 和 localStorage 卡死无法保存
+                    if (width > 600) {
+                        height = Math.round((height * 600) / width);
+                        width = 600;
                     }
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // 修复此处 BUG：如果不使用 jpeg 压缩质量，默认转的 png 图片将几百倍大撑爆 DB，从而无法保存！
-                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-                    
                     const targetWidget = store.desktopItems.find(item => item.id === id);
                     if (targetWidget) {
-                        targetWidget.bgImage = compressedBase64;
-                        // 强制更新主存组内引用地址，确保触发实时备份拦截
-                        store.desktopItems = [...store.desktopItems];
+                        targetWidget.bgImage = canvas.toDataURL('image/jpeg', 0.7);
+                        forceUpdate(); // 强制触发数据库更新流
                     }
                 };
             };
         };
 
-        return { store, widgets, addWidget, removeWidget, triggerClick, removeBgImage, handleImageUpload };
+        return { store, widgets, addWidget, removeWidget, triggerClick, handleImageUpload, forceUpdate };
     }
 };
