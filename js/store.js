@@ -95,9 +95,14 @@ var loadData = function () {
                     }
                     if (!window.store.apiSettings) {
                         window.store.apiSettings = { main: {url: '', key: '', model: ''}, sub: {url: '', key: '', model: ''}, draw: {url: '', key: '', model: ''}, weather: {key: '', city: 'Beijing'} };
-                    } 
-                    if (!window.store.apiSettings.draw) window.store.apiSettings.draw = { url: '', key: '', model: '' };
-                    if (!window.store.apiSettings.weather) window.store.apiSettings.weather = { key: '', city: 'Beijing' };
+                    } else {
+                        if (!window.store.apiSettings.draw) {
+                            window.store.apiSettings.draw = { url: '', key: '', model: '' };
+                        }
+                        if (!window.store.apiSettings.weather) {
+                            window.store.apiSettings.weather = { key: '', city: 'Beijing' };
+                        }
+                    }
                 }
                 
                 isStoreLoaded = true;
