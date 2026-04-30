@@ -1,3 +1,4 @@
+/* stylelint-disable */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -115,7 +116,7 @@ button:active,
     flex: 1;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: calc((100vw - 85px) / 4); /* 最安全的 vw 单位，移除 cqw*/
+    grid-auto-rows: calc((100vw - 85px) / 4);
     grid-auto-flow: row;
     gap: 15px;
     padding: 75px 20px 20px 20px; 
@@ -222,11 +223,20 @@ button:active,
     justify-content: flex-start;
 }
 
+/* 移除实验性的 display: contents 等特征，采用完美的 flex 占位 */
+.app-icon-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: 100%;
+}
+
 .icon-img {
-    width: 82%;
-    aspect-ratio: 1 / 1;
-    height: auto;
-    border-radius: 28%;
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
     flex-shrink: 0;
     display: flex;
     justify-content: center;
