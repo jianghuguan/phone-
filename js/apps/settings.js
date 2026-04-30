@@ -1,6 +1,6 @@
 /* eslint-disable */
 /* eslint-env browser, es2021 */
-/* global window, document, FileReader, Blob, URL, fetch */
+/* global window, document, FileReader, Blob, URL, fetch, Event */
 'use strict';
 
 window.settingsApp = {
@@ -17,7 +17,23 @@ window.settingsApp = {
                 <input type="file" id="importJsonFile" accept=".json" style="display:none" @change="importData" />
             </div>
 
-            <!-- API 设置复用模板块 -->
+            <!-- 天气 API 设置 -->
+            <div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+                <h3 style="font-size:16px; margin-bottom:15px;">天气 API (OpenWeatherMap)</h3>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:12px; color:#8e8e8e;">API Key</label>
+                    <input v-model="store.apiSettings.weather.key" class="settings-input" placeholder="输入 OpenWeatherMap Key" />
+                </div>
+                <div style="margin-bottom:18px;">
+                    <label style="font-size:12px; color:#8e8e8e;">城市 (拼音/英文)</label>
+                    <input v-model="store.apiSettings.weather.city" class="settings-input" placeholder="例如: Beijing" />
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button @click="saveWeather" class="btn-primary" style="flex:1; background:#007aff;">保存并拉取最新天气</button>
+                </div>
+            </div>
+
+            <!-- 常规大模型 API 设置复用模板块 -->
             <template v-for="apiType in ['main', 'sub', 'draw']" :key="apiType">
                 <div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -74,6 +90,9 @@ window.settingsApp = {
 
         if (!store.apiSettings.draw) {
             store.apiSettings.draw = { url: '', key: '', model: '' };
+        }
+        if (!store.apiSettings.weather) {
+            store.apiSettings.weather = { key: '', city: 'Beijing' };
         }
         if (!store.apiPresets) {
             store.apiPresets = [];
@@ -222,6 +241,11 @@ window.settingsApp = {
             window.alert('设置已自动保存！');
         };
 
+        const saveWeather = function () {
+            window.alert('天气设置已保存，正在重新拉取天气...');
+            window.dispatchEvent(new Event('weather-updated'));
+        };
+
         return {
             store: store,
             exportData: exportData,
@@ -229,6 +253,7 @@ window.settingsApp = {
             importData: importData,
             testApi: testApi,
             saveMsg: saveMsg,
+            saveWeather: saveWeather,
             savePreset: savePreset,
             loadPreset: loadPreset,
             fetchModels: fetchModels,
