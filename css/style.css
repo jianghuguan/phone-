@@ -13,7 +13,7 @@ body {
 #app {
     width: 100vw;
     height: 100vh;
-    background-color: #fbfbfd;
+    background-color: #000;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -110,7 +110,6 @@ button:active,
     transition: width 0.3s;
 }
 
-/* 彻底使顶栏透明：把背景元素贴紧顶部延伸到底，利用 padding-top 给应用让出空间 */
 .desktop {
     flex: 1;
     display: grid;
@@ -119,7 +118,7 @@ button:active,
     grid-auto-rows: calc((100cqw - 85px) / 4);
     grid-auto-flow: row;
     gap: 15px;
-    padding: 75px 20px 20px; 
+    padding: 65px 20px 20px;
     align-content: start;
     overflow-y: auto;
     position: absolute;
@@ -127,7 +126,7 @@ button:active,
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: transparent;
+    background-color: #fbfbfd;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -248,6 +247,7 @@ button:active,
     margin-top: 6px;
     font-weight: 500;
     pointer-events: none;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.6);
 }
 
 .app-view {
@@ -313,6 +313,549 @@ button:active,
     margin-top: 6px;
     box-sizing: border-box;
     background: #fff;
+}
+
+/* QQ App */
+.qq-container {
+    height: calc(100% - 25px);
+    display: flex;
+    flex-direction: column;
+    background: #fafafa;
+    color: #262626;
+    position: relative;
+    overflow: hidden;
+}
+
+.qq-header {
+    height: 50px;
+    border-bottom: 1px solid #efefef;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-weight: 600;
+    font-size: 16px;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.qq-content {
+    flex: 1;
+    overflow-y: auto;
+    background: #fff;
+}
+
+.qq-bottom-bar {
+    height: 55px;
+    border-top: 1px solid #efefef;
+    display: flex;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.qq-bottom-bar div {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 500;
+    color: #000;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.qq-bottom-bar div.active {
+    color: #000;
+    font-weight: 700;
+}
+
+.qq-contact-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #fafafa;
+    cursor: pointer;
+}
+
+.qq-contact-item:active {
+    background: #f0f0f0;
+}
+
+.qq-contact-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #efefef;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fff;
+    font-weight: bold;
+    margin-right: 12px;
+    border: 1px solid #eee;
+}
+
+.qq-contact-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.qq-contact-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #262626;
+    margin-bottom: 4px;
+}
+
+.qq-contact-preview {
+    font-size: 13px;
+    color: #8e8e8e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.qq-msg-row {
+    display: flex;
+    margin-bottom: 16px;
+    align-items: flex-end;
+    padding: 0 16px;
+    position: relative;
+}
+
+.qq-msg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #ccc;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #fff;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid #eee;
+}
+
+.qq-msg-row.ai .qq-msg-avatar {
+    margin-right: 10px;
+}
+
+.qq-msg-row.user .qq-msg-avatar {
+    margin-left: 10px;
+}
+
+.msg-bubble-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: 90% !important;
+}
+
+.qq-msg-row.user {
+    justify-content: flex-end;
+}
+
+.qq-msg-row.ai {
+    justify-content: flex-start;
+}
+
+.qq-msg-row.user .msg-bubble-container {
+    flex-direction: row-reverse;
+}
+
+.qq-msg-row.ai .msg-bubble-container {
+    flex-direction: row;
+}
+
+.bubble-time {
+    font-size: 11px;
+    color: #999;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+}
+
+.qq-msg-bubble {
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 15px;
+    line-height: 1.4;
+    word-break: break-all;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.qq-msg-row.user .qq-msg-bubble {
+    background: #0095f6;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+.qq-msg-row.ai .qq-msg-bubble {
+    background: #efefef;
+    color: #262626;
+    border-bottom-left-radius: 4px;
+}
+
+.msg-menu {
+    position: absolute;
+    top: -38px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    border: 1px solid #000;
+    border-radius: 20px;
+    display: flex;
+    gap: 14px;
+    padding: 6px 14px;
+    z-index: 100;
+    white-space: nowrap;
+    align-items: center;
+}
+
+.msg-menu span {
+    font-size: 13px;
+    cursor: pointer;
+    color: #000;
+    line-height: 1;
+}
+
+.qq-select-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid #efefef;
+    font-size: 14px;
+    color: #262626;
+    flex-shrink: 0;
+}
+
+.qq-select-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.qq-select-actions button {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.selected-msg {
+    outline: 2px solid #000;
+    outline-offset: 1px;
+    background: #f3f3f3 !important;
+}
+
+.quote-box {
+    font-size: 12px;
+    color: #333;
+    background: rgba(255, 255, 255, 0.4);
+    padding: 6px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    border-left: 2px solid #000;
+    word-break: break-all;
+}
+
+.quote-preview {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+    color: #666;
+}
+
+.qq-timestamp {
+    text-align: center;
+    font-size: 11px;
+    color: #999;
+    margin: 12px 0 8px;
+}
+
+.qq-msg-bubble.typing-anim {
+    animation: pulse 1.5s infinite;
+    color: #888;
+    background: transparent;
+    box-shadow: none;
+    padding: 10px 0;
+    font-size: 13px;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
+}
+
+.qq-input-area {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-top: 1px solid #eee;
+    flex-shrink: 0;
+}
+
+.qq-input-bar {
+    height: auto;
+    min-height: 52px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: flex-end;
+}
+
+.qq-input-bar textarea {
+    flex: 1;
+    border: 1px solid #000;
+    border-radius: 18px;
+    padding: 8px 12px;
+    outline: none;
+    font-size: 14px;
+    background: #fff;
+    resize: none;
+    min-height: 36px;
+    height: 36px;
+    max-height: 108px;
+    line-height: 20px;
+    overflow-y: auto;
+    margin-right: 12px;
+}
+
+.qq-input-bar button {
+    padding: 6px 16px;
+    margin-bottom: 1px;
+    height: 36px;
+}
+
+.qq-toast {
+    position: absolute;
+    top: 15px;
+    left: 10%;
+    width: 80%;
+    background: #ed4956;
+    color: #fff;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.qq-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qq-modal {
+    width: 85%;
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px;
+    max-height: 80%;
+    overflow-y: auto;
+}
+
+.qq-modal input,
+.qq-modal textarea,
+.qq-modal select {
+    width: 100%;
+    border: 1px solid #000;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    background: #fff;
+    font-family: inherit;
+}
+
+.qq-modal-btns {
+    display: flex;
+    gap: 12px;
+    margin-top: 5px;
+}
+
+.qq-modal-btns button {
+    flex: 1;
+    padding: 12px;
+}
+
+.qq-profile-header {
+    position: relative;
+    height: 220px;
+    background: #efefef;
+    background-size: cover;
+    background-position: center;
+    border-bottom: 1px solid #efefef;
+}
+
+.qq-profile-avatar {
+    position: absolute;
+    bottom: -40px;
+    left: 24px;
+    width: 85px;
+    height: 85px;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    background: #ccc;
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-card {
+    background: #fafafa;
+    border: 1px solid #efefef;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.moments-menu {
+    position: absolute;
+    top: 40px;
+    right: 16px;
+    background: #4c4c4c;
+    color: #fff;
+    border-radius: 6px;
+    width: 120px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    overflow: hidden;
+}
+
+.moments-menu div {
+    padding: 12px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid #5c5c5c;
+    text-align: center;
+}
+
+.moments-menu div:last-child {
+    border-bottom: none;
+}
+
+.moment-item {
+    display: flex;
+    padding: 16px;
+    border-bottom: 1px solid #eee;
+}
+
+.moment-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 6px;
+    background: #efefef;
+    background-size: cover;
+    background-position: center;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.moment-main {
+    flex: 1;
+    overflow: hidden;
+}
+
+.moment-name {
+    color: #576b95;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.moment-content {
+    font-size: 15px;
+    color: #111;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.moment-time {
+    font-size: 12px;
+    color: #999;
+}
+
+.moment-action-menu {
+    position: absolute;
+    right: 35px;
+    top: -10px;
+    background: #4c4c4c;
+    color: #fff;
+    border-radius: 6px;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 100;
+}
+
+.moment-action-menu span {
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-right: 1px solid #5c5c5c;
+    white-space: nowrap;
+}
+
+.moment-action-menu span:last-child {
+    border-right: none;
+}
+
+.moment-interactions {
+    background: #f7f7f7;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 13px;
+    color: #333;
+}
+
+.moment-likes {
+    color: #576b95;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.moment-likes.has-border {
+    border-bottom: 1px solid #ebebeb;
+    padding-bottom: 4px;
+}
+
+.moment-comments {
+    margin-top: 4px;
+}
+
+.moment-comments div {
+    margin-bottom: 4px;
+    word-break: break-word;
+    cursor: pointer;
+}
+
+.moment-comments div:last-child {
+    margin-bottom: 0;
 }
 
 .photo-circle {
