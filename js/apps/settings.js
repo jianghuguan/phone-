@@ -17,28 +17,27 @@ window.settingsApp = {
                 <input type="file" id="importJsonFile" accept=".json" style="display:none" @change="importData" />
             </div>
 
-            <!-- 天气 API 设置 -->
+            <!-- 天气模块 -->
             <div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-                <h3 style="font-size:16px; margin-bottom:15px;">天气 API (OpenWeatherMap)</h3>
+                <h3 style="margin-bottom:15px; font-size:16px;">天气组件 (OpenWeatherMap)</h3>
                 <div style="margin-bottom:12px;">
                     <label style="font-size:12px; color:#8e8e8e;">API Key</label>
-                    <input v-model="store.apiSettings.weather.key" class="settings-input" placeholder="输入 OpenWeatherMap Key" />
+                    <input v-model="store.apiSettings.weather.key" class="settings-input" type="password" placeholder="输入密钥自动生效" />
                 </div>
                 <div style="margin-bottom:18px;">
-                    <label style="font-size:12px; color:#8e8e8e;">城市 (拼音/英文)</label>
-                    <input v-model="store.apiSettings.weather.city" class="settings-input" placeholder="例如: Beijing" />
+                    <label style="font-size:12px; color:#8e8e8e;">城市名称 (英文/拼音)</label>
+                    <input v-model="store.apiSettings.weather.city" class="settings-input" placeholder="例如: Beijing, Shanghai" />
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <button @click="saveWeather" class="btn-primary" style="flex:1; background:#007aff;">保存并拉取最新天气</button>
+                    <button @click="saveMsg" class="btn-primary" style="flex:1; background:#007aff;">保存并刷新天气</button>
                 </div>
             </div>
 
-            <!-- 常规大模型 API 设置复用模板块 -->
             <template v-for="apiType in ['main', 'sub', 'draw']" :key="apiType">
                 <div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                         <h3 style="font-size:16px; margin:0;">
-                            {{ apiType === 'main' ? '主 API (对话)' : apiType === 'sub' ? '副 API (总结/动态)' : '绘图 API (未来)' }}
+                            {{ apiType === 'main' ? '主 API (对话)' : apiType === 'sub' ? '副 API (总结/动态)' : '绘图 API (图片)' }}
                         </h3>
                         <button @click="savePreset(apiType)" class="btn-primary" style="font-size:12px; padding:4px 8px;">保存为预设</button>
                     </div>
@@ -81,18 +80,18 @@ window.settingsApp = {
             </template>
             
             <div v-if="store.apiPresets && store.apiPresets.length > 0" style="text-align:center; padding-bottom:20px;">
-                <button @click="clearPresets" class="btn-danger" style="font-size:12px; padding:6px 12px; border:none; background:transparent; color:#ff3b30 !important; text-decoration:underline;">清除所有保存的预设</button>
+                <button @click="clearPresets" class="btn-danger" style="font-size:12px; padding:6px 12px; border:none; background:transparent; color:#ff3b30 !important; text-decoration:underline;">清除所有保存的 API 预设</button>
             </div>
         </div>
     `,
     setup: function () {
         const store = window.store;
 
-        if (!store.apiSettings.draw) {
-            store.apiSettings.draw = { url: '', key: '', model: '' };
-        }
         if (!store.apiSettings.weather) {
             store.apiSettings.weather = { key: '', city: 'Beijing' };
+        }
+        if (!store.apiSettings.draw) {
+            store.apiSettings.draw = { url: '', key: '', model: '' };
         }
         if (!store.apiPresets) {
             store.apiPresets = [];
@@ -238,12 +237,9 @@ window.settingsApp = {
         };
 
         const saveMsg = function () {
-            window.alert('设置已自动保存！');
-        };
-
-        const saveWeather = function () {
-            window.alert('天气设置已保存，正在重新拉取天气...');
-            window.dispatchEvent(new Event('weather-updated'));
+            window.alert('数据设置已实时保存生效！');
+            // 向全局派发事件，触发 main.js 里重绘当前真实的天气
+            window.dispatchEvent(new Event('reloadWeather'));
         };
 
         return {
@@ -253,7 +249,6 @@ window.settingsApp = {
             importData: importData,
             testApi: testApi,
             saveMsg: saveMsg,
-            saveWeather: saveWeather,
             savePreset: savePreset,
             loadPreset: loadPreset,
             fetchModels: fetchModels,
