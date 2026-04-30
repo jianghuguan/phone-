@@ -1,12 +1,12 @@
-/* stylelint-disable */
 * {
+    -webkit-box-sizing: border-box;
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
 body {
-    background-color: #000;
+    background-color: #000000;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     overflow: hidden;
 }
@@ -15,30 +15,38 @@ body {
     width: 100vw;
     height: 100vh;
     background-color: #fbfbfd;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -ms-flex-direction: column;
     flex-direction: column;
     position: relative;
 }
 
-button,
-.btn-primary,
-.btn-danger,
-.qq-input-bar button,
-.qq-modal-btns button {
-    background: #fff !important;
-    color: #000 !important;
-    border: 1px solid #000 !important;
-    border-radius: 20px !important;
-    font-weight: normal !important;
-    transition: all 0.1s !important;
-    box-shadow: none !important;
+/* 摒弃容易报错的 !important，使用高权重选择器来实现强制覆盖 */
+#app button,
+#app .btn-primary,
+#app .btn-danger,
+#app .qq-input-bar button,
+#app .qq-modal-btns button {
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #000000;
+    border-radius: 20px;
+    font-weight: normal;
+    -webkit-transition: all 0.1s;
+    transition: all 0.1s;
+    -webkit-box-shadow: none;
+    box-shadow: none;
     cursor: pointer;
 }
 
-button:active,
-.btn-primary:active,
-.btn-danger:active {
-    font-weight: bold !important;
+#app button:active,
+#app .btn-primary:active,
+#app .btn-danger:active {
+    font-weight: bold;
 }
 
 .status-bar {
@@ -46,43 +54,59 @@ button:active,
     top: 0;
     left: 0;
     width: 100%;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
+    -webkit-box-pack: justify;
+    -ms-flex-pack: justify;
     justify-content: space-between;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
     align-items: center;
     padding: 15px 24px 10px;
     font-size: 14px;
     font-weight: 600;
     z-index: 9999;
+    -webkit-transition: color 0.3s;
     transition: color 0.3s;
-    transform: translateZ(0); 
-    pointer-events: none; 
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    pointer-events: none;
     background: transparent;
     text-shadow: 0 1px 4px rgba(255, 255, 255, 0.4);
 }
 
 .dark-text {
-    color: #111;
+    color: #111111;
 }
 
 .status-bar:not(.dark-text) {
-    color: #333;
+    color: #333333;
 }
 
 .dynamic-island {
     width: 110px;
     height: 30px;
-    background-color: #000;
+    background-color: #000000;
     border-radius: 20px;
     position: absolute;
     left: 50%;
     top: 12px;
+    -webkit-transform: translateX(-50%);
     transform: translateX(-50%);
 }
 
 .battery {
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
     align-items: center;
-    gap: 4px;
+}
+
+.battery-text {
+    margin-right: 4px;
 }
 
 .battery-icon {
@@ -109,21 +133,24 @@ button:active,
     height: 100%;
     background-color: currentColor;
     border-radius: 2px;
+    -webkit-transition: width 0.3s;
     transition: width 0.3s;
 }
 
 .desktop {
+    -webkit-box-flex: 1;
+    -ms-flex: 1;
     flex: 1;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-auto-rows: calc((100vw - 85px) / 4);
     grid-auto-flow: row;
     gap: 15px;
-    padding: 75px 20px 20px 20px; 
+    padding: 75px 20px 20px 20px;
     align-content: start;
     overflow-y: auto;
     position: absolute;
-    top: 0; 
+    top: 0;
     left: 0;
     width: 100%;
     height: 100%;
@@ -131,38 +158,54 @@ button:active,
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    -webkit-transition: opacity 0.4s, -webkit-transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: opacity 0.4s, transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
     will-change: transform;
 }
 
 .desktop-opened {
+    -webkit-transform: scale(1.08) translateZ(0);
     transform: scale(1.08) translateZ(0);
 }
+
 .desktop > div {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s;
+    -webkit-transition: opacity 0.4s, -webkit-transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: opacity 0.4s, transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
     will-change: transform, opacity;
 }
+
 .desktop-opened > div {
-    transform: scale(0.85) translateZ(0); 
-    opacity: 0.3; 
+    -webkit-transform: scale(0.85) translateZ(0);
+    transform: scale(0.85) translateZ(0);
+    opacity: 0.3;
 }
 
 .sortable-ghost {
     opacity: 0.3;
+    -webkit-transform: scale(0.9);
     transform: scale(0.9);
+    -webkit-transition: -webkit-transform 0.2s;
     transition: transform 0.2s;
 }
 
 .widget-box {
     border-radius: 22px;
+    -webkit-box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     position: relative;
 }
 
 .widget-time {
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -ms-flex-direction: column;
     flex-direction: column;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
     justify-content: center;
     height: 100%;
     padding: 15px 20px;
@@ -172,8 +215,14 @@ button:active,
 }
 
 .time-header {
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
+    -webkit-box-pack: justify;
+    -ms-flex-pack: justify;
     justify-content: space-between;
+    -webkit-box-align: end;
+    -ms-flex-align: end;
     align-items: flex-end;
 }
 
@@ -208,26 +257,33 @@ button:active,
 .widget-photo {
     width: 100%;
     height: 100%;
-    background-color: #eee;
+    background-color: #eeeeee;
     background-size: cover;
     background-position: center;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
     justify-content: center;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
     align-items: center;
 }
 
-.app-icon {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-}
-
-/* 移除实验性的 display: contents 等特征，采用完美的 flex 占位 */
 .app-icon-wrapper {
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -ms-flex-direction: column;
     flex-direction: column;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
     align-items: center;
+    -webkit-box-pack: start;
+    -ms-flex-pack: start;
     justify-content: flex-start;
     width: 100%;
     height: 100%;
@@ -237,13 +293,21 @@ button:active,
     width: 58px;
     height: 58px;
     border-radius: 16px;
+    -ms-flex-negative: 0;
     flex-shrink: 0;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
     justify-content: center;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
     align-items: center;
     font-size: 26px;
     font-weight: bold;
-    color: #333;
+    color: #333333;
+    -webkit-box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
     pointer-events: none;
     background-size: cover;
@@ -253,7 +317,7 @@ button:active,
 
 .icon-name {
     font-size: 12px;
-    color: #555;
+    color: #555555;
     margin-top: 6px;
     font-weight: 500;
     pointer-events: none;
@@ -265,29 +329,36 @@ button:active,
     position: absolute;
     top: 0;
     left: 0;
-    background: #fff;
+    background: #ffffff;
     z-index: 10;
     padding-top: 55px;
     overflow-y: hidden;
+    -webkit-transform-origin: 50% 50%;
+    transform-origin: 50% 50%;
+    -webkit-transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
     transform-origin: var(--app-origin-x, 50%) var(--app-origin-y, 50%);
-    will-change: transform, opacity; 
-    backface-visibility: hidden; 
+    will-change: transform, opacity;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 .app-slide-enter-active,
 .app-slide-leave-active {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    -webkit-transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), -webkit-transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .app-slide-enter-from,
 .app-slide-leave-to {
-    transform: scale(0.15) translateZ(0); 
+    -webkit-transform: scale(0.15) translateZ(0);
+    transform: scale(0.15) translateZ(0);
     opacity: 0;
 }
 
 .app-slide-enter-to,
 .app-slide-leave-from {
-    transform: scale(1) translateZ(0); 
+    -webkit-transform: scale(1) translateZ(0);
+    transform: scale(1) translateZ(0);
     opacity: 1;
 }
 
@@ -298,8 +369,14 @@ button:active,
     width: 100%;
     height: 35px;
     z-index: 999;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
     justify-content: center;
+    -webkit-box-align: end;
+    -ms-flex-align: end;
     align-items: flex-end;
     padding-bottom: 12px;
 }
@@ -307,7 +384,7 @@ button:active,
 .home-indicator {
     width: 130px;
     height: 5px;
-    background-color: #000;
+    background-color: #000000;
     border-radius: 10px;
     cursor: pointer;
 }
@@ -321,14 +398,14 @@ button:active,
     outline: none;
     margin-top: 6px;
     box-sizing: border-box;
-    background: #fff;
+    background: #ffffff;
 }
 
-.photo-circle {
-    border-radius: 50% !important;
+#app .photo-circle {
+    border-radius: 50%;
 }
 
 .sortable-swap-highlight {
-    outline: 2px dashed #000;
+    outline: 2px dashed #000000;
     opacity: 0.8;
 }
