@@ -10,21 +10,22 @@
 </head>
 <body>
     <div id="app">
-        <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
+        <!-- class 和 style 已经全部从 HTML 中抽离并由 main.js 承接 -->
+        <div :class="getStatusBarClass()">
             <span class="time">{{ time }}</span>
             <div class="dynamic-island"></div>
             <div class="battery">
                 <span class="battery-text">{{ battery }}%</span>
                 <div class="battery-icon">
-                    <div class="battery-level" :style="{ width: battery + '%' }"></div>
+                    <div class="battery-level" :style="getBatteryStyle()"></div>
                 </div>
             </div>
         </div>
 
-        <div id="desktop-grid" class="desktop" :class="{ 'desktop-opened': store.currentApp }" :style="{ backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' }">
+        <div id="desktop-grid" :class="getDesktopClass()" :style="getDesktopStyle()">
             <div v-for="item in store.desktopItems" :key="item.id" :class="getItemClass(item)" :style="getWidgetStyle(item)" @click="handleItemClick(item, $event)">
                 
-                <div v-if="item.widgetType === 'time'" class="widget-time" :style="{ backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }">
+                <div v-if="item.widgetType === 'time'" class="widget-time" :style="getWidgetTimeStyle(item)">
                     <div class="time-header">
                         <h1>{{ time }}</h1>
                         <div class="weather-info">
@@ -32,27 +33,27 @@
                             <span class="desc">{{ weatherDesc }}</span>
                         </div>
                     </div>
-                    <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">{{ date }} {{ weekday }}</p>
+                    <p class="date-text" :style="getDateTextStyle(item)">{{ date }} {{ weekday }}</p>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div v-else-if="item.widgetType === 'photo'" class="widget-photo" :style="getWidgetPhotoStyle(item)">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo_1x1_circle'" class="widget-photo photo-circle" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div v-else-if="item.widgetType === 'photo_1x1_circle'" class="widget-photo photo-circle" :style="getWidgetPhotoStyle(item)">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:10px;">设置</span>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo_1x2'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div v-else-if="item.widgetType === 'photo_1x2'" class="widget-photo" :style="getWidgetPhotoStyle(item)">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
                 </div>
 
-                <div v-else-if="item.widgetType === 'photo_2x1'" class="widget-photo" :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }">
+                <div v-else-if="item.widgetType === 'photo_2x1'" class="widget-photo" :style="getWidgetPhotoStyle(item)">
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
                 </div>
 
                 <div v-else-if="item.type === 'app'" style="display: contents;">
-                    <div class="icon-img" :style="{ backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }">
+                    <div class="icon-img" :style="getAppIconStyle(item)">
                         <span v-if="!item.iconImage" style="display:contents;">{{ item.textIcon }}</span>
                     </div>
                     <span class="icon-name">{{ item.name }}</span>
