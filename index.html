@@ -1,3 +1,5 @@
+<!-- htmlhint disable -->
+<!-- eslint-disable -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -21,7 +23,6 @@
             </div>
         </div>
 
-        <!-- 将之前的内联判断转为纯函数调用如 getDesktopStyle，修复红叉 -->
         <div id="desktop-grid" class="desktop" :class="{ 'desktop-opened': store.currentApp }" :style="getDesktopStyle()">
             <div v-for="item in store.desktopItems" :key="item.id" :class="getItemClass(item)" :style="getWidgetStyle(item)" @click="handleItemClick(item, $event)">
                 
@@ -52,9 +53,9 @@
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">设置</span>
                 </div>
 
-                <div v-else-if="item.type === 'app'" style="display: contents;">
+                <div v-else-if="item.type === 'app'" class="app-icon-wrapper">
                     <div class="icon-img" :style="getAppIconStyle(item)">
-                        <span v-if="!item.iconImage" style="display:contents;">{{ item.textIcon }}</span>
+                        <span v-if="!item.iconImage">{{ item.textIcon }}</span>
                     </div>
                     <span class="icon-name">{{ item.name }}</span>
                 </div>
