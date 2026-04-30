@@ -1,5 +1,6 @@
 /* eslint-disable */
-/* global Vue, window, document, FileReader, Image */
+/* eslint-env browser, es2021 */
+/* jshint ignore:start */
 'use strict';
 
 window.widgetApp = {
@@ -34,14 +35,18 @@ window.widgetApp = {
             </div>
         </div>
     `,
-    setup() {
-        const store = window.store;
+    setup: function () {
+        var store = window.store;
 
-        const widgets = Vue.computed(() => store.desktopItems.filter(item => item.type === 'widget'));
+        var widgets = window.Vue.computed(function () {
+            return store.desktopItems.filter(function (item) {
+                return item.type === 'widget';
+            });
+        });
 
-        const addWidget = (type) => {
-            const id = type + '_' + Date.now();
-            let newWidget;
+        var addWidget = function (type) {
+            var id = type + '_' + Date.now();
+            var newWidget = null;
             switch(type) {
                 case 'time': newWidget = { type: 'widget', widgetType: 'time', id: id, name: '时钟天气(4x2)', span: '4 / 2', bgImage: null }; break;
                 case 'photo': newWidget = { type: 'widget', widgetType: 'photo', id: id, name: '照片墙(2x2)', span: '2 / 2', bgImage: null }; break;
@@ -49,39 +54,43 @@ window.widgetApp = {
                 case 'photo_1x2': newWidget = { type: 'widget', widgetType: 'photo_1x2', id: id, name: '竖版照片(1x2)', span: '1 / 2', bgImage: null }; break;
                 case 'photo_2x1': newWidget = { type: 'widget', widgetType: 'photo_2x1', id: id, name: '横版照片(2x1)', span: '2 / 1', bgImage: null }; break;
             }
-            if (newWidget) store.desktopItems.unshift(newWidget);
+            if (newWidget) {
+                store.desktopItems.unshift(newWidget);
+            }
         };
 
-        const removeWidget = (id) => {
-            store.desktopItems = store.desktopItems.filter(item => item.id !== id);
+        var removeWidget = function (id) {
+            store.desktopItems = store.desktopItems.filter(function (item) {
+                return item.id !== id;
+            });
         };
 
-        const triggerClick = (id) => {
-            const el = document.getElementById(id);
+        var triggerClick = function (id) {
+            var el = document.getElementById(id);
             if (el) el.click();
         };
 
-        // 强制触发 Vue 深层对象的响应并更新到数据库
-        const forceUpdate = () => {
-            store.desktopItems = [...store.desktopItems];
+        var forceUpdate = function () {
+            var updatedItems = [];
+            for (var i = 0; i < store.desktopItems.length; i++) {
+                updatedItems.push(store.desktopItems[i]);
+            }
+            store.desktopItems = updatedItems;
         };
 
-        const handleImageUpload = (event, id) => {
-            const file = event.target.files[0];
+        var handleImageUpload = function (event, id) {
+            var file = event.target.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (e) => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    let width = img.width;
-                    let height = img.height;
-                    
-                    // 【核心修复】：必须用 JPG 以压缩比例，否则 Base64 会使 IndexedDB 和 localStorage 卡死无法保存
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var img = new Image();
+                img.onload = function () {
+                    var canvas = document.createElement('canvas');
+                    var ctx = canvas.getContext('2d');
+                    var width = img.width;
+                    var height = img.height;
+
                     if (width > 600) {
                         height = Math.round((height * 600) / width);
                         width = 600;
@@ -89,16 +98,33 @@ window.widgetApp = {
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
+
+                    var targetWidget = null;
+                    for (var j = 0; j < store.desktopItems.length; j++) {
+                        if (store.desktopItems[j].id === id) {
+                            targetWidget = store.desktopItems[j];
+                            break;
+                        }
+                    }
                     
-                    const targetWidget = store.desktopItems.find(item => item.id === id);
                     if (targetWidget) {
                         targetWidget.bgImage = canvas.toDataURL('image/jpeg', 0.7);
-                        forceUpdate(); // 强制触发数据库更新流
+                        forceUpdate();
                     }
                 };
+                img.src = e.target.result;
             };
+            reader.readAsDataURL(file);
         };
 
-        return { store, widgets, addWidget, removeWidget, triggerClick, handleImageUpload, forceUpdate };
+        return { 
+            store: store, 
+            widgets: widgets, 
+            addWidget: addWidget, 
+            removeWidget: removeWidget, 
+            triggerClick: triggerClick, 
+            handleImageUpload: handleImageUpload, 
+            forceUpdate: forceUpdate 
+        };
     }
 };
