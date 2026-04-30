@@ -1,6 +1,6 @@
 /* eslint-disable */
 /* jshint expr: true, asi: true */
-/* global window, document, setInterval, clearInterval, Date, String, console */
+/* global window, document, setInterval, clearInterval, Date, String, fetch */
 'use strict';
 
 (function () {
@@ -31,6 +31,7 @@
 
             var timeInterval = null;
             var batteryInterval = null;
+            var weatherInterval = null;
 
             var battery = Vue.ref(100);
             var updateBattery = function () {
@@ -40,25 +41,27 @@
             };
 
             var temperature = Vue.ref('26°C');
-            var weatherDesc = Vue.ref('未知');
+            var weatherDesc = Vue.ref('晴转多云');
 
-            // 彻底去除 async/await 的 ES5 标准写法，让 JSHint 再也找不出红叉
-            var updateWeather = function () {
-                var wApi = store.apiSettings.weather;
-                if (wApi && wApi.key && wApi.city) {
-                    var url = 'https://api.openweathermap.org/data/2.5/weather?q=' + window.encodeURIComponent(wApi.city) + '&appid=' + wApi.key + '&units=metric&lang=zh_cn';
-                    window.fetch(url).then(function(res) {
-                        if (res.ok) {
-                            return res.json();
+            // 抓取并绑定真实实时天气数据
+            var fetchWeather = function () {
+                if (!store || !store.apiSettings || !store.apiSettings.weather) return;
+                var wConfig = store.apiSettings.weather;
+                if (!wConfig.key || !wConfig.city) return;
+                
+                var url = 'https://api.openweathermap.org/data/2.5/weather?q=' + encodeURIComponent(wConfig.city) + '&appid=' + wConfig.key + '&units=metric&lang=zh_cn';
+                
+                fetch(url)
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        if (data && data.main && data.weather && data.weather[0]) {
+                            temperature.value = Math.round(data.main.temp) + '°C';
+                            weatherDesc.value = data.weather[0].description;
                         }
-                        throw new Error('API request failed');
-                    }).then(function(data) {
-                        temperature.value = Math.round(data.main.temp) + '°C';
-                        weatherDesc.value = data.weather[0].description;
-                    }).catch(function(e) {
-                        console.warn('天气拉取失败: ', e);
+                    })
+                    .catch(function (err) {
+                        console.warn('天气更新请求失败', err);
                     });
-                }
             };
 
             var openApp = function (id, e) {
@@ -123,6 +126,7 @@
                 });
             };
 
+            // 精简剔除了多余类名判断的遗毒
             var getItemClass = function (item) {
                 if (item.type === 'app') return 'app-icon';
                 return 'widget-box';
@@ -137,23 +141,6 @@
                     gridRow: 'span ' + parts[1].replace(/^\s+|\s+$/g, '')
                 };
             };
-            
-            // 抽象内联样式逻辑供给 HTML 使用
-            var getDesktopStyle = function () {
-                return { backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' };
-            };
-            var getTimeWidgetStyle = function (item) {
-                return { backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' };
-            };
-            var getDateStyle = function (item) {
-                return { color: item.bgImage ? '#eee' : '#555' };
-            };
-            var getWidgetBgStyle = function (item) {
-                return { backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' };
-            };
-            var getAppIconStyle = function (item) {
-                return { backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' };
-            };
 
             var handleItemClick = function (item, e) {
                 if (item.type === 'app') {
@@ -163,12 +150,16 @@
 
             Vue.onMounted(function () {
                 updateTime();
-                updateWeather(); 
-                
                 timeInterval = setInterval(updateTime, 1000);
+
+                battery.value = 100;
                 batteryInterval = setInterval(updateBattery, 60000);
 
-                window.addEventListener('weather-updated', updateWeather);
+                fetchWeather();
+                weatherInterval = setInterval(fetchWeather, 15 * 60 * 1000); // 15分钟刷新天气
+
+                // 监听设置组件里发出的自动刷新信号
+                window.addEventListener('reloadWeather', fetchWeather);
 
                 Vue.nextTick(function () {
                     initSortable();
@@ -178,7 +169,8 @@
             Vue.onUnmounted(function () {
                 if (timeInterval) clearInterval(timeInterval);
                 if (batteryInterval) clearInterval(batteryInterval);
-                window.removeEventListener('weather-updated', updateWeather);
+                if (weatherInterval) clearInterval(weatherInterval);
+                window.removeEventListener('reloadWeather', fetchWeather);
             });
 
             return {
@@ -196,11 +188,6 @@
                 homeTouchEnd: homeTouchEnd,
                 getItemClass: getItemClass,
                 getWidgetStyle: getWidgetStyle,
-                getDesktopStyle: getDesktopStyle,
-                getTimeWidgetStyle: getTimeWidgetStyle,
-                getDateStyle: getDateStyle,
-                getWidgetBgStyle: getWidgetBgStyle,
-                getAppIconStyle: getAppIconStyle,
                 handleItemClick: handleItemClick
             };
         }
