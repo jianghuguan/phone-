@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* eslint-disable */
 /* jshint ignore:start */
 'use strict';
