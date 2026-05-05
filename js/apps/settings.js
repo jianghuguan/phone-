@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* eslint-disable */
 /* eslint-env browser, es2021 */
 /* global window, document, FileReader, Blob, URL, fetch */
@@ -46,12 +47,7 @@ window.settingsApp = {
                         <label style="font-size:12px; color:#8e8e8e;">模型选择 (Model)</label>
                         <div style="display:flex; gap:10px; align-items:center; margin-top:6px;">
                             <input v-model="store.apiSettings[apiType].model" class="settings-input" style="margin-top:0; flex:1;" placeholder="gpt-3.5-turbo" />
-                            <select 
-                                v-if="store.fetchedModels && store.fetchedModels.length" 
-                                v-model="store.apiSettings[apiType].model" 
-                                class="settings-input" 
-                                style="margin-top:0; width:120px;"
-                            >
+                            <select v-if="store.fetchedModels && store.fetchedModels.length" v-model="store.apiSettings[apiType].model" class="settings-input" style="margin-top:0; width:120px;">
                                 <option v-for="m in store.fetchedModels" :key="m" :value="m">{{m}}</option>
                             </select>
                             <button @click="fetchModels(apiType)" class="btn-primary" style="font-size:12px; padding:8px 12px; height:36px; margin:0;">拉取</button>
