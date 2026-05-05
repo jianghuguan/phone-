@@ -5,66 +5,61 @@
 'use strict';
 
 window.settingsApp = {
-    template: `
-        <div style="padding: 20px; height: calc(100% - 60px); overflow-y:auto; background:#fbfbfd;">
-            <h2 style="font-weight: 600; margin-bottom: 20px; font-size:24px;">设置</h2>
-            
-            <div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-                <h3 style="margin-bottom:15px; font-size:16px;">数据管理 (JSON)</h3>
-                <div style="display:flex; gap:10px;">
-                    <button @click="exportData" class="btn-primary" style="flex:1;">导出备份</button>
-                    <button @click="triggerImport" class="btn-primary" style="flex:1; background:#34c759;">导入备份</button>
-                </div>
-                <input type="file" id="importJsonFile" accept=".json" style="display:none" @change="importData" />
-            </div>
-
-            <!-- API 设置复用模板块 -->
-            <template v-for="apiType in ['main', 'sub', 'draw']" :key="apiType">
-                <div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                        <h3 style="font-size:16px; margin:0;">
-                            {{ apiType === 'main' ? '主 API (对话)' : apiType === 'sub' ? '副 API (总结/动态)' : '绘图 API (未来)' }}
-                        </h3>
-                        <button @click="savePreset(apiType)" class="btn-primary" style="font-size:12px; padding:4px 8px;">保存为预设</button>
-                    </div>
-
-                    <div v-if="store.apiPresets && store.apiPresets.length > 0" style="margin-bottom:12px;">
-                        <select @change="loadPreset(apiType, $event)" class="settings-input" style="padding:6px; background:#f5f5f5;">
-                            <option value="">-- 选择预设快速套用 --</option>
-                            <option v-for="p in store.apiPresets" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
-                    </div>
-
-                    <div style="margin-bottom:12px;">
-                        <label style="font-size:12px; color:#8e8e8e;">接口地址 (URL)</label>
-                        <input v-model="store.apiSettings[apiType].url" class="settings-input" placeholder="https://api.openai.com" />
-                    </div>
-                    <div style="margin-bottom:12px;">
-                        <label style="font-size:12px; color:#8e8e8e;">密钥 (API Key)</label>
-                        <input v-model="store.apiSettings[apiType].key" class="settings-input" type="password" placeholder="sk-..." />
-                    </div>
-                    <div style="margin-bottom:18px;">
-                        <label style="font-size:12px; color:#8e8e8e;">模型选择 (Model)</label>
-                        <div style="display:flex; gap:10px; align-items:center; margin-top:6px;">
-                            <input v-model="store.apiSettings[apiType].model" class="settings-input" style="margin-top:0; flex:1;" placeholder="gpt-3.5-turbo" />
-                            <select v-if="store.fetchedModels && store.fetchedModels.length" v-model="store.apiSettings[apiType].model" class="settings-input" style="margin-top:0; width:120px;">
-                                <option v-for="m in store.fetchedModels" :key="m" :value="m">{{m}}</option>
-                            </select>
-                            <button @click="fetchModels(apiType)" class="btn-primary" style="font-size:12px; padding:8px 12px; height:36px; margin:0;">拉取</button>
-                        </div>
-                    </div>
-                    <div style="display:flex; gap:10px;">
-                        <button @click="testApi(apiType)" class="btn-primary" style="flex:1; background:#f0f0f0; color:#333;">测试</button>
-                        <button @click="saveMsg" class="btn-primary" style="flex:1; background:#007aff;">保存</button>
-                    </div>
-                </div>
-            </template>
-            
-            <div v-if="store.apiPresets && store.apiPresets.length > 0" style="text-align:center; padding-bottom:20px;">
-                <button @click="clearPresets" class="btn-danger" style="font-size:12px; padding:6px 12px; border:none; background:transparent; color:#ff3b30 !important; text-decoration:underline;">清除所有保存的预设</button>
-            </div>
-        </div>
-    `,
+    template: [
+        '<div style="padding: 20px; height: calc(100% - 60px); overflow-y:auto; background:#fbfbfd;">',
+            '<h2 style="font-weight: 600; margin-bottom: 20px; font-size:24px;">设置</h2>',
+            '<div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">',
+                '<h3 style="margin-bottom:15px; font-size:16px;">数据管理 (JSON)</h3>',
+                '<div style="display:flex; gap:10px;">',
+                    '<button @click="exportData" class="btn-primary" style="flex:1;">导出备份</button>',
+                    '<button @click="triggerImport" class="btn-primary" style="flex:1; background:#34c759;">导入备份</button>',
+                '</div>',
+                '<input type="file" id="importJsonFile" accept=".json" style="display:none" @change="importData" />',
+            '</div>',
+            '<!-- API 设置复用模板块 -->',
+            '<template v-for="apiType in [\'main\', \'sub\', \'draw\']" :key="apiType">',
+                '<div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">',
+                    '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">',
+                        '<h3 style="font-size:16px; margin:0;">',
+                            '{{ apiType === \'main\' ? \'主 API (对话)\' : apiType === \'sub\' ? \'副 API (总结/动态)\' : \'绘图 API (未来)\' }}',
+                        '</h3>',
+                        '<button @click="savePreset(apiType)" class="btn-primary" style="font-size:12px; padding:4px 8px;">保存为预设</button>',
+                    '</div>',
+                    '<div v-if="store.apiPresets && store.apiPresets.length > 0" style="margin-bottom:12px;">',
+                        '<select @change="loadPreset(apiType, $event)" class="settings-input" style="padding:6px; background:#f5f5f5;">',
+                            '<option value="">-- 选择预设快速套用 --</option>',
+                            '<option v-for="p in store.apiPresets" :key="p.id" :value="p.id">{{ p.name }}</option>',
+                        '</select>',
+                    '</div>',
+                    '<div style="margin-bottom:12px;">',
+                        '<label style="font-size:12px; color:#8e8e8e;">接口地址 (URL)</label>',
+                        '<input v-model="store.apiSettings[apiType].url" class="settings-input" placeholder="https://api.openai.com" />',
+                    '</div>',
+                    '<div style="margin-bottom:12px;">',
+                        '<label style="font-size:12px; color:#8e8e8e;">密钥 (API Key)</label>',
+                        '<input v-model="store.apiSettings[apiType].key" class="settings-input" type="password" placeholder="sk-..." />',
+                    '</div>',
+                    '<div style="margin-bottom:18px;">',
+                        '<label style="font-size:12px; color:#8e8e8e;">模型选择 (Model)</label>',
+                        '<div style="display:flex; gap:10px; align-items:center; margin-top:6px;">',
+                            '<input v-model="store.apiSettings[apiType].model" class="settings-input" style="margin-top:0; flex:1;" placeholder="gpt-3.5-turbo" />',
+                            '<select v-if="store.fetchedModels && store.fetchedModels.length" v-model="store.apiSettings[apiType].model" class="settings-input" style="margin-top:0; width:120px;">',
+                                '<option v-for="m in store.fetchedModels" :key="m" :value="m">{{m}}</option>',
+                            '</select>',
+                            '<button @click="fetchModels(apiType)" class="btn-primary" style="font-size:12px; padding:8px 12px; height:36px; margin:0;">拉取</button>',
+                        '</div>',
+                    '</div>',
+                    '<div style="display:flex; gap:10px;">',
+                        '<button @click="testApi(apiType)" class="btn-primary" style="flex:1; background:#f0f0f0; color:#333;">测试</button>',
+                        '<button @click="saveMsg" class="btn-primary" style="flex:1; background:#007aff;">保存</button>',
+                    '</div>',
+                '</div>',
+            '</template>',
+            '<div v-if="store.apiPresets && store.apiPresets.length > 0" style="text-align:center; padding-bottom:20px;">',
+                '<button @click="clearPresets" class="btn-danger" style="font-size:12px; padding:6px 12px; border:none; background:transparent; color:#ff3b30 !important; text-decoration:underline;">清除所有保存的预设</button>',
+            '</div>',
+        '</div>'
+    ].join(''),
     setup: function () {
         const store = window.store;
 
