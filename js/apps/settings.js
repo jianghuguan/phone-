@@ -17,26 +17,12 @@ window.settingsApp = {
                 <input type="file" id="importJsonFile" accept=".json" style="display:none" @change="importData" />
             </div>
 
-            <!-- 天气 API 专属设置块 (自动触发全服更新) -->
-            <div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-                <h3 style="font-size:16px; margin-bottom:15px; margin-top:0;">真实天气 API (OpenWeather)</h3>
-                <div style="margin-bottom:12px;">
-                    <label style="font-size:12px; color:#8e8e8e;">所在城市拼音 (如 Beijing, Shanghai)</label>
-                    <input v-model="store.apiSettings.weather.city" class="settings-input" placeholder="Beijing" />
-                </div>
-                <div style="margin-bottom:18px;">
-                    <label style="font-size:12px; color:#8e8e8e;">OpenWeatherMap 密钥 (API Key)</label>
-                    <input v-model="store.apiSettings.weather.key" class="settings-input" type="password" placeholder="此处填写从官网申请的免费 key" />
-                </div>
-                <button @click="saveMsg" class="btn-primary" style="width:100%; background:#007aff;">保存并刷新天气</button>
-            </div>
-
-            <!-- AI API 设置模板块 -->
+            <!-- API 设置复用模板块 -->
             <template v-for="apiType in ['main', 'sub', 'draw']" :key="apiType">
                 <div style="background: #fff; padding: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                         <h3 style="font-size:16px; margin:0;">
-                            {{ apiType === 'main' ? '主 API (对话)' : apiType === 'sub' ? '副 API (总结/动态)' : '绘图 API (图片生成)' }}
+                            {{ apiType === 'main' ? '主 API (对话)' : apiType === 'sub' ? '副 API (总结/动态)' : '绘图 API (未来)' }}
                         </h3>
                         <button @click="savePreset(apiType)" class="btn-primary" style="font-size:12px; padding:4px 8px;">保存为预设</button>
                     </div>
@@ -88,9 +74,6 @@ window.settingsApp = {
 
         if (!store.apiSettings.draw) {
             store.apiSettings.draw = { url: '', key: '', model: '' };
-        }
-        if (!store.apiSettings.weather) {
-            store.apiSettings.weather = { key: '', city: 'Beijing' };
         }
         if (!store.apiPresets) {
             store.apiPresets = [];
@@ -236,7 +219,7 @@ window.settingsApp = {
         };
 
         const saveMsg = function () {
-            window.alert('设置与数据已自动保存！主屏幕天气会自动抓取刷新。');
+            window.alert('设置已自动保存！');
         };
 
         return {
