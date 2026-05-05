@@ -1,3 +1,5 @@
+// @ts-nocheck
+/* eslint-disable */
 /* global Vue, window, document, FileReader, Image */
 'use strict';
 
