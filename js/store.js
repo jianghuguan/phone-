@@ -1,5 +1,4 @@
 /* eslint-disable */
-/* eslint-env browser, es2021 */
 /* jshint ignore:start */
 'use strict';
 
@@ -23,8 +22,7 @@ var initialState = {
     apiSettings: {
         main: { url: 'https://api.openai.com', key: '', model: 'gpt-3.5-turbo' },
         sub: { url: '', key: '', model: '' },
-        draw: { url: '', key: '', model: '' },
-        weather: { key: '', city: 'Beijing' }
+        draw: { url: '', key: '', model: '' }
     },
     qqData: {
         profile: { avatar: null, bgImage: null, nickname: '我', signature: '记录生活的美好' },
@@ -95,13 +93,9 @@ var loadData = function () {
                         window.store.desktopItems = defaultDesktopItems;
                     }
                     if (!window.store.apiSettings) {
-                        window.store.apiSettings = { main: {url: '', key: '', model: ''}, sub: {url: '', key: '', model: ''}, draw: {url: '', key: '', model: ''}, weather: {key: '', city: 'Beijing'} };
-                    } 
-                    if (!window.store.apiSettings.draw) {
+                        window.store.apiSettings = { main: {url: '', key: '', model: ''}, sub: {url: '', key: '', model: ''}, draw: {url: '', key: '', model: ''} };
+                    } else if (!window.store.apiSettings.draw) {
                         window.store.apiSettings.draw = { url: '', key: '', model: '' };
-                    }
-                    if (!window.store.apiSettings.weather) {
-                        window.store.apiSettings.weather = { key: '', city: 'Beijing' };
                     }
                 }
                 
