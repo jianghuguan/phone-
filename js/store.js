@@ -65,7 +65,7 @@ var fallbackLocalLoad = function () {
         if (localStr) {
             Object.assign(window.store, JSON.parse(localStr));
         }
-    } catch (e) {}
+    } catch (e) { void e; }
 };
 
 var loadData = function () {
@@ -84,7 +84,7 @@ var loadData = function () {
                         if (localStr) {
                             savedData = JSON.parse(localStr);
                         }
-                    } catch (e) {}
+                    } catch (e) { void e; }
                 }
 
                 if (savedData) {
@@ -135,13 +135,13 @@ var saveData = function (data) {
                     var storeObj = tx.objectStore('store');
                     storeObj.put(rawData, 'myPhoneData');
                     
-                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) {}
+                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) { void e; }
                 })
                 .catch(function () {
-                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) {}
+                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) { void e; }
                 });
         }, 400); 
-    } catch (err) {}
+    } catch (err) { void err; }
 };
 
 window.addEventListener('visibilitychange', function() {
@@ -149,7 +149,7 @@ window.addEventListener('visibilitychange', function() {
         try {
             var rawData = JSON.parse(JSON.stringify(window.store));
             window.localStorage.setItem('myPhoneData', JSON.stringify(rawData));
-        } catch(e) {}
+        } catch(e) { void e; }
     }
 });
 
