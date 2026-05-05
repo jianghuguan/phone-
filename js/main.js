@@ -1,6 +1,6 @@
 /* eslint-disable */
-/* eslint-env browser, es2021 */
-/* jshint ignore:start */
+/* jshint expr: true, asi: true */
+/* global window, document, setInterval, clearInterval, Date, String */
 'use strict';
 
 (function () {
@@ -15,6 +15,7 @@
             var date = Vue.ref('');
             var weekday = Vue.ref('');
 
+            // 使用最基础的兼容语法生成时间，避开 padStart 引起的语法报错
             var updateTime = function () {
                 var now = new Date();
                 var h = now.getHours();
@@ -31,7 +32,6 @@
 
             var timeInterval = null;
             var batteryInterval = null;
-            var weatherInterval = null;
 
             var battery = Vue.ref(100);
             var updateBattery = function () {
@@ -42,23 +42,6 @@
 
             var temperature = Vue.ref('26°C');
             var weatherDesc = Vue.ref('晴转多云');
-
-            var updateWeather = function () {
-                var weatherApi = store.apiSettings && store.apiSettings.weather;
-                if (weatherApi && weatherApi.key && weatherApi.city) {
-                    var url = 'https://api.openweathermap.org/data/2.5/weather?q=' + window.encodeURIComponent(weatherApi.city) + '&appid=' + weatherApi.key + '&units=metric&lang=zh_cn';
-                    window.fetch(url).then(function (res) {
-                        return res.ok ? res.json() : null;
-                    }).then(function (data) {
-                        if (data && data.main) {
-                            temperature.value = Math.round(data.main.temp) + '°C';
-                            weatherDesc.value = data.weather[0].description;
-                        }
-                    }).catch(function (e) {
-                        console.warn('Weather fetch failed', e);
-                    });
-                }
-            };
 
             var openApp = function (id, e) {
                 if (e && e.currentTarget) {
@@ -111,55 +94,32 @@
                         var oldIdx = evt.oldIndex;
                         var newIdx = evt.newIndex;
                         if (oldIdx === newIdx) return;
-                        
-                        var items = [];
-                        for (var i = 0; i < store.desktopItems.length; i++) {
-                            items.push(store.desktopItems[i]);
-                        }
+
+                        var items = store.desktopItems.slice();
                         var temp = items[oldIdx];
                         items[oldIdx] = items[newIdx];
                         items[newIdx] = temp;
+
                         store.desktopItems = items;
                     }
                 });
             };
 
-            // 彻底杜决 HTML Inline Style 报错：统一在这提供样式数据
-            var getStatusBarClass = function () {
-                return !store.currentApp ? 'status-bar dark-text' : 'status-bar';
-            };
-            var getBatteryStyle = function () {
-                return { width: battery.value + '%' };
-            };
-            var getDesktopClass = function () {
-                return store.currentApp ? 'desktop desktop-opened' : 'desktop';
-            };
-            var getDesktopStyle = function () {
-                return { backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none' };
-            };
             var getItemClass = function (item) {
-                return item.type === 'app' ? 'app-icon' : 'widget-box';
+                if (item.type === 'app') return 'app-icon';
+                if (item.widgetType === 'dialog_2x2') return 'transparent-widget';
+                return 'widget-box';
             };
+
             var getWidgetStyle = function (item) {
                 if (item.type !== 'widget' || !item.span) return {};
                 var parts = String(item.span).split('/');
                 if (parts.length < 2) return {};
+                // 使用正则替换替代 trim() 以达到最极端的向后兼容
                 return {
                     gridColumn: 'span ' + parts[0].replace(/^\s+|\s+$/g, ''),
                     gridRow: 'span ' + parts[1].replace(/^\s+|\s+$/g, '')
                 };
-            };
-            var getWidgetTimeStyle = function(item) { 
-                return { backgroundColor: 'transparent', backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none', color: item.bgImage ? '#fff' : '#333' }; 
-            };
-            var getDateTextStyle = function(item) { 
-                return { color: item.bgImage ? '#eee' : '#555' }; 
-            };
-            var getWidgetPhotoStyle = function(item) { 
-                return { backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }; 
-            };
-            var getAppIconStyle = function(item) { 
-                return { backgroundColor: item.color, backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none' }; 
             };
 
             var handleItemClick = function (item, e) {
@@ -170,23 +130,19 @@
 
             Vue.onMounted(function () {
                 updateTime();
-                updateWeather();
-
                 timeInterval = setInterval(updateTime, 1000);
+
+                battery.value = 100;
                 batteryInterval = setInterval(updateBattery, 60000);
-                weatherInterval = setInterval(updateWeather, 1800000);
 
                 Vue.nextTick(function () {
                     initSortable();
                 });
             });
 
-            Vue.watch(function () { return store.apiSettings.weather; }, updateWeather, { deep: true });
-
             Vue.onUnmounted(function () {
                 if (timeInterval) clearInterval(timeInterval);
                 if (batteryInterval) clearInterval(batteryInterval);
-                if (weatherInterval) clearInterval(weatherInterval);
             });
 
             return {
@@ -202,16 +158,8 @@
                 homeTouchStart: homeTouchStart,
                 homeTouchMove: homeTouchMove,
                 homeTouchEnd: homeTouchEnd,
-                getStatusBarClass: getStatusBarClass,
-                getBatteryStyle: getBatteryStyle,
-                getDesktopClass: getDesktopClass,
-                getDesktopStyle: getDesktopStyle,
                 getItemClass: getItemClass,
                 getWidgetStyle: getWidgetStyle,
-                getWidgetTimeStyle: getWidgetTimeStyle,
-                getDateTextStyle: getDateTextStyle,
-                getWidgetPhotoStyle: getWidgetPhotoStyle,
-                getAppIconStyle: getAppIconStyle,
                 handleItemClick: handleItemClick
             };
         }
@@ -223,5 +171,4 @@
     if (window.qqApp) app.component('qq', window.qqApp);
 
     app.mount('#app');
-
 })();
