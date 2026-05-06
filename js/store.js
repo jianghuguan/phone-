@@ -1,6 +1,7 @@
 // @ts-nocheck
 /* eslint-disable */
-/* jshint ignore:start */
+/* eslint-env browser, es2021 */
+/* global window, Promise, Object, JSON, Date */
 'use strict';
 
 var defaultDesktopItems = [
@@ -65,8 +66,8 @@ var fallbackLocalLoad = function () {
         if (localStr) {
             Object.assign(window.store, JSON.parse(localStr));
         }
-    } catch (err) {
-        /* ignore */
+    } catch (e) {
+        void e;
     }
 };
 
@@ -86,8 +87,8 @@ var loadData = function () {
                         if (localStr) {
                             savedData = JSON.parse(localStr);
                         }
-                    } catch (err) {
-                        /* ignore */
+                    } catch (e) {
+                        void e;
                     }
                 }
 
@@ -139,14 +140,14 @@ var saveData = function (data) {
                     var storeObj = tx.objectStore('store');
                     storeObj.put(rawData, 'myPhoneData');
                     
-                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (err) { /* ignore */ }
+                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) { void e; }
                 })
                 .catch(function () {
-                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (err) { /* ignore */ }
+                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) { void e; }
                 });
         }, 400); 
-    } catch (err) {
-        /* ignore */
+    } catch (e) {
+        void e;
     }
 };
 
@@ -155,8 +156,8 @@ window.addEventListener('visibilitychange', function() {
         try {
             var rawData = JSON.parse(JSON.stringify(window.store));
             window.localStorage.setItem('myPhoneData', JSON.stringify(rawData));
-        } catch(err) {
-            /* ignore */
+        } catch(e) {
+            void e;
         }
     }
 });
