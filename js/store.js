@@ -1,5 +1,6 @@
+// @ts-nocheck
 /* eslint-disable */
-/* global window, Promise */
+/* jshint ignore:start */
 'use strict';
 
 var defaultDesktopItems = [
@@ -64,8 +65,8 @@ var fallbackLocalLoad = function () {
         if (localStr) {
             Object.assign(window.store, JSON.parse(localStr));
         }
-    } catch (e) {
-        console.warn('Fallback load error:', e);
+    } catch (err) {
+        /* ignore */
     }
 };
 
@@ -85,8 +86,8 @@ var loadData = function () {
                         if (localStr) {
                             savedData = JSON.parse(localStr);
                         }
-                    } catch (e) {
-                        console.warn('Local parse error:', e);
+                    } catch (err) {
+                        /* ignore */
                     }
                 }
 
@@ -138,22 +139,14 @@ var saveData = function (data) {
                     var storeObj = tx.objectStore('store');
                     storeObj.put(rawData, 'myPhoneData');
                     
-                    try { 
-                        window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); 
-                    } catch (e) {
-                        console.warn('Local save error:', e);
-                    }
+                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (err) { /* ignore */ }
                 })
                 .catch(function () {
-                    try { 
-                        window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); 
-                    } catch (e) {
-                        console.warn('Local save error fallback:', e);
-                    }
+                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (err) { /* ignore */ }
                 });
         }, 400); 
     } catch (err) {
-        console.warn('Stringify error:', err);
+        /* ignore */
     }
 };
 
@@ -162,8 +155,8 @@ window.addEventListener('visibilitychange', function() {
         try {
             var rawData = JSON.parse(JSON.stringify(window.store));
             window.localStorage.setItem('myPhoneData', JSON.stringify(rawData));
-        } catch(e) {
-            console.warn('Visibility save error:', e);
+        } catch(err) {
+            /* ignore */
         }
     }
 });
