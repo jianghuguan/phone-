@@ -1,4 +1,3 @@
-// @ts-nocheck
 /* eslint-disable */
 /* jshint esversion: 8 */
 /* global window */
@@ -41,6 +40,7 @@ const app = createApp({
         const temperature = ref('26°C');
         const weatherDesc = ref('晴转多云');
 
+        // 捕捉被点击图标的事件，计算展开原点位置
         const openApp = function (id, e) { 
             if (e && e.currentTarget) {
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -80,20 +80,15 @@ const app = createApp({
             window.Sortable.create(grid, {
                 animation: 250,
                 ghostClass: 'sortable-ghost',
-                delay: 300,
+                delay: 200,
                 delayOnTouchOnly: true,
-                swap: true,
-                swapClass: 'sortable-swap-highlight',
                 onEnd: function (evt) {
                     const oldIdx = evt.oldIndex;
                     const newIdx = evt.newIndex;
                     if (oldIdx === newIdx) return;
-                    
                     const items = store.desktopItems.slice();
-                    const temp = items[oldIdx];
-                    items[oldIdx] = items[newIdx];
-                    items[newIdx] = temp;
-                    
+                    const movedItem = items.splice(oldIdx, 1)[0];
+                    items.splice(newIdx, 0, movedItem);
                     store.desktopItems = items;
                 }
             });
