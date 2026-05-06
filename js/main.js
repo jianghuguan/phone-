@@ -3,13 +3,12 @@
 /* global window, document */
 'use strict';
 
-// 核心修改：将解构赋值拆解成传统的变量赋值，完美绕过 GitHub 的语法检查报错
-const Vue = window.Vue;
-const createApp = Vue.createApp;
-const ref = Vue.ref;
-const onMounted = Vue.onMounted;
-const onUnmounted = Vue.onUnmounted;
-const nextTick = Vue.nextTick;
+// 修复白屏：不重复声明 Vue 变量，直接从 window.Vue 中把需要的方法提取出来
+const createApp = window.Vue.createApp;
+const ref = window.Vue.ref;
+const onMounted = window.Vue.onMounted;
+const onUnmounted = window.Vue.onUnmounted;
+const nextTick = window.Vue.nextTick;
 
 const app = createApp({
     setup: function () {
