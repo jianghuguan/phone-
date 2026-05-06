@@ -1,10 +1,9 @@
-// @ts-nocheck
 /* eslint-disable */
-/* eslint-env browser, es2021 */
-/* global window, Promise, Object, JSON, Date */
+/* jshint esversion: 8 */
+/* global Vue, window, console, Promise */
 'use strict';
 
-var defaultDesktopItems = [
+const defaultDesktopItems = [
     { type: 'widget', widgetType: 'time', id: 'timeWidget_1', name: '时钟天气', span: '4 / 2', bgImage: null },
     { type: 'widget', widgetType: 'photo', id: 'photoWidget_1', name: '照片墙', span: '2 / 2', bgImage: null },
     { type: 'app', id: 'qq', name: 'QQ', textIcon: 'Q', color: '#ffffff', iconImage: null },
@@ -17,7 +16,7 @@ var defaultDesktopItems = [
     { type: 'app', id: 'widgetApp', name: '小组件', textIcon: '组', color: '#ffffff', iconImage: null }
 ];
 
-var initialState = {
+let initialState = {
     currentApp: null,
     desktopItems: defaultDesktopItems,
     desktopBgImage: null,
@@ -40,19 +39,17 @@ var initialState = {
     }
 };
 
-window.store = window.Vue.reactive(initialState);
-var isStoreLoaded = false;
+window.store = Vue.reactive(initialState);
+let isStoreLoaded = false;
 
-var initDB = function () {
+// 封装 IndexedDB
+const initDB = function () {
     return new Promise(function (resolve, reject) {
-        if (!window.indexedDB) {
-            return reject('Browser does not support IndexedDB');
-        }
-        var request = window.indexedDB.open('MyPhoneDB', 1);
+        const request = window.indexedDB.open('MyPhoneDB', 1);
         request.onerror = function () { reject(request.error); };
         request.onsuccess = function () { resolve(request.result); };
         request.onupgradeneeded = function (e) {
-            var db = e.target.result;
+            const db = e.target.result;
             if (!db.objectStoreNames.contains('store')) {
                 db.createObjectStore('store');
             }
@@ -60,111 +57,60 @@ var initDB = function () {
     });
 };
 
-var fallbackLocalLoad = function () {
-    try {
-        var localStr = window.localStorage.getItem('myPhoneData');
-        if (localStr) {
-            Object.assign(window.store, JSON.parse(localStr));
-        }
-    } catch (e) {
-        void e;
-    }
-};
-
-var loadData = function () {
+const loadData = function () {
     initDB()
         .then(function (db) {
-            var tx = db.transaction('store', 'readonly');
-            var storeObj = tx.objectStore('store');
-            var request = storeObj.get('myPhoneData');
+            const tx = db.transaction('store', 'readonly');
+            const storeObj = tx.objectStore('store');
+            const request = storeObj.get('myPhoneData');
             
             request.onsuccess = function () {
-                var savedData = request.result;
-                
-                if (!savedData) {
-                    try {
-                        var localStr = window.localStorage.getItem('myPhoneData');
-                        if (localStr) {
-                            savedData = JSON.parse(localStr);
-                        }
-                    } catch (e) {
-                        void e;
-                    }
-                }
-
+                const savedData = request.result;
                 if (savedData) {
                     Object.assign(window.store, savedData);
                     
+                    // 补齐可能缺失的基础结构
                     if (!window.store.desktopItems || window.store.desktopItems.length === 0) {
                         window.store.desktopItems = defaultDesktopItems;
                     }
-                    if (!window.store.apiSettings) {
-                        window.store.apiSettings = { main: {url: '', key: '', model: ''}, sub: {url: '', key: '', model: ''}, draw: {url: '', key: '', model: ''} };
-                    } else if (!window.store.apiSettings.draw) {
+                    if (!window.store.apiSettings.draw) {
                         window.store.apiSettings.draw = { url: '', key: '', model: '' };
                     }
                 }
-                
                 isStoreLoaded = true;
-                if (savedData) {
-                    saveData(window.store);
-                }
             };
-            
             request.onerror = function () {
-                fallbackLocalLoad();
                 isStoreLoaded = true;
             };
         })
-        .catch(function () {
-            fallbackLocalLoad();
+        .catch(function (err) {
+            console.warn('Failed to read DB, using default state.', err);
             isStoreLoaded = true;
         });
 };
 
-var saveTimeout = null;
-var saveData = function (data) {
+const saveData = function (data) {
     if (!isStoreLoaded) return;
-    
-    if (saveTimeout) {
-        window.clearTimeout(saveTimeout);
-    }
-    
     try {
-        var rawData = JSON.parse(JSON.stringify(data));
-        
-        saveTimeout = window.setTimeout(function () {
-            initDB()
-                .then(function (db) {
-                    var tx = db.transaction('store', 'readwrite');
-                    var storeObj = tx.objectStore('store');
-                    storeObj.put(rawData, 'myPhoneData');
-                    
-                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) { void e; }
-                })
-                .catch(function () {
-                    try { window.localStorage.setItem('myPhoneData', JSON.stringify(rawData)); } catch (e) { void e; }
-                });
-        }, 400); 
-    } catch (e) {
-        void e;
+        const rawData = JSON.parse(JSON.stringify(data));
+        initDB()
+            .then(function (db) {
+                const tx = db.transaction('store', 'readwrite');
+                const storeObj = tx.objectStore('store');
+                storeObj.put(rawData, 'myPhoneData');
+            })
+            .catch(function (err) {
+                console.warn('Failed to save DB', err);
+            });
+    } catch (err) {
+        console.warn('Failed to stringify DB data', err);
     }
 };
 
-window.addEventListener('visibilitychange', function() {
-    if (window.document.visibilityState === 'hidden' && isStoreLoaded) {
-        try {
-            var rawData = JSON.parse(JSON.stringify(window.store));
-            window.localStorage.setItem('myPhoneData', JSON.stringify(rawData));
-        } catch(e) {
-            void e;
-        }
-    }
-});
-
+// 立即触发读取
 loadData();
 
-window.Vue.watch(
+Vue.watch(
     window.store,
     function (newState) {
         saveData(newState);
