@@ -1,9 +1,15 @@
 /* eslint-disable */
 /* jshint esversion: 8 */
-/* global window */
+/* global window, document */
 'use strict';
 
-const { createApp, ref, onMounted, onUnmounted, nextTick } = window.Vue;
+// 核心修改：将解构赋值拆解成传统的变量赋值，完美绕过 GitHub 的语法检查报错
+const Vue = window.Vue;
+const createApp = Vue.createApp;
+const ref = Vue.ref;
+const onMounted = Vue.onMounted;
+const onUnmounted = Vue.onUnmounted;
+const nextTick = Vue.nextTick;
 
 const app = createApp({
     setup: function () {
