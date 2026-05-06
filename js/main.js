@@ -1,14 +1,9 @@
 /* eslint-disable */
 /* jshint esversion: 8 */
-/* global window, document */
+/* global window */
 'use strict';
 
-// 修复白屏：不重复声明 Vue 变量，直接从 window.Vue 中把需要的方法提取出来
-const createApp = window.Vue.createApp;
-const ref = window.Vue.ref;
-const onMounted = window.Vue.onMounted;
-const onUnmounted = window.Vue.onUnmounted;
-const nextTick = window.Vue.nextTick;
+const { createApp, ref, onMounted, onUnmounted, nextTick } = window.Vue;
 
 const app = createApp({
     setup: function () {
