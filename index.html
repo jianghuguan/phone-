@@ -13,42 +13,41 @@
 </head>
 <body>
     <div id="app">
-        <div class="status-bar" :class="{ 'dark-text': !store.currentApp }">
+        <div class="status-bar" v-bind:class="{ 'dark-text': !store.currentApp }">
             <span class="time">{{ time }}</span>
             <div class="dynamic-island"></div>
             <div class="battery">
                 <span class="battery-text">{{ battery }}%</span>
                 <div class="battery-icon">
-                    <div class="battery-level" :style="{ width: battery + '%' }"></div>
+                    <div class="battery-level" v-bind:style="{ width: battery + '%' }"></div>
                 </div>
             </div>
         </div>
 
-        <!-- 增加动态类 desktop-opened -->
         <div
             id="desktop-grid"
             class="desktop"
-            :class="{ 'desktop-opened': store.currentApp }"
-            :style="{
+            v-bind:class="{ 'desktop-opened': store.currentApp }"
+            v-bind:style="{
                 backgroundImage: store.desktopBgImage ? 'url(' + store.desktopBgImage + ')' : 'none'
             }"
         >
             <div
                 v-for="item in store.desktopItems"
-                :key="item.id"
-                :class="{ 'widget-box': item.type === 'widget', 'app-icon': item.type === 'app' }"
-                :style="item.type === 'widget'
+                v-bind:key="item.id"
+                v-bind:class="{ 'widget-box': item.type === 'widget', 'app-icon': item.type === 'app' }"
+                v-bind:style="item.type === 'widget'
                     ? {
                         gridColumn: 'span ' + item.span.split('/')[0].trim(),
                         gridRow: 'span ' + item.span.split('/')[1].trim()
                     }
                     : {}"
-                @click="item.type === 'app' ? openApp(item.id, $event) : null"
+                v-on:click="item.type === 'app' ? openApp(item.id, $event) : null"
             >
                 <div
                     v-if="item.widgetType === 'time'"
                     class="widget-time"
-                    :style="{
+                    v-bind:style="{
                         backgroundColor: 'transparent',
                         backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none',
                         color: item.bgImage ? '#fff' : '#333'
@@ -61,7 +60,7 @@
                             <span class="desc">{{ weatherDesc }}</span>
                         </div>
                     </div>
-                    <p class="date-text" :style="{ color: item.bgImage ? '#eee' : '#555' }">
+                    <p class="date-text" v-bind:style="{ color: item.bgImage ? '#eee' : '#555' }">
                         {{ date }} {{ weekday }}
                     </p>
                 </div>
@@ -69,7 +68,7 @@
                 <div
                     v-else-if="item.widgetType === 'photo'"
                     class="widget-photo"
-                    :style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }"
+                    v-bind:style="{ backgroundImage: item.bgImage ? 'url(' + item.bgImage + ')' : 'none' }"
                 >
                     <span v-if="!item.bgImage" style="color:#aaa; font-size:12px;">去小组件App设置</span>
                 </div>
@@ -77,7 +76,7 @@
                 <div v-else-if="item.type === 'app'" style="display: contents;">
                     <div
                         class="icon-img"
-                        :style="{
+                        v-bind:style="{
                             backgroundColor: item.color,
                             backgroundImage: item.iconImage ? 'url(' + item.iconImage + ')' : 'none'
                         }"
@@ -91,12 +90,12 @@
 
         <transition name="app-slide">
             <div v-show="store.currentApp" class="app-view">
-                <component :is="store.currentApp" v-if="store.currentApp"></component>
+                <component v-bind:is="store.currentApp" v-if="store.currentApp"></component>
                 <div
                     class="home-indicator-wrapper"
-                    @touchstart="homeTouchStart"
-                    @touchmove="homeTouchMove"
-                    @touchend="homeTouchEnd"
+                    v-on:touchstart="homeTouchStart"
+                    v-on:touchmove="homeTouchMove"
+                    v-on:touchend="homeTouchEnd"
                 >
                     <div class="home-indicator"></div>
                 </div>
